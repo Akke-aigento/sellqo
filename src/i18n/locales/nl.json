@@ -7779,7 +7779,23 @@
       },
       "kassaDevice": {
         "seen": "SellQo Kassa {{when}} gezien",
-        "waiting": "{{n}} wachtend op het toestel"
+        "waiting": "{{n}} wachtend op het toestel",
+        "pair": "Toestel koppelen",
+        "pairTitle": "Toestel koppelen aan {{name}}",
+        "pairIntro": "Open SellQo Kassa op het toestel (de app of /kassa in de browser) en tik deze code in, of scan de QR-code. De code werkt één keer.",
+        "pairExpires": "Nog {{time}} geldig",
+        "pairExpired": "Deze code is verlopen.",
+        "pairNew": "Nieuwe code",
+        "pairDone": "Gekoppeld: {{name}}. Het toestel is klaar voor de pincodes van je personeel.",
+        "pairFailed": "Er kon geen koppelcode gemaakt worden. Enkel de zaakvoerder kan toestellen koppelen.",
+        "close": "Sluiten",
+        "unpair": "Ontkoppelen",
+        "unpairTitle": "Toestel ontkoppelen?",
+        "unpairBody": "{{name}} kan meteen niets meer op de kassa. Openstaande rekeningen blijven bewaard. Opnieuw gebruiken kan met een nieuwe koppelcode.",
+        "unpairDone": "{{name}} is ontkoppeld.",
+        "unpairFailed": "Ontkoppelen lukte niet. Probeer opnieuw.",
+        "unpairedLogin": "Oude aanmelding (niet gekoppeld)",
+        "pairedOn": "gekoppeld {{when}}"
       }
     },
     "kitchen": {
@@ -11567,28 +11583,6 @@
       "save": "Opslaan",
       "close": "Sluiten"
     },
-    "signIn": {
-      "title": "Kassa aanmelden",
-      "intro": "Meld dit toestel één keer aan met je SellQo-account. Je personeel werkt daarna met een pincode.",
-      "email": "E-mailadres",
-      "password": "Wachtwoord",
-      "submit": "Aanmelden",
-      "error": "Aanmelden lukte niet. Controleer je e-mailadres en wachtwoord."
-    },
-    "setup": {
-      "title": "Welke kassa is dit?",
-      "intro": "Kies de kassa die op dit toestel draait. Dat onthoudt het toestel.",
-      "business": "Zaak",
-      "loadError": "De kassa's konden niet geladen worden.",
-      "noTerminals": "Er is nog geen kassa. Vraag de zaakvoerder om er een aan te maken: in de kassa-app of in SellQo onder Kassa (POS).",
-      "noBusiness": "Dit account hoort bij geen enkele zaak.",
-      "terminalGone": "De gekozen kassa bestaat niet meer. Kies opnieuw.",
-      "noTerminalsAdmin": "Er is nog geen kassa in deze zaak. Maak er hier meteen een aan; dit toestel wordt er dan aan gekoppeld.",
-      "newName": "Naam van de kassa",
-      "defaultName": "Kassa 1",
-      "create": "Kassa aanmaken",
-      "createFailed": "Kassa aanmaken lukte niet: {{reason}}"
-    },
     "pin": {
       "whoAreYou": "Wie ben je?",
       "notMe": "Niet {{name}}? Kies opnieuw",
@@ -11618,7 +11612,6 @@
         "offline": "Geen verbinding met SellQo. Je bent niet in- of uitgeklokt; probeer opnieuw."
       },
       "noInsz": "Zonder rijksregisternummer kan je op deze geregistreerde kassa niets registreren.",
-      "changeTerminal": "Andere kassa kiezen",
       "live": "Live",
       "offline": "Offline · {{n}} wachtende acties",
       "tab": {
@@ -11629,13 +11622,16 @@
       "menu": "Menu",
       "toAdmin": "Naar SellQo-beheer",
       "backToTables": "Terug naar de tafels",
-      "changeTerminalConfirm": "Dit toestel loskoppelen van {{name}}? Daarna kies je opnieuw een kassa.",
-      "changeTerminalYes": "Loskoppelen",
       "language": "Taal",
       "languageShop": "Taal van de zaak ({{lang}})",
       "clockAlreadyIn": "Je was al ingeklokt (op een ander toestel).",
       "clockAlreadyOut": "Je was al uitgeklokt (op een ander toestel).",
-      "clockNotSaved": "Geregistreerd, maar je uren konden niet bewaard worden. Vraag een verantwoordelijke om ze na te kijken."
+      "clockNotSaved": "Geregistreerd, maar je uren konden niet bewaard worden. Vraag een verantwoordelijke om ze na te kijken.",
+      "unpair": "Ontkoppel dit toestel",
+      "unpairConfirm": "Dit toestel loskoppelen van {{name}}? Daarna werkt de kassa hier pas weer met een nieuwe koppelcode uit beheer.",
+      "unpairYes": "Ontkoppelen",
+      "toAdminWarning": "Beheer opent in een nieuw venster. Doe dat liefst op een ander toestel: meld je in dezelfde browser aan met je eigen account, dan wordt deze kassa afgemeld en moet je ze opnieuw koppelen.",
+      "toAdminOpen": "Openen in nieuw venster"
     },
     "fiscalMode": {
       "off": "niet-fiscale modus",
@@ -12069,6 +12065,41 @@
       "shiftHint": "Wat jij vandaag afrekende, met de fooi erbij. Dezelfde cijfers als jouw regel in het X-rapport.",
       "deleteCheck": "Rekening schrappen",
       "qtyLocked": "Op deze lijn staat een korting: het aantal ligt vast. Haal de lijn weg en tik opnieuw."
+    },
+    "pair": {
+      "title": "Dit toestel koppelen",
+      "intro": "Maak in SellQo onder Kassa (POS) › Kassa's een koppelcode bij de juiste kassa. Tik hier de 6 cijfers in of scan de QR-code.",
+      "codeLabel": "Koppelcode",
+      "submit": "Koppelen",
+      "scan": "QR-code scannen",
+      "scanTitle": "Richt de camera op de QR-code",
+      "cameraFailed": "De camera kon niet starten. Tik de 6 cijfers in.",
+      "whereHint": "Het toestel krijgt een eigen aanmelding met enkel kassarechten. Je SellQo-wachtwoord tik je hier nooit in.",
+      "error": {
+        "format": "Dat is geen koppelcode. Tik de 6 cijfers in of scan de QR-code.",
+        "invalid_code": "Deze code klopt niet, is al gebruikt of verlopen. Maak een nieuwe in beheer.",
+        "rate_limited": "Te veel foute pogingen. Wacht een kwartier en probeer opnieuw.",
+        "offline": "Geen verbinding. Koppelen kan enkel online.",
+        "server": "Koppelen lukte niet. Probeer opnieuw."
+      }
+    },
+    "notDevice": {
+      "owner": {
+        "title": "Dit is geen kassatoestel",
+        "body": "Je bent aangemeld met je eigen SellQo-account. De kassa draait voortaan op een gekoppeld toestel met enkel kassarechten. Maak in beheer onder Kassa (POS) › Kassa's een koppelcode, meld je hier af en koppel dit toestel."
+      },
+      "revoked": {
+        "title": "Dit toestel is ontkoppeld",
+        "body": "Deze kassa werd ontkoppeld in beheer of op het toestel zelf. Maak in beheer een nieuwe koppelcode om het opnieuw te gebruiken."
+      },
+      "error": {
+        "title": "Kassa niet geladen",
+        "body": "De gegevens van dit toestel konden niet geladen worden. Controleer de verbinding en probeer opnieuw."
+      },
+      "toPos": "Naar Kassa (POS) › Kassa's",
+      "retry": "Opnieuw proberen",
+      "signOutAndPair": "Afmelden en dit toestel koppelen",
+      "pairAgain": "Opnieuw koppelen"
     }
   },
   "deviceAlerts": {

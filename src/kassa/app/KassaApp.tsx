@@ -1,15 +1,17 @@
-// PERSONEEL-1 — de kassa als app: aanmelden toestel → kassa kiezen → PIN → startscherm.
+// PERSONEEL-1 — de kassa als app: toestel koppelen → PIN → startscherm.
 // Draait als eigen app-target (src/kassa/app/main.tsx) en op het web onder /kassa.
-import { useEffect, useMemo, useState } from 'react';
+// KASSA-ACCOUNT-1 — het toestel meldt zich aan met een eigen gekoppelde account (code/QR uit beheer), niet
+// meer met een SellQo-account: zaak, kassa en toestel-ID komen uit de serverkoppeling (kassa_device_context).
+// De kassa krijgt een eigen TenantContext (enkel de velden die ze toont), geen tenants-select.
+import { useCallback, useEffect, useMemo, useState, type ContextType } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Loader2 } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { TenantProvider, useTenant } from '@/hooks/useTenant';
+import { TenantContext } from '@/hooks/useTenant';
 import { KassaSessionProvider, useKassaSession } from './session';
-import { fiscalSettingsOf, forgetDevice, KassaRuntime, loadDevice, type DeviceConfig } from './runtime';
-import { SignIn } from './screens/SignIn';
-import { DeviceSetup } from './screens/DeviceSetup';
+import { fiscalSettingsOf, KassaRuntime, loadDevice } from './runtime';
+import { PairDevice } from './screens/PairDevice';
+import { NotADevice } from './screens/NotADevice';
 import { PinLock } from './screens/PinLock';
 import { KassaHome } from './screens/KassaHome';
 import { useKassaBackground } from './useKassaBackground';
@@ -22,62 +24,37 @@ import { KASSA_SOUND_KEY, KASSA_WAKE_KEY, type KassaAlerts } from './alerts';
 import { kassaLanguage } from './language';
 import { useKassaLockMinutes } from './horeca/paySettings';
 import { effectiveLockMinutes, revokeStaffToken } from './horeca/staffSession';
+import { clearDeviceCache, deviceConfigOf, fetchDeviceContext, unpairThisDevice, type ContextResult, type DeviceContext } from './deviceAccount';
+import { isDeviceUser } from './setup';
 
 function Spinner() {
   const { t } = useTranslation();
   return <div className="flex min-h-screen items-center justify-center"><Loader2 className="h-6 w-6 animate-spin" aria-label={t('kassa.common.loading')} /></div>;
 }
 
-function Device() {
-  const { t, i18n } = useTranslation();
-  const { tenants, loading, currentTenant, setCurrentTenant } = useTenant();
-  const { staff } = useKassaSession();
-  const [device, setDevice] = useState<DeviceConfig | null>(() => loadDevice());
-  const [terminal, setTerminal] = useState<{ name: string; settings: unknown } | null>(null);
-  const [terminalError, setTerminalError] = useState(false);
+type TenantCtx = NonNullable<ContextType<typeof TenantContext>>;
 
-  // Een opgeslagen toestel van een zaak waar deze account niet (meer) bij hoort: opnieuw kiezen.
-  const valid = device && !loading && tenants.some((x) => x.id === device.tenantId);
-  // Het zaalplan en de kaart lezen de "huidige zaak": die moet de zaak van dit toestel zijn.
-  useEffect(() => {
-    if (!valid || !device || currentTenant?.id === device.tenantId) return;
-    const tnt = tenants.find((x) => x.id === device.tenantId);
-    if (tnt) setCurrentTenant(tnt);
-  }, [valid, device, currentTenant, tenants, setCurrentTenant]);
+/** Gekoppeld toestel: eigen "huidige zaak" voor de gedeelde hooks (zaalplan, keukenbord, kaart), runtime, PIN. */
+function Device({ ctx, onUnpair }: { ctx: DeviceContext; onUnpair: () => void }) {
+  const { i18n } = useTranslation();
+  const device = useMemo(() => deviceConfigOf(ctx), [ctx]);
+  const tenantValue = useMemo<TenantCtx>(() => {
+    const tenant = ctx.tenant as unknown as TenantCtx['currentTenant'];
+    return { currentTenant: tenant, tenants: tenant ? [tenant] : [], loading: false, setCurrentTenant: () => {}, refreshTenants: async () => {} };
+  }, [ctx]);
   // KASSA-UX-2: de kassa spreekt de taal van de zaak (of wat dit toestel koos in het ⋯-menu).
-  const tenantLanguage = (currentTenant as { language?: string | null } | null)?.language ?? null;
   useEffect(() => {
-    if (!valid || currentTenant?.id !== device?.tenantId) return;
-    const lang = kassaLanguage(tenantLanguage);
+    const lang = kassaLanguage(ctx.tenant.language);
     if (i18n.language !== lang) void i18n.changeLanguage(lang);
-  }, [valid, currentTenant?.id, device?.tenantId, tenantLanguage, i18n]);
-  useEffect(() => {
-    if (!device || !valid) return;
-    let alive = true;
-    (async () => {
-      const { data, error } = await supabase.from('pos_terminals').select('name, settings').eq('id', device.terminalRowId).maybeSingle();
-      if (!alive) return;
-      if (error || !data) setTerminalError(true); else setTerminal(data);
-    })();
-    return () => { alive = false; };
-  }, [device, valid]);
-
-  const runtime = useMemo(() => (device && terminal ? new KassaRuntime(device, fiscalSettingsOf(terminal.settings), 'NL') : null), [device, terminal]);
+  }, [ctx.tenant.language, i18n]);
+  const runtime = useMemo(() => new KassaRuntime(device, fiscalSettingsOf(ctx.terminal.settings), 'NL'), [device, ctx.terminal.settings]);
   // Ondertekende events/betalingen doorsturen en hartslag, ook op het PIN-scherm.
-  useKassaBackground(runtime && currentTenant?.id === device?.tenantId ? runtime : null);
-  const reset = () => { forgetDevice(); setDevice(null); setTerminal(null); setTerminalError(false); };
-
-  if (loading) return <Spinner />;
-  if (!device || !valid || terminalError) {
-    return (
-      <>
-        {terminalError && <p role="alert" className="p-3 text-center text-sm text-destructive">{t('kassa.setup.terminalGone')}</p>}
-        <DeviceSetup onDone={(d) => { setTerminalError(false); setDevice(d); }} />
-      </>
-    );
-  }
-  if (!runtime || !terminal || currentTenant?.id !== device.tenantId) return <Spinner />;
-  return <KassaLive runtime={runtime} terminalName={terminal.name} onForgetDevice={reset} />;
+  useKassaBackground(runtime);
+  return (
+    <TenantContext.Provider value={tenantValue}>
+      <KassaLive runtime={runtime} terminalName={ctx.terminal.name} onForgetDevice={onUnpair} />
+    </TenantContext.Provider>
+  );
 }
 
 /** MELDING-1 — draait zolang de kassa gekoppeld is, ook op het PIN-scherm: één poll (store), meldingen
@@ -99,17 +76,39 @@ function KassaLive({ runtime, terminalName, onForgetDevice }: { runtime: KassaRu
   return <KassaHome runtime={runtime} store={store} alerts={alerts} terminalName={terminalName} onForgetDevice={onForgetDevice} />;
 }
 
+/** Aangemeld: is deze sessie een gekoppeld toestel? Zo ja de kassa, anders uitleg (eigenaar) of opnieuw koppelen. */
+function DeviceGate({ userId, deviceUser }: { userId: string; deviceUser: boolean }) {
+  const { signOut } = useAuth();
+  const [state, setState] = useState<ContextResult | null>(null);
+  const load = useCallback(() => {
+    let alive = true;
+    setState(null);
+    void fetchDeviceContext(userId).then((r) => { if (alive) setState(r); });
+    return () => { alive = false; };
+  }, [userId]);
+  useEffect(() => load(), [load]);
+  // Eigenaar: enkel afmelden (de bewaarde toestel-ID blijft, zodat koppelen hetzelfde deviceId geeft).
+  // Ingetrokken toestel: ook de bewaarde context weg.
+  const leave = async () => { if (deviceUser) clearDeviceCache(); await signOut(); };
+  const unpair = async () => { await unpairThisDevice(); await signOut(); };
+
+  if (!state) return <Spinner />;
+  if (state.kind === 'device') {
+    return (
+      <KassaSessionProvider onEnd={(token) => revokeStaffToken(loadDevice()?.tenantId, token)}>
+        <Device ctx={state.ctx} onUnpair={() => void unpair()} />
+      </KassaSessionProvider>
+    );
+  }
+  if (state.kind === 'error') return <NotADevice variant="error" onSignOut={leave} onRetry={load} />;
+  return <NotADevice variant={deviceUser ? 'revoked' : 'owner'} onSignOut={leave} />;
+}
+
 export function KassaApp() {
   const { user, loading } = useAuth();
   // MELDING-1: "SellQo Kassa" als beginscherm-app (op iPad/iPhone nodig voor meldingen).
   useAppShell('/kassa.webmanifest', 'Kassa', '#0f172a');
   if (loading) return <Spinner />;
-  if (!user) return <SignIn />;
-  return (
-    <TenantProvider>
-      <KassaSessionProvider onEnd={(token) => revokeStaffToken(loadDevice()?.tenantId, token)}>
-        <Device />
-      </KassaSessionProvider>
-    </TenantProvider>
-  );
+  if (!user) return <PairDevice />;
+  return <DeviceGate key={user.id} userId={user.id} deviceUser={isDeviceUser(user)} />;
 }

@@ -17,12 +17,15 @@ const DONE_KEEP_MS = 12 * 3600_000;
 export const BOARD_POLL_FAST = 3_000;
 const BOARD_POLL_DEFAULT = 10_000;
 
-export function useKitchenBoard(nowMs: number, enabled = true, intervalMs = BOARD_POLL_DEFAULT) {
+/** KASSA-ACCOUNT-1: `kassaDevice` = het keukenbord op SellQo Kassa. Een kassatoestel heeft geen leesrecht op
+ *  `orders` (klantgegevens); het krijgt de webshop-/QR-bestellingen via de smalle RPC kassa_kitchen_orders
+ *  (zelfde vorm, zelfde venster). Beheer (/admin/keuken, dashboard) blijft ongewijzigd op REST. */
+export function useKitchenBoard(nowMs: number, enabled = true, intervalMs = BOARD_POLL_DEFAULT, opts: { kassaDevice?: boolean } = {}) {
   const { t } = useTranslation();
   const { currentTenant } = useTenant();
   const tenantId = currentTenant?.id;
   const qc = useQueryClient();
-  const key = ['kitchen-board', tenantId];
+  const key = ['kitchen-board', tenantId, opts.kassaDevice ? 'kassa' : 'admin'];
   const mutationKey = ['kitchen-board-status', tenantId];
 
   const query = useQuery({
@@ -34,11 +37,14 @@ export function useKitchenBoard(nowMs: number, enabled = true, intervalMs = BOAR
     queryFn: async () => {
       const since = new Date(Date.now() - WINDOW_MS).toISOString();
       const doneSince = new Date(Date.now() - DONE_KEEP_MS).toISOString();
-      const [o, t] = await Promise.all([
-        supabase.from('orders')
+      const ordersQuery = opts.kassaDevice
+        ? supabase.rpc('kassa_kitchen_orders' as never, { p_tenant_id: tenantId! } as never)
+        : supabase.from('orders')
           .select('id, order_number, created_at, service_type, requested_time, customer_name, customer_phone, notes, total, payment_status, payment_method, status, shipping_address, table_label, order_items(product_name, variant_title, quantity, addons, products(allergens))')
           .eq('tenant_id', tenantId!).not('service_type', 'is', null).gte('created_at', since)
-          .order('created_at', { ascending: false }).limit(300),
+          .order('created_at', { ascending: false }).limit(300);
+      const [o, t] = await Promise.all([
+        ordersQuery,
         // Webshopbonnen altijd (ze bepalen de status van hun order), andere bonnen enkel open of recent.
         supabase.from('kitchen_tickets').select('*').eq('tenant_id', tenantId!).gte('created_at', since)
           .or(`order_id.not.is.null,status.in.(new,preparing,ready),status_at.gte.${doneSince}`)

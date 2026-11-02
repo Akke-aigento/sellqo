@@ -28,6 +28,12 @@ export function ProtectedRoute({
     return <Navigate to="/auth" replace />;
   }
 
+  // KASSA-ACCOUNT-1: een gekoppeld kassatoestel (eigen account, geen rol) hoort niet in beheer. Zonder deze
+  // omleiding zou het als "nieuwe gebruiker zonder winkel" de onboarding te zien krijgen.
+  if (user.app_metadata?.kind === 'kassa') {
+    return <Navigate to="/kassa" replace />;
+  }
+
   if (requirePlatformAdmin && !isPlatformAdmin) {
     return <Navigate to="/admin" replace />;
   }

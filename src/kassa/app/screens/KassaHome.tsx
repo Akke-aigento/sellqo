@@ -1,7 +1,9 @@
 // PERSONEEL-1/TAFEL-1/TAFEL-3 — de kassa na de PIN.
 // KASSA-UX-1: één thuis (het zaalplan, met de toog als vaste tegel) en alles binnen twee tikken.
 // Kopbalk: wie · verbinding · QR-bestellingen · Wissel · ⋯-menu (Kas, Rapporten, klokken,
-// meldingen, naar beheer, andere kassa). In een rekening blijft enkel de balk van die rekening
+// meldingen, naar beheer, toestel ontkoppelen).
+// KASSA-ACCOUNT-1: "Naar beheer" opent altijd een nieuw venster (met waarschuwing: zelfde browser = gedeelde
+// aanmelding), "Ontkoppel dit toestel" enkel voor eigenaar/verantwoordelijke, keukenbord via kassa_kitchen_orders. In een rekening blijft enkel de balk van die rekening
 // over: meer plaats voor de kaart, en terug is altijd één tik.
 // KASSA-UX-2: bovenaan wissel je met één tik tussen Zaal, Bar en Keuken (per toestel onthouden).
 // Op een tablet staat de kolom Binnenkomend (QR-bestellingen + barbonnen) naast het zaalplan.
@@ -9,7 +11,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Banknote, Bell, BellOff, Check as CheckIcon, ChefHat, Clock, ExternalLink, FileBarChart, HandCoins, LayoutGrid, Loader2, LogOut, MoreHorizontal, Languages, Plus, ShoppingBag, Users, Wifi, WifiOff, Wine } from 'lucide-react';
-import { Capacitor } from '@capacitor/core';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { SUPPORTED_LANGUAGES } from '@/i18n/languages';
@@ -93,6 +94,7 @@ export function KassaHome({ runtime, store, alerts, terminalName, onForgetDevice
   // MELDING-1: geluid en melding op het open scherm, scherm wakker, push als het scherm dicht is.
   const [alertsOpen, setAlertsOpen] = useState(false);
   const [confirmForget, setConfirmForget] = useState(false);
+  const [confirmAdmin, setConfirmAdmin] = useState(false);
   const { sound } = alerts;
   const [mode, setModeState] = useState<Mode>(readMode);
   const isDisplay = (m: Mode) => m === 'keuken' || m === 'bar';
@@ -126,7 +128,7 @@ export function KassaHome({ runtime, store, alerts, terminalName, onForgetDevice
   // KEUKEN-VEILIG-1: elke 3 s (zoals de rekeningen) zolang er bonnen in beeld staan (Keuken, Bar, of de kolom
   // Binnenkomend naast het zaalplan); enkel het zaalplan op een gsm (tellers) blijft op 10 s. Nooit in de achtergrond.
   const { cards: allCards, isLoading: boardLoading, error: boardError, setStatus, busyKeys } =
-    useKitchenBoard(now, true, mode === 'zaal' && !wide ? undefined : BOARD_POLL_FAST);
+    useKitchenBoard(now, true, mode === 'zaal' && !wide ? undefined : BOARD_POLL_FAST, { kassaDevice: true });
   const kitchen = useStationChoice(allCards, (st) => st.find((x) => x.kind === 'kitchen')?.id ?? null);
   const barStation = kitchen.stations.find((x) => x.kind === 'bar') ?? null;
   const barCards = useMemo(() => (barStation ? cardsForStation(allCards, barStation.id, kitchen.defaultStation) : []), [allCards, barStation, kitchen.defaultStation]);
@@ -179,9 +181,12 @@ export function KassaHome({ runtime, store, alerts, terminalName, onForgetDevice
   };
 
   const canAdmin = ADMIN_LINK_ROLES.has(staff.role);
+  // KASSA-ACCOUNT-1: nooit in hetzelfde venster. Op het web deelt beheer de aanmelding met de kassa (zelfde
+  // adres): wie daar met zijn eigen account aanmeldt, meldt het toestel af en moet het opnieuw koppelen.
   const toAdmin = () => {
-    const { href, external } = adminHref(window.location.pathname, PUBLIC_SITE_URL);
-    if (external) window.open(href, '_blank', 'noopener'); else window.location.assign(href);
+    const { href } = adminHref(window.location.pathname, PUBLIC_SITE_URL);
+    setConfirmAdmin(false);
+    window.open(href, '_blank', 'noopener');
   };
 
   // RESERVATIE-1 — een laag: nooit een rekening sluiten of wijzigen. Aangekomen op een tafel die nog
@@ -264,10 +269,14 @@ export function KassaHome({ runtime, store, alerts, terminalName, onForgetDevice
                   {sound ? <Bell className="mr-2 h-4 w-4" /> : <BellOff className="mr-2 h-4 w-4" />}{t('kassa.signals.button')}
                 </DropdownMenuItem>
                 {canAdmin && (
-                  <DropdownMenuItem className="h-11" onClick={toAdmin}><ExternalLink className="mr-2 h-4 w-4" />{t('kassa.home.toAdmin')}</DropdownMenuItem>
+                  <DropdownMenuItem className="h-11" onClick={() => setConfirmAdmin(true)}><ExternalLink className="mr-2 h-4 w-4" />{t('kassa.home.toAdmin')}</DropdownMenuItem>
                 )}
-                <DropdownMenuSeparator />
-                <DropdownMenuItem className="h-11 text-muted-foreground" onClick={() => setConfirmForget(true)}><LogOut className="mr-2 h-4 w-4" />{t('kassa.home.changeTerminal')}</DropdownMenuItem>
+                {canAdmin && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem className="h-11 text-muted-foreground" onClick={() => setConfirmForget(true)}><LogOut className="mr-2 h-4 w-4" />{t('kassa.home.unpair')}</DropdownMenuItem>
+                  </>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
           </header>
@@ -331,8 +340,7 @@ export function KassaHome({ runtime, store, alerts, terminalName, onForgetDevice
 
       {alertsOpen ? (
         <DeviceAlertsDialog open={alertsOpen} onOpenChange={setAlertsOpen} tenantId={runtime.device.tenantId} kind="kassa" defaultName={terminalName}
-          soundKey={KASSA_SOUND_KEY} soundDefault onSoundChange={alerts.setSound} wakeKey={KASSA_WAKE_KEY} wakeDefault onWakeChange={alerts.setWake} wakeActive={alerts.wakeActive}
-          manageHref={Capacitor.isNativePlatform() ? undefined : '/admin/pos'} />
+          soundKey={KASSA_SOUND_KEY} soundDefault onSoundChange={alerts.setSound} wakeKey={KASSA_WAKE_KEY} wakeDefault onWakeChange={alerts.setWake} wakeActive={alerts.wakeActive} />
       ) : null}
       {tableAction && (
         <TableActions ctx={ctx} label={ctx.tableLabel(tableAction.tableId) ?? '?'} check={tableAction.checkId ? store.check(tableAction.checkId) ?? null : null}
@@ -386,12 +394,24 @@ export function KassaHome({ runtime, store, alerts, terminalName, onForgetDevice
       <Dialog open={confirmForget} onOpenChange={setConfirmForget}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
-            <DialogTitle>{t('kassa.home.changeTerminal')}</DialogTitle>
-            <DialogDescription>{t('kassa.home.changeTerminalConfirm', { name: terminalName })}</DialogDescription>
+            <DialogTitle>{t('kassa.home.unpair')}</DialogTitle>
+            <DialogDescription>{t('kassa.home.unpairConfirm', { name: terminalName })}</DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-2">
             <button type="button" onClick={() => setConfirmForget(false)} className="h-11 rounded-md border px-4">{t('kassa.common.cancel')}</button>
-            <button type="button" onClick={() => { setConfirmForget(false); onForgetDevice(); }} className="h-11 rounded-md bg-destructive px-4 font-semibold text-destructive-foreground">{t('kassa.home.changeTerminalYes')}</button>
+            <button type="button" onClick={() => { setConfirmForget(false); onForgetDevice(); }} className="h-11 rounded-md bg-destructive px-4 font-semibold text-destructive-foreground">{t('kassa.home.unpairYes')}</button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={confirmAdmin} onOpenChange={setConfirmAdmin}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>{t('kassa.home.toAdmin')}</DialogTitle>
+            <DialogDescription>{t('kassa.home.toAdminWarning')}</DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2">
+            <button type="button" onClick={() => setConfirmAdmin(false)} className="h-11 rounded-md border px-4">{t('kassa.common.cancel')}</button>
+            <button type="button" onClick={toAdmin} className="flex h-11 items-center justify-center gap-2 rounded-md bg-primary px-4 font-semibold text-primary-foreground"><ExternalLink className="h-4 w-4" />{t('kassa.home.toAdminOpen')}</button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

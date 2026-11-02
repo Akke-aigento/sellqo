@@ -39,8 +39,10 @@ import { KassaHoursCard } from '@/components/admin/pos/KassaHoursCard';
 import { HorecaPaySettings } from '@/components/admin/pos/HorecaPaySettings';
 import { HorecaLockSetting } from '@/components/admin/pos/HorecaLockSetting';
 import { HorecaPrinters } from '@/components/admin/pos/HorecaPrinters';
-import { KassaDevicesStatus } from '@/components/admin/pos/KassaDevicesStatus';
-import { useKassaDevices } from '@/hooks/useKassaDevices';
+import { KassaTerminalDevices } from '@/components/admin/pos/KassaTerminalDevices';
+import { useKassaDeviceAccounts, useKassaDevices } from '@/hooks/useKassaDevices';
+import { useAuth } from '@/hooks/useAuth';
+import { useTenant } from '@/hooks/useTenant';
 import { usePOSTerminals, usePOSSessions } from '@/hooks/usePOS';
 import type { POSTerminal } from '@/types/pos';
 import { useTranslation } from 'react-i18next';
@@ -69,6 +71,12 @@ export default function POSPage() {
   const { sessions } = usePOSSessions();
   // LIVE-1 — hartslag van SellQo Kassa-toestellen per kassa.
   const { data: kassaDevices = [] } = useKassaDevices();
+  // KASSA-ACCOUNT-1 — gekoppelde toestellen (eigen account per toestel); koppelen/ontkoppelen enkel de zaakvoerder.
+  const { currentTenant } = useTenant();
+  const { roles, isPlatformAdmin } = useAuth();
+  const canManageDevices = isPlatformAdmin || (roles ?? []).some((r) => r.role === 'tenant_admin' && r.tenant_id === currentTenant?.id);
+  const [pairingOpen, setPairingOpen] = useState(false);
+  const { data: deviceAccounts = [] } = useKassaDeviceAccounts(canManageDevices, pairingOpen);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   // WANDELING: een kassa verwijderen gebeurde met één tik, zonder bevestiging.
   const [toDelete, setToDelete] = useState<POSTerminal | null>(null);
@@ -252,7 +260,11 @@ export default function POSPage() {
                     )}
                   </div>
 
-                  <KassaDevicesStatus devices={kassaDevices.filter((d) => d.terminal_id === terminal.id)} />
+                  {/* KASSA-ACCOUNT-1: SellQo Kassa-toestellen van deze kassa + koppelen (horecaspoor). */}
+                  {payTab && currentTenant ? (
+                    <KassaTerminalDevices tenantId={currentTenant.id} terminal={terminal} accounts={deviceAccounts} beats={kassaDevices}
+                      canManage={canManageDevices} onPairingChange={setPairingOpen} />
+                  ) : null}
 
                   {/* Capabilities (klassieke kassa; SellQo Kassa regelt printers in Bon & printers) */}
                   {classicPos ? <div className="flex gap-2">

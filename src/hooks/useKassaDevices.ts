@@ -31,3 +31,48 @@ export function useKassaDevices() {
   });
 }
 
+
+// KASSA-ACCOUNT-1 — gekoppelde toestellen (eigen account per toestel), per zaak. Enkel de zaakvoerder ziet ze
+// (RLS op kassa_device_accounts: tenant_admin of het toestel zelf).
+export interface KassaDeviceAccount {
+  user_id: string; tenant_id: string; terminal_id: string; device_uuid: string; name: string; paired_at: string;
+}
+
+export function useKassaDeviceAccounts(enabled = true, fast = false) {
+  const { currentTenant } = useTenant();
+  return useQuery({
+    queryKey: ['kassa-device-accounts', currentTenant?.id],
+    enabled: enabled && !!currentTenant?.id,
+    // Tijdens het koppelen (code op het scherm) elke 3 s, zodat "Gekoppeld" meteen verschijnt.
+    refetchInterval: fast ? 3_000 : 60_000,
+    queryFn: async () => {
+      const { data, error } = await supabase.from('kassa_device_accounts' as never)
+        .select('user_id, tenant_id, terminal_id, device_uuid, name, paired_at')
+        .eq('tenant_id' as never, currentTenant!.id as never).is('revoked_at' as never, null)
+        .order('paired_at' as never, { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as unknown as KassaDeviceAccount[];
+    },
+  });
+}
+
+export interface TerminalDeviceRow { key: string; account: KassaDeviceAccount | null; beat: KassaDevice | null }
+
+/** Oude aanmelding (hartslag zonder koppeling) nog tonen als ze de laatste 7 dagen gezien werd. */
+const UNPAIRED_VISIBLE_MS = 7 * 24 * 3600_000;
+
+/** Eén lijst per kassa: gekoppelde toestellen (met hun hartslag, op device_uuid = device_id), daarna recente
+ *  toestellen die nog met een gewone account draaien (van vóór de koppeling). Eén rij per toestel. */
+export function terminalDeviceRows(terminalId: string, accounts: KassaDeviceAccount[], beats: KassaDevice[], now = Date.now()): TerminalDeviceRow[] {
+  const mine = accounts.filter((a) => a.terminal_id === terminalId);
+  const paired = new Set(accounts.map((a) => a.device_uuid));
+  const rows: TerminalDeviceRow[] = mine.map((a) => ({
+    key: `a:${a.user_id}`, account: a, beat: beats.find((b) => b.device_id === a.device_uuid) ?? null,
+  }));
+  for (const b of beats) {
+    if (b.terminal_id !== terminalId || paired.has(b.device_id)) continue;
+    if (now - new Date(b.last_seen_at).getTime() > UNPAIRED_VISIBLE_MS) continue;
+    rows.push({ key: `b:${b.device_id}`, account: null, beat: b });
+  }
+  return rows;
+}

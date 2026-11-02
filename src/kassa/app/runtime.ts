@@ -56,10 +56,27 @@ export function loadDevice(): DeviceConfig | null {
   }
 }
 
-export function saveDevice(tenantId: string, terminalRowId: string): DeviceConfig {
+/** KASSA-ACCOUNT-1: de toestel-ID blijft ook na ontkoppelen bewaard, zodat opnieuw koppelen hetzelfde
+ *  deviceId (ID-07) geeft. Bron bij het koppelen: de vorige koppeling, anders deze sleutel, anders nieuw. */
+const DEVICE_UUID_KEY = 'sq_kassa_device_uuid';
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+
+export function deviceUuidForPairing(): string {
+  const prev = loadDevice()?.deviceUuid?.toLowerCase();
+  if (prev && UUID_RE.test(prev)) return prev;
+  const kept = safeGet(DEVICE_UUID_KEY)?.toLowerCase();
+  if (kept && UUID_RE.test(kept)) return kept;
+  const fresh = crypto.randomUUID();
+  safeSet(DEVICE_UUID_KEY, fresh);
+  return fresh;
+}
+
+/** KASSA-ACCOUNT-1: met `deviceUuid` (uit de serverkoppeling) wordt precies die ID bewaard. */
+export function saveDevice(tenantId: string, terminalRowId: string, deviceUuid?: string): DeviceConfig {
   const prev = loadDevice();
-  const d: DeviceConfig = { tenantId, terminalRowId, deviceUuid: prev?.deviceUuid ?? crypto.randomUUID() };
+  const d: DeviceConfig = { tenantId, terminalRowId, deviceUuid: deviceUuid ?? prev?.deviceUuid ?? crypto.randomUUID() };
   safeSet(DEVICE_KEY, JSON.stringify(d));
+  safeSet(DEVICE_UUID_KEY, d.deviceUuid);
   return d;
 }
 

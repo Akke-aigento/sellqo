@@ -7179,7 +7179,23 @@
       },
       "kassaDevice": {
         "seen": "SellQo Kassa seen {{when}}",
-        "waiting": "{{n}} waiting on the device"
+        "waiting": "{{n}} waiting on the device",
+        "pair": "Link device",
+        "pairTitle": "Link a device to {{name}}",
+        "pairIntro": "Open SellQo Kassa on the device (the app or /kassa in the browser) and enter this code, or scan the QR code. The code works once.",
+        "pairExpires": "Valid for {{time}}",
+        "pairExpired": "This code has expired.",
+        "pairNew": "New code",
+        "pairDone": "Linked: {{name}}. The device is ready for your staff PINs.",
+        "pairFailed": "No pairing code could be created. Only the business owner can link devices.",
+        "close": "Close",
+        "unpair": "Unlink",
+        "unpairTitle": "Unlink device?",
+        "unpairBody": "{{name}} can no longer do anything on the till, effective immediately. Open bills are kept. To use it again, create a new pairing code.",
+        "unpairDone": "{{name}} was unlinked.",
+        "unpairFailed": "Unlinking failed. Please try again.",
+        "unpairedLogin": "Old sign-in (not linked)",
+        "pairedOn": "linked {{when}}"
       }
     },
     "storefront": {
@@ -11565,28 +11581,6 @@
       "save": "Save",
       "close": "Close"
     },
-    "signIn": {
-      "title": "Sign in to the POS",
-      "intro": "Sign this device in once with your SellQo account. Your staff then work with a PIN.",
-      "email": "Email address",
-      "password": "Password",
-      "submit": "Sign in",
-      "error": "Sign-in failed. Check your email address and password."
-    },
-    "setup": {
-      "title": "Which POS terminal is this?",
-      "intro": "Choose the POS terminal that runs on this device. The device remembers it.",
-      "business": "Business",
-      "loadError": "The POS terminals could not be loaded.",
-      "noTerminals": "There is no POS terminal yet. Ask the business owner to create one: in the Kassa app or in SellQo under Point of sale (POS).",
-      "noBusiness": "This account does not belong to any business.",
-      "terminalGone": "The chosen POS terminal no longer exists. Choose again.",
-      "noTerminalsAdmin": "This business has no POS terminal yet. Create one right here; this device will be linked to it.",
-      "newName": "Name of the POS terminal",
-      "defaultName": "POS 1",
-      "create": "Create POS terminal",
-      "createFailed": "Could not create the POS terminal: {{reason}}"
-    },
     "pin": {
       "whoAreYou": "Who are you?",
       "notMe": "Not {{name}}? Choose again",
@@ -11616,7 +11610,6 @@
         "offline": "No connection to SellQo. You have not been clocked in or out; please try again."
       },
       "noInsz": "Without a national register number you cannot register anything on this registered POS.",
-      "changeTerminal": "Choose another POS terminal",
       "live": "Live",
       "offline": "Offline · {{n}} pending actions",
       "tab": {
@@ -11627,13 +11620,16 @@
       "menu": "Menu",
       "toAdmin": "Go to SellQo admin",
       "backToTables": "Back to tables",
-      "changeTerminalConfirm": "Unlink this device from {{name}}? You will then pick a till again.",
-      "changeTerminalYes": "Unlink",
       "language": "Language",
       "languageShop": "Language of the business ({{lang}})",
       "clockAlreadyIn": "You were already clocked in (on another device).",
       "clockAlreadyOut": "You were already clocked out (on another device).",
-      "clockNotSaved": "Registered, but your hours could not be saved. Ask a manager to check them."
+      "clockNotSaved": "Registered, but your hours could not be saved. Ask a manager to check them.",
+      "unpair": "Unlink this device",
+      "unpairConfirm": "Unlink this device from {{name}}? The till will only work here again with a new pairing code from the back office.",
+      "unpairYes": "Unlink",
+      "toAdminWarning": "The back office opens in a new window. Preferably use another device: if you sign in with your own account in the same browser, this till is signed out and has to be linked again.",
+      "toAdminOpen": "Open in new window"
     },
     "fiscalMode": {
       "off": "non-fiscal mode",
@@ -12067,6 +12063,41 @@
       "shiftHint": "What you took payment for today, plus tips. The same figures as your line in the X report.",
       "deleteCheck": "Delete bill",
       "qtyLocked": "This line has a discount: its quantity is fixed. Remove the line and tap it again."
+    },
+    "pair": {
+      "title": "Link this device",
+      "intro": "In SellQo, go to Point of sale (POS) › Terminals and create a pairing code for the right till. Enter the 6 digits here or scan the QR code.",
+      "codeLabel": "Pairing code",
+      "submit": "Link",
+      "scan": "Scan QR code",
+      "scanTitle": "Point the camera at the QR code",
+      "cameraFailed": "The camera could not start. Enter the 6 digits.",
+      "whereHint": "The device gets its own sign-in with till rights only. You never enter your SellQo password here.",
+      "error": {
+        "format": "That is not a pairing code. Enter the 6 digits or scan the QR code.",
+        "invalid_code": "This code is wrong, already used or expired. Create a new one in the back office.",
+        "rate_limited": "Too many wrong attempts. Wait fifteen minutes and try again.",
+        "offline": "No connection. Linking only works online.",
+        "server": "Linking failed. Please try again."
+      }
+    },
+    "notDevice": {
+      "owner": {
+        "title": "This is not a till device",
+        "body": "You are signed in with your own SellQo account. The till now runs on a linked device with till rights only. Create a pairing code in the back office under Point of sale (POS) › Terminals, sign out here and link this device."
+      },
+      "revoked": {
+        "title": "This device was unlinked",
+        "body": "This till was unlinked in the back office or on the device itself. Create a new pairing code in the back office to use it again."
+      },
+      "error": {
+        "title": "Till not loaded",
+        "body": "The details of this device could not be loaded. Check the connection and try again."
+      },
+      "toPos": "Go to Point of sale (POS) › Terminals",
+      "retry": "Try again",
+      "signOutAndPair": "Sign out and link this device",
+      "pairAgain": "Link again"
     }
   },
   "deviceAlerts": {

@@ -6848,7 +6848,23 @@
       },
       "kassaDevice": {
         "seen": "SellQo Kassa vue {{when}}",
-        "waiting": "{{n}} en attente sur l’appareil"
+        "waiting": "{{n}} en attente sur l’appareil",
+        "pair": "Associer un appareil",
+        "pairTitle": "Associer un appareil à {{name}}",
+        "pairIntro": "Ouvrez SellQo Kassa sur l'appareil (l'app ou /kassa dans le navigateur) et saisissez ce code, ou scannez le code QR. Le code ne fonctionne qu'une fois.",
+        "pairExpires": "Encore valable {{time}}",
+        "pairExpired": "Ce code a expiré.",
+        "pairNew": "Nouveau code",
+        "pairDone": "Associé : {{name}}. L'appareil est prêt pour les codes PIN de votre personnel.",
+        "pairFailed": "Aucun code d'association n'a pu être créé. Seul le gérant peut associer des appareils.",
+        "close": "Fermer",
+        "unpair": "Dissocier",
+        "unpairTitle": "Dissocier l'appareil ?",
+        "unpairBody": "{{name}} ne peut plus rien faire sur la caisse, avec effet immédiat. Les additions ouvertes sont conservées. Pour le réutiliser, créez un nouveau code d'association.",
+        "unpairDone": "{{name}} a été dissocié.",
+        "unpairFailed": "La dissociation a échoué. Veuillez réessayer.",
+        "unpairedLogin": "Ancienne connexion (non associée)",
+        "pairedOn": "associé {{when}}"
       }
     },
     "storefront": {
@@ -11565,28 +11581,6 @@
       "save": "Enregistrer",
       "close": "Fermer"
     },
-    "signIn": {
-      "title": "Connecter la caisse",
-      "intro": "Connectez cet appareil une seule fois avec votre compte SellQo. Votre personnel travaille ensuite avec un code PIN.",
-      "email": "Adresse e-mail",
-      "password": "Mot de passe",
-      "submit": "Se connecter",
-      "error": "La connexion a échoué. Vérifiez votre adresse e-mail et votre mot de passe."
-    },
-    "setup": {
-      "title": "Quelle caisse est-ce ?",
-      "intro": "Choisissez la caisse qui tourne sur cet appareil. L’appareil s’en souvient.",
-      "business": "Établissement",
-      "loadError": "Les caisses n’ont pas pu être chargées.",
-      "noTerminals": "Il n'y a pas encore de caisse. Demandez au gérant d'en créer une : dans l'app Kassa ou dans SellQo sous Caisse (POS).",
-      "noBusiness": "Ce compte n’appartient à aucun établissement.",
-      "terminalGone": "La caisse choisie n’existe plus. Choisissez à nouveau.",
-      "noTerminalsAdmin": "Cet établissement n'a pas encore de caisse. Créez-en une ici ; cet appareil y sera lié.",
-      "newName": "Nom de la caisse",
-      "defaultName": "Caisse 1",
-      "create": "Créer la caisse",
-      "createFailed": "Impossible de créer la caisse : {{reason}}"
-    },
     "pin": {
       "whoAreYou": "Qui êtes-vous ?",
       "notMe": "Pas {{name}} ? Choisissez à nouveau",
@@ -11616,7 +11610,6 @@
         "offline": "Pas de connexion à SellQo. Le pointage n’a pas été fait ; réessayez."
       },
       "noInsz": "Sans numéro de registre national, vous ne pouvez rien enregistrer sur cette caisse enregistreuse.",
-      "changeTerminal": "Choisir une autre caisse",
       "live": "En direct",
       "offline": "Hors ligne · {{n}} actions en attente",
       "tab": {
@@ -11627,13 +11620,16 @@
       "menu": "Menu",
       "toAdmin": "Vers l’administration SellQo",
       "backToTables": "Retour aux tables",
-      "changeTerminalConfirm": "Dissocier cet appareil de {{name}} ? Vous choisirez ensuite à nouveau une caisse.",
-      "changeTerminalYes": "Dissocier",
       "language": "Langue",
       "languageShop": "Langue de l’établissement ({{lang}})",
       "clockAlreadyIn": "Vous étiez déjà pointé (sur un autre appareil).",
       "clockAlreadyOut": "Vous aviez déjà pointé la sortie (sur un autre appareil).",
-      "clockNotSaved": "Enregistré, mais vos heures n’ont pas pu être sauvegardées. Demandez à un responsable de les vérifier."
+      "clockNotSaved": "Enregistré, mais vos heures n’ont pas pu être sauvegardées. Demandez à un responsable de les vérifier.",
+      "unpair": "Dissocier cet appareil",
+      "unpairConfirm": "Dissocier cet appareil de {{name}} ? La caisse ne fonctionnera à nouveau ici qu'avec un nouveau code d'association de la gestion.",
+      "unpairYes": "Dissocier",
+      "toAdminWarning": "La gestion s'ouvre dans une nouvelle fenêtre. Utilisez de préférence un autre appareil : si vous vous connectez avec votre propre compte dans le même navigateur, cette caisse est déconnectée et doit être associée à nouveau.",
+      "toAdminOpen": "Ouvrir dans une nouvelle fenêtre"
     },
     "fiscalMode": {
       "off": "mode non fiscal",
@@ -12067,6 +12063,41 @@
       "shiftHint": "Ce que vous avez encaissé aujourd'hui, pourboire compris. Les mêmes chiffres que votre ligne dans le rapport X.",
       "deleteCheck": "Supprimer l'addition",
       "qtyLocked": "Cette ligne a une remise : la quantité est fixe. Retirez la ligne et touchez à nouveau le produit."
+    },
+    "pair": {
+      "title": "Associer cet appareil",
+      "intro": "Dans SellQo, sous Caisse (POS) › Caisses, créez un code d'association pour la bonne caisse. Saisissez ici les 6 chiffres ou scannez le code QR.",
+      "codeLabel": "Code d'association",
+      "submit": "Associer",
+      "scan": "Scanner le code QR",
+      "scanTitle": "Dirigez la caméra vers le code QR",
+      "cameraFailed": "La caméra n'a pas pu démarrer. Saisissez les 6 chiffres.",
+      "whereHint": "L'appareil reçoit sa propre connexion avec uniquement des droits de caisse. Vous ne saisissez jamais votre mot de passe SellQo ici.",
+      "error": {
+        "format": "Ce n'est pas un code d'association. Saisissez les 6 chiffres ou scannez le code QR.",
+        "invalid_code": "Ce code est incorrect, déjà utilisé ou expiré. Créez-en un nouveau dans la gestion.",
+        "rate_limited": "Trop de tentatives erronées. Attendez un quart d'heure et réessayez.",
+        "offline": "Pas de connexion. L'association ne fonctionne qu'en ligne.",
+        "server": "L'association a échoué. Veuillez réessayer."
+      }
+    },
+    "notDevice": {
+      "owner": {
+        "title": "Ceci n'est pas un appareil de caisse",
+        "body": "Vous êtes connecté avec votre propre compte SellQo. La caisse fonctionne désormais sur un appareil associé, avec uniquement des droits de caisse. Créez un code d'association dans la gestion sous Caisse (POS) › Caisses, déconnectez-vous ici et associez cet appareil."
+      },
+      "revoked": {
+        "title": "Cet appareil a été dissocié",
+        "body": "Cette caisse a été dissociée dans la gestion ou sur l'appareil lui-même. Créez un nouveau code d'association dans la gestion pour la réutiliser."
+      },
+      "error": {
+        "title": "Caisse non chargée",
+        "body": "Les données de cet appareil n'ont pas pu être chargées. Vérifiez la connexion et réessayez."
+      },
+      "toPos": "Vers Caisse (POS) › Caisses",
+      "retry": "Réessayer",
+      "signOutAndPair": "Se déconnecter et associer cet appareil",
+      "pairAgain": "Associer à nouveau"
     }
   },
   "deviceAlerts": {

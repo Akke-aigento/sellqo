@@ -6848,7 +6848,23 @@
       },
       "kassaDevice": {
         "seen": "SellQo Kassa {{when}} gesehen",
-        "waiting": "{{n}} wartend auf dem Gerät"
+        "waiting": "{{n}} wartend auf dem Gerät",
+        "pair": "Gerät koppeln",
+        "pairTitle": "Gerät mit {{name}} koppeln",
+        "pairIntro": "Öffne SellQo Kassa auf dem Gerät (die App oder /kassa im Browser) und tippe diesen Code ein oder scanne den QR-Code. Der Code funktioniert einmal.",
+        "pairExpires": "Noch {{time}} gültig",
+        "pairExpired": "Dieser Code ist abgelaufen.",
+        "pairNew": "Neuer Code",
+        "pairDone": "Gekoppelt: {{name}}. Das Gerät ist bereit für die PINs deines Personals.",
+        "pairFailed": "Es konnte kein Kopplungscode erstellt werden. Nur der Inhaber kann Geräte koppeln.",
+        "close": "Schließen",
+        "unpair": "Entkoppeln",
+        "unpairTitle": "Gerät entkoppeln?",
+        "unpairBody": "{{name}} kann ab sofort nichts mehr an der Kasse tun. Offene Rechnungen bleiben erhalten. Zum erneuten Nutzen brauchst du einen neuen Kopplungscode.",
+        "unpairDone": "{{name}} wurde entkoppelt.",
+        "unpairFailed": "Entkoppeln hat nicht geklappt. Versuche es erneut.",
+        "unpairedLogin": "Alte Anmeldung (nicht gekoppelt)",
+        "pairedOn": "gekoppelt {{when}}"
       }
     },
     "storefront": {
@@ -11565,28 +11581,6 @@
       "save": "Speichern",
       "close": "Schließen"
     },
-    "signIn": {
-      "title": "Kasse anmelden",
-      "intro": "Melde dieses Gerät einmal mit deinem SellQo-Konto an. Dein Personal arbeitet danach mit einer PIN.",
-      "email": "E-Mail-Adresse",
-      "password": "Passwort",
-      "submit": "Anmelden",
-      "error": "Anmeldung fehlgeschlagen. Prüfe E-Mail-Adresse und Passwort."
-    },
-    "setup": {
-      "title": "Welche Kasse ist das?",
-      "intro": "Wähle die Kasse, die auf diesem Gerät läuft. Das Gerät merkt sich das.",
-      "business": "Betrieb",
-      "loadError": "Die Kassen konnten nicht geladen werden.",
-      "noTerminals": "Es gibt noch keine Kasse. Bitte die Betriebsleitung, eine anzulegen: in der Kassa-App oder in SellQo unter Kasse (POS).",
-      "noBusiness": "Dieses Konto gehört zu keinem Betrieb.",
-      "terminalGone": "Die gewählte Kasse existiert nicht mehr. Bitte neu wählen.",
-      "noTerminalsAdmin": "Dein Betrieb hat noch keine Kasse. Lege hier direkt eine an; dieses Gerät wird dann damit verknüpft.",
-      "newName": "Name der Kasse",
-      "defaultName": "Kasse 1",
-      "create": "Kasse anlegen",
-      "createFailed": "Kasse konnte nicht angelegt werden: {{reason}}"
-    },
     "pin": {
       "whoAreYou": "Wer bist du?",
       "notMe": "Nicht {{name}}? Neu wählen",
@@ -11616,7 +11610,6 @@
         "offline": "Keine Verbindung zu SellQo. Du bist nicht ein- oder ausgestempelt; versuche es erneut."
       },
       "noInsz": "Ohne Nationalregisternummer kannst du an dieser registrierten Kasse nichts erfassen.",
-      "changeTerminal": "Andere Kasse wählen",
       "live": "Live",
       "offline": "Offline · {{n}} wartende Aktionen",
       "tab": {
@@ -11627,13 +11620,16 @@
       "menu": "Menü",
       "toAdmin": "Zur SellQo-Verwaltung",
       "backToTables": "Zurück zu den Tischen",
-      "changeTerminalConfirm": "Dieses Gerät von {{name}} trennen? Danach wählst du erneut eine Kasse.",
-      "changeTerminalYes": "Trennen",
       "language": "Sprache",
       "languageShop": "Sprache des Betriebs ({{lang}})",
       "clockAlreadyIn": "Du warst schon eingestempelt (auf einem anderen Gerät).",
       "clockAlreadyOut": "Du warst schon ausgestempelt (auf einem anderen Gerät).",
-      "clockNotSaved": "Registriert, aber deine Stunden konnten nicht gespeichert werden. Bitte eine verantwortliche Person, sie zu prüfen."
+      "clockNotSaved": "Registriert, aber deine Stunden konnten nicht gespeichert werden. Bitte eine verantwortliche Person, sie zu prüfen.",
+      "unpair": "Dieses Gerät entkoppeln",
+      "unpairConfirm": "Dieses Gerät von {{name}} trennen? Die Kasse funktioniert hier erst wieder mit einem neuen Kopplungscode aus der Verwaltung.",
+      "unpairYes": "Entkoppeln",
+      "toAdminWarning": "Die Verwaltung öffnet sich in einem neuen Fenster. Nutze dafür am besten ein anderes Gerät: Meldest du dich im selben Browser mit deinem eigenen Konto an, wird diese Kasse abgemeldet und muss neu gekoppelt werden.",
+      "toAdminOpen": "In neuem Fenster öffnen"
     },
     "fiscalMode": {
       "off": "nicht-fiskalischer Modus",
@@ -12067,6 +12063,41 @@
       "shiftHint": "Was du heute kassiert hast, mit Trinkgeld. Dieselben Zahlen wie deine Zeile im X-Bericht.",
       "deleteCheck": "Rechnung löschen",
       "qtyLocked": "Auf dieser Zeile ist ein Rabatt: Die Anzahl ist fest. Entferne die Zeile und tippe neu."
+    },
+    "pair": {
+      "title": "Dieses Gerät koppeln",
+      "intro": "Erstelle in SellQo unter Kasse (POS) › Kassen einen Kopplungscode für die richtige Kasse. Tippe hier die 6 Ziffern ein oder scanne den QR-Code.",
+      "codeLabel": "Kopplungscode",
+      "submit": "Koppeln",
+      "scan": "QR-Code scannen",
+      "scanTitle": "Richte die Kamera auf den QR-Code",
+      "cameraFailed": "Die Kamera konnte nicht starten. Tippe die 6 Ziffern ein.",
+      "whereHint": "Das Gerät bekommt eine eigene Anmeldung mit reinen Kassenrechten. Dein SellQo-Passwort gibst du hier nie ein.",
+      "error": {
+        "format": "Das ist kein Kopplungscode. Tippe die 6 Ziffern ein oder scanne den QR-Code.",
+        "invalid_code": "Dieser Code stimmt nicht, wurde schon benutzt oder ist abgelaufen. Erstelle in der Verwaltung einen neuen.",
+        "rate_limited": "Zu viele falsche Versuche. Warte eine Viertelstunde und versuche es erneut.",
+        "offline": "Keine Verbindung. Koppeln geht nur online.",
+        "server": "Koppeln hat nicht geklappt. Versuche es erneut."
+      }
+    },
+    "notDevice": {
+      "owner": {
+        "title": "Dies ist kein Kassengerät",
+        "body": "Du bist mit deinem eigenen SellQo-Konto angemeldet. Die Kasse läuft ab jetzt auf einem gekoppelten Gerät mit reinen Kassenrechten. Erstelle in der Verwaltung unter Kasse (POS) › Kassen einen Kopplungscode, melde dich hier ab und kopple dieses Gerät."
+      },
+      "revoked": {
+        "title": "Dieses Gerät wurde entkoppelt",
+        "body": "Diese Kasse wurde in der Verwaltung oder am Gerät selbst entkoppelt. Erstelle in der Verwaltung einen neuen Kopplungscode, um sie wieder zu nutzen."
+      },
+      "error": {
+        "title": "Kasse nicht geladen",
+        "body": "Die Daten dieses Geräts konnten nicht geladen werden. Prüfe die Verbindung und versuche es erneut."
+      },
+      "toPos": "Zu Kasse (POS) › Kassen",
+      "retry": "Erneut versuchen",
+      "signOutAndPair": "Abmelden und dieses Gerät koppeln",
+      "pairAgain": "Erneut koppeln"
     }
   },
   "deviceAlerts": {

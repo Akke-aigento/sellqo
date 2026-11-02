@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- supabase-client zonder gegenereerde types in edge functions */
 // KASSA-ACCOUNT-1 — toegang voor een gekoppeld kassatoestel in een edge function.
 //
 // Een kassatoestel heeft een eigen auth-user die NIET in user_roles staat (zie migratie
