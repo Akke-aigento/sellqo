@@ -47,7 +47,7 @@ Branch `kassa-mobiel-1` vanaf `origin/main` 30bbf68. Aanleiding: test van Akke o
 
 **Verificatie**
 - `npx tsc --noEmit -p tsconfig.app.json` exit 0 (logbestand, exit apart). `npm run build` exit 0, `npm run build:kassa` exit 0.
-- `npx vitest run src/kassa`: 23 bestanden, 365 groen (1 overgeslagen, bestaand). CI-vitest-stap (met de nieuwe `kassaMobiel.test.tsx` en `pushTokens.test.ts`): 37 bestanden, 427 groen.
+- `npx vitest run src/kassa`: 23 bestanden, 359 groen (1 overgeslagen, bestaand). CI-vitest-stap (met de nieuwe `kassaMobiel.test.tsx` en `pushTokens.test.ts`): 37 bestanden, 427 groen.
 - `scripts/i18n-parity.mjs` en `check-i18n-used-keys.mjs` groen.
 - `scripts/gks/sql/run.sh` (PG16): alle blokken groen, nieuw `test_kassa_mobiel.sql` (oorzaak 42501, overzetten met/zonder bewijs, anon, toestel krijgt melding, ingetrokken/andere zaak niet, push-bolletje, één marker per functie); migraties 2×. Docs-migratie 2× op een wegwerpdatabank: snapshot houdt de oude inhoud.
 - ESLint op de gewijzigde bestanden tegen `HEAD`: 0 fouten voor en na; enkel `useAuth.tsx` +1 waarschuwing (react-refresh, `useOptionalAuth`), nieuwe bestanden enkel react-refresh-waarschuwingen (zelfde patroon als useAuth/useTenant).

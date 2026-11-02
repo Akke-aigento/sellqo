@@ -71,6 +71,10 @@ begin
     exception when unique_violation then
       -- Gelijktijdig door een andere aanroep aangemaakt: opnieuw lezen (met lock) en verder zoals hieronder.
       select * into r from public.device_tokens where token = p_token for update;
+      if not found then
+        -- Review: rij verdween tussen de botsing en het herlezen; de app probeert opnieuw.
+        raise exception 'retry' using errcode = '40001';
+      end if;
     end;
   end if;
 
