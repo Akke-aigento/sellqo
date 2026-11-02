@@ -733,6 +733,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 }
 
+/** KASSA-MOBIEL-1: zoals useAuth, maar null buiten een AuthProvider (de aparte Kassa-app heeft geen beheer). */
+export function useOptionalAuth(): AuthContextType | null {
+  return useContext(AuthContext) ?? null;
+}
+
 export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {

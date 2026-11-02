@@ -14,7 +14,8 @@
 // claim verlopen en rekening intussen gewijzigd), dan blijft ze als "geweigerd" staan: de
 // rekening blijft op dit toestel vergrendeld en het auditspoor meldt het; nooit stil opnieuw
 // tekenen. Rechtzetten (terugname) gebeurt bewust, niet automatisch.
-import { supabase } from '@/integrations/supabase/client';
+// KASSA-MOBIEL-1: de kassa-client (eigen sessie van het toestel), niet de beheer-sessie.
+import { kassaSupabase as supabase } from '@/kassa/app/kassaSupabase';
 import { buildSale } from '../../fiscal/builders';
 import type { SaleInput, SignResult } from '../../fiscal/types';
 import type { SignedEvent } from '../../print/types';

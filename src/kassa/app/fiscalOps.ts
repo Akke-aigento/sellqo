@@ -11,7 +11,8 @@
 //   en komt ze in het auditspoor.
 // In niet-fiscale modus valt het tekenen weg; een netwerkfout laat de handeling ook dan in de
 // wachtrij (de server is idempotent), zodat een kasbeweging nooit verloren gaat.
-import { supabase } from '@/integrations/supabase/client';
+// KASSA-MOBIEL-1: de kassa-client (eigen sessie van het toestel), niet de beheer-sessie.
+import { kassaSupabase as supabase } from '@/kassa/app/kassaSupabase';
 import type { AnyFiscalInput, MutationName, SignResult } from '../fiscal/types';
 import type { SignedEvent } from '../print/types';
 import { FiscalUnavailableError, type KassaRuntime } from './runtime';

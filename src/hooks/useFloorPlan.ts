@@ -7,7 +7,8 @@
 // cache wordt eerst bijgewerkt (vlot slepen), bij een fout teruggezet.
 import { useMemo } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+// KASSA-MOBIEL-1: de client van de omgeving (kassa-client in de kassa, anders beheer).
+import { useSupabaseClient } from '@/lib/supabaseScope';
 import { useTenant } from '@/hooks/useTenant';
 import type { FloorArea, FloorMarker, FloorTableRow, MarkerKind, TableKind, TableShape } from '@/lib/floorplan';
 import type { NewMarker, NewTable } from '@/lib/floorplan';
@@ -26,6 +27,7 @@ export const floorPlanKey = (tenantId: string | undefined) => ['floor-plan', ten
 
 /** Actieve ruimtes, tafels en decor van de huidige winkel. */
 export function useFloorPlan() {
+  const supabase = useSupabaseClient();
   const { currentTenant } = useTenant();
   const tenantId = currentTenant?.id;
   return useQuery({
@@ -61,6 +63,7 @@ type AreaPatch = Partial<Pick<FloorArea, 'name' | 'sort' | 'grid_w' | 'grid_h'>>
 
 /** Alle bewerkingen op het zaalplan. Gooit de Supabase-fout door; de UI toont hem. */
 export function useFloorPlanMutations() {
+  const supabase = useSupabaseClient();
   const { currentTenant } = useTenant();
   const tenantId = currentTenant?.id;
   const qc = useQueryClient();

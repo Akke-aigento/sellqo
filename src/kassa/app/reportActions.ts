@@ -8,7 +8,8 @@
 // De events bevatten werknemersnummers (INSZ). Ze leven enkel in het geheugen tijdens het
 // tekenen; het toestel bewaart ze niet en drukt ze nooit af (print: staffDirectory).
 // Automatische Z (RPT-03): voor elke bedrijfsdag zonder Z, met de robotgebruiker.
-import { supabase } from '@/integrations/supabase/client';
+// KASSA-MOBIEL-1: de kassa-client (eigen sessie van het toestel), niet de beheer-sessie.
+import { kassaSupabase as supabase } from '@/kassa/app/kassaSupabase';
 import { buildReportTurnover, buildReportUser } from '../fiscal/builders';
 import { ROBOT_EMPLOYEE_ID } from '../fiscal/identity';
 import type { AnyFiscalInput, MutationName, SignResult } from '../fiscal/types';

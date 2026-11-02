@@ -1,7 +1,8 @@
 // KASSA-RECHTEN-1 (review 1) — sessietoken van de kassa. kassa_staff_login geeft het bij een juiste PIN;
 // het leeft enkel in het geheugen (session.tsx). Bij elke vergrendeling (Wissel of inactiviteit) trekt het
 // toestel het in. Lukt dat niet (offline), dan vervalt het op het einde van de bedrijfsdag.
-import { supabase } from '@/integrations/supabase/client';
+// KASSA-MOBIEL-1: de kassa-client (eigen sessie van het toestel), niet de beheer-sessie.
+import { kassaSupabase as supabase } from '@/kassa/app/kassaSupabase';
 import { PRODUCT_EDIT_ROLES } from './productActions';
 
 export function revokeStaffToken(tenantId: string | null | undefined, token: string): void {

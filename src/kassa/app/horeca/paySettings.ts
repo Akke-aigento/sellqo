@@ -5,7 +5,8 @@
 // terminal, fooi aan (het profiel van een zaak zonder betaalterminal).
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+// KASSA-MOBIEL-1: de kassa-client (eigen sessie van het toestel), niet de beheer-sessie.
+import { kassaSupabase as supabase } from '@/kassa/app/kassaSupabase';
 import type { TenderMethod, TipMethod } from './pay';
 import { DEFAULT_LOCK_MINUTES, normalizeLockMinutes } from './kassaUx';
 import { DEFAULT_COURSE_SETTINGS, normalizeCourseSettings, type CourseSettings } from './courses';

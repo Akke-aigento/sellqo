@@ -11634,9 +11634,8 @@
       "unpair": "Ontkoppel dit toestel",
       "unpairConfirm": "Dit toestel loskoppelen van {{name}}? Daarna werkt de kassa hier pas weer met een nieuwe koppelcode uit beheer.",
       "unpairYes": "Ontkoppelen",
-      "toAdminWarning": "Beheer opent in een nieuw venster. Doe dat liefst op een ander toestel: meld je in dezelfde browser aan met je eigen account, dan wordt deze kassa afgemeld en moet je ze opnieuw koppelen.",
-      "toAdminOpen": "Openen in nieuw venster",
-      "toAdminElsewhere": "Open beheer op een ander toestel"
+      "toAdminWarning": "Beheer opent in je browser. Deze kassa blijft gekoppeld.",
+      "toAdminOpen": "Openen in nieuw venster"
     },
     "fiscalMode": {
       "off": "niet-fiscale modus",
@@ -12087,13 +12086,20 @@
         "offline": "Geen verbinding. Koppelen kan enkel online.",
         "server": "Koppelen lukte niet. Probeer opnieuw.",
         "device_already_paired": "Dit toestel is al gekoppeld aan een kassa. Laat het eerst ontkoppelen in beheer (Kassa (POS) › Kassa's) en probeer dan opnieuw."
+      },
+      "backToAdmin": "Terug naar beheer",
+      "orCode": "of met een koppelcode",
+      "quick": {
+        "title": "Dit toestel nu koppelen",
+        "intro": "Je bent op dit toestel in beheer aangemeld als {{email}}. Kies de kassa en koppel met één tik. Je blijft in beheer aangemeld.",
+        "shop": "Zaak",
+        "terminal": "Kassa",
+        "single": "{{shop}} · kassa {{terminal}}",
+        "submit": "Dit toestel nu koppelen",
+        "notAllowed": "Enkel de zaakvoerder kan een toestel koppelen."
       }
     },
     "notDevice": {
-      "owner": {
-        "title": "Dit is geen kassatoestel",
-        "body": "Je bent aangemeld met je eigen SellQo-account. De kassa draait voortaan op een gekoppeld toestel met enkel kassarechten. Maak in beheer onder Kassa (POS) › Kassa's een koppelcode, meld je hier af en koppel dit toestel."
-      },
       "revoked": {
         "title": "Dit toestel is ontkoppeld",
         "body": "Deze kassa werd ontkoppeld in beheer of op het toestel zelf. Maak in beheer een nieuwe koppelcode om het opnieuw te gebruiken."
@@ -12102,9 +12108,7 @@
         "title": "Kassa niet geladen",
         "body": "De gegevens van dit toestel konden niet geladen worden. Controleer de verbinding en probeer opnieuw."
       },
-      "toPos": "Naar Kassa (POS) › Kassa's",
       "retry": "Opnieuw proberen",
-      "signOutAndPair": "Afmelden en dit toestel koppelen",
       "pairAgain": "Opnieuw koppelen"
     }
   },
@@ -12144,6 +12148,17 @@
         "station": "Dit toestel krijgt dan een melding bij elke nieuwe bon voor deze post.",
         "phone": "Dit toestel krijgt dan een melding bij een QR-bestelling en een online betaling. Je kiest daarna zelf wat erbij komt.",
         "other": "Je kiest daarna zelf wat dit toestel krijgt."
+      },
+      "reason": {
+        "unsupported": "Deze browser of app kan hier geen meldingen ontvangen.",
+        "permission": "Meldingen werden niet toegestaan.",
+        "service_worker": "De meldingsdienst van de browser startte niet.",
+        "subscribe": "De browser gaf geen inschrijving voor meldingen.",
+        "keys": "De inschrijving van de browser is onvolledig.",
+        "owned_elsewhere": "Dit toestel staat voor meldingen nog op een andere account en kon niet overgezet worden.",
+        "not_signed_in": "Je bent niet (meer) aangemeld.",
+        "offline": "Geen verbinding.",
+        "save": "Bewaren in SellQo lukte niet."
       }
     },
     "event": {

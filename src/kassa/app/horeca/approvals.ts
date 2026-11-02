@@ -3,7 +3,8 @@
 // eigenaar/verantwoordelijke. De server reikt het akkoord uit (kassa_approve: PIN, rol, lockout,
 // auditspoor) en controleert het in horeca_apply_one. Het scherm beslist niets.
 // Zelfde patroon als "product snel aanpassen" (KASSA-0.6, productActions.ts).
-import { supabase } from '@/integrations/supabase/client';
+// KASSA-MOBIEL-1: de kassa-client (eigen sessie van het toestel), niet de beheer-sessie.
+import { kassaSupabase as supabase } from '@/kassa/app/kassaSupabase';
 import type { ActionCtx } from './actions';
 import { canApprove, type Approval } from './productActions';
 import type { CheckLine } from './types';

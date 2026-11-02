@@ -3,7 +3,8 @@
 // De server (kassa_product_quick_edit) controleert PIN en rol, met dezelfde lockout als het
 // aanmelden, en schrijft elke wijziging in het audit-spoor. Geen fiscaal event: open rekeningen houden
 // de prijs waaraan ze aangeslagen werden.
-import { supabase } from '@/integrations/supabase/client';
+// KASSA-MOBIEL-1: de kassa-client (eigen sessie van het toestel), niet de beheer-sessie.
+import { kassaSupabase as supabase } from '@/kassa/app/kassaSupabase';
 import type { ActionCtx } from './actions';
 
 export const PRODUCT_EDIT_ROLES = new Set(['owner', 'manager']);

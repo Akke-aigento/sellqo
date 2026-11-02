@@ -48,12 +48,20 @@ export interface ClientErrorInput {
   tenantId?: string | null;
 }
 
+// KASSA-MOBIEL-1: de kassa heeft een eigen client (eigen sessie). Zolang de kassa draait, logt ze haar fouten
+// met die client (als het toestel), niet met de beheer-sessie die in dezelfde browser kan staan.
+let reportClient: typeof supabase | null = null;
+export function setErrorReportClient(client: typeof supabase | null): void {
+  reportClient = client;
+}
+
 export async function reportClientError({ error, componentStack, source, tenantId }: ClientErrorInput): Promise<void> {
   try {
     const err = error instanceof Error ? error : new Error(String(error));
-    const { data } = await supabase.auth.getUser();
+    const db = reportClient ?? supabase;
+    const { data } = await db.auth.getUser();
     if (!data.user) return; // RLS laat enkel ingelogde gebruikers schrijven; publieke pagina's loggen we niet.
-    await supabase.from('client_errors' as never).insert({
+    await db.from('client_errors' as never).insert({
       user_id: data.user.id,
       tenant_id: tenantId ?? null,
       source,

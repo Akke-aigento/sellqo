@@ -5,7 +5,8 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ArrowDownToLine, ArrowUpFromLine, Calculator, Loader2, LockKeyhole, Unlock } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+// KASSA-MOBIEL-1: de kassa-client (eigen sessie van het toestel), niet de beheer-sessie.
+import { kassaSupabase as supabase } from '@/kassa/app/kassaSupabase';
 import { cn } from '@/lib/utils';
 import type { ActionCtx } from '../horeca/actions';
 import { parseEuroInput } from '../horeca/pay';

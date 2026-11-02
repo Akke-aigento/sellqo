@@ -1,6 +1,7 @@
 // KASSA-ACCOUNT-1 — koppelscherm op het toestel, "geen kassatoestel"/"ontkoppeld", en beheer per kassa
 // (Toestel koppelen met code + QR + aftelling, gekoppelde toestellen, Ontkoppelen).
-// Scherm via ?screen=pair|owner|revoked|admin.
+// Scherm via ?screen=pair|pair-owner|revoked|error|admin.
+// KASSA-MOBIEL-1: 'owner' bestaat niet meer; pair-owner = koppelen met een beheer-sessie op dit toestel (één tik).
 import { useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -13,7 +14,7 @@ import { H } from './mocks/h';
 
 const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
 const ago = (m: number) => new Date(Date.now() - m * 60_000).toISOString();
-const beat = (id: string, m: number, v = 'sellqo-kassa-0.21.0'): KassaDevice => ({ device_id: id, terminal_id: 't1', sw_version: v, fiscal_mode: 'off', queue_count: 0, outbox_count: 0, pending_pays: 0, online: true, last_seen_at: ago(m) });
+const beat = (id: string, m: number, v = 'sellqo-kassa-0.22.0'): KassaDevice => ({ device_id: id, terminal_id: 't1', sw_version: v, fiscal_mode: 'off', queue_count: 0, outbox_count: 0, pending_pays: 0, online: true, last_seen_at: ago(m) });
 
 // eslint-disable-next-line react-refresh/only-export-components -- harnas-ingang
 function Admin() {
@@ -38,9 +39,9 @@ function Admin() {
 }
 
 const screen = H.screen === 'admin' ? <Admin />
-  : H.screen === 'owner' ? <NotADevice variant="owner" onSignOut={() => { (window as unknown as { __signedOut: boolean }).__signedOut = true; }} />
-  : H.screen === 'revoked' ? <NotADevice variant="revoked" onSignOut={() => {}} />
-  : <PairDevice />;
+  : H.screen === 'revoked' ? <NotADevice variant="revoked" hasAdmin onSignOut={() => { (window as unknown as { __signedOut: boolean }).__signedOut = true; }} />
+  : H.screen === 'error' ? <NotADevice variant="error" hasAdmin onSignOut={() => {}} onRetry={() => {}} />
+  : <PairDevice hasAdmin />;
 
 createRoot(document.getElementById('root')!).render(
   <QueryClientProvider client={qc}>

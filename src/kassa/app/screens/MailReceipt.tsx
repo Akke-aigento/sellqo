@@ -5,7 +5,8 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Check, Loader2, Mail } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+// KASSA-MOBIEL-1: de kassa-client (eigen sessie van het toestel), niet de beheer-sessie.
+import { kassaSupabase as supabase } from '@/kassa/app/kassaSupabase';
 
 type State = 'closed' | 'open' | 'sending' | 'sent';
 

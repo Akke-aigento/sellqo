@@ -5,7 +5,8 @@
 // tafel-/kassabonnen ouder dan 12 uur komen niet meer mee (die toont het bord toch niet).
 import { useMemo } from 'react';
 import { useMutation, useMutationState, useQuery, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+// KASSA-MOBIEL-1: de client van de omgeving (kassa-client in de kassa, anders beheer).
+import { useSupabaseClient } from '@/lib/supabaseScope';
 import { useTenant } from '@/hooks/useTenant';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
@@ -22,6 +23,7 @@ const BOARD_POLL_DEFAULT = 10_000;
  *  (zelfde vorm, zelfde venster). Beheer (/admin/keuken, dashboard) blijft ongewijzigd op REST. */
 export function useKitchenBoard(nowMs: number, enabled = true, intervalMs = BOARD_POLL_DEFAULT, opts: { kassaDevice?: boolean } = {}) {
   const { t } = useTranslation();
+  const supabase = useSupabaseClient();
   const { currentTenant } = useTenant();
   const tenantId = currentTenant?.id;
   const qc = useQueryClient();

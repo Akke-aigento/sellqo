@@ -11632,9 +11632,8 @@
       "unpair": "Dissocier cet appareil",
       "unpairConfirm": "Dissocier cet appareil de {{name}} ? La caisse ne fonctionnera à nouveau ici qu'avec un nouveau code d'association de la gestion.",
       "unpairYes": "Dissocier",
-      "toAdminWarning": "La gestion s'ouvre dans une nouvelle fenêtre. Utilisez de préférence un autre appareil : si vous vous connectez avec votre propre compte dans le même navigateur, cette caisse est déconnectée et doit être associée à nouveau.",
-      "toAdminOpen": "Ouvrir dans une nouvelle fenêtre",
-      "toAdminElsewhere": "Ouvrez la gestion sur un autre appareil"
+      "toAdminWarning": "L'administration s'ouvre dans votre navigateur. Cette caisse reste couplée.",
+      "toAdminOpen": "Ouvrir dans une nouvelle fenêtre"
     },
     "fiscalMode": {
       "off": "mode non fiscal",
@@ -12085,13 +12084,20 @@
         "offline": "Pas de connexion. L'association ne fonctionne qu'en ligne.",
         "server": "L'association a échoué. Veuillez réessayer.",
         "device_already_paired": "Cet appareil est déjà associé à une caisse. Faites-le d'abord dissocier dans la gestion (Caisse (POS) › Caisses), puis réessayez."
+      },
+      "backToAdmin": "Retour à l'administration",
+      "orCode": "ou avec un code de couplage",
+      "quick": {
+        "title": "Coupler cet appareil maintenant",
+        "intro": "Vous êtes connecté à l'administration sur cet appareil en tant que {{email}}. Choisissez la caisse et couplez en un geste. Vous restez connecté à l'administration.",
+        "shop": "Établissement",
+        "terminal": "Caisse",
+        "single": "{{shop}} · caisse {{terminal}}",
+        "submit": "Coupler cet appareil maintenant",
+        "notAllowed": "Seul le gérant peut coupler un appareil."
       }
     },
     "notDevice": {
-      "owner": {
-        "title": "Ceci n'est pas un appareil de caisse",
-        "body": "Vous êtes connecté avec votre propre compte SellQo. La caisse fonctionne désormais sur un appareil associé, avec uniquement des droits de caisse. Créez un code d'association dans la gestion sous Caisse (POS) › Caisses, déconnectez-vous ici et associez cet appareil."
-      },
       "revoked": {
         "title": "Cet appareil a été dissocié",
         "body": "Cette caisse a été dissociée dans la gestion ou sur l'appareil lui-même. Créez un nouveau code d'association dans la gestion pour la réutiliser."
@@ -12100,9 +12106,7 @@
         "title": "Caisse non chargée",
         "body": "Les données de cet appareil n'ont pas pu être chargées. Vérifiez la connexion et réessayez."
       },
-      "toPos": "Vers Caisse (POS) › Caisses",
       "retry": "Réessayer",
-      "signOutAndPair": "Se déconnecter et associer cet appareil",
       "pairAgain": "Associer à nouveau"
     }
   },
@@ -12142,6 +12146,17 @@
         "station": "Cet appareil recevra alors une notification pour chaque nouveau bon de ce poste.",
         "phone": "Cet appareil recevra alors une notification pour une commande QR et un paiement en ligne. Vous pourrez en ajouter ensuite.",
         "other": "Vous choisissez ensuite ce que reçoit cet appareil."
+      },
+      "reason": {
+        "unsupported": "Ce navigateur ou cette app ne peut pas recevoir de notifications ici.",
+        "permission": "Les notifications n'ont pas été autorisées.",
+        "service_worker": "Le service de notifications du navigateur n'a pas démarré.",
+        "subscribe": "Le navigateur n'a pas fourni d'abonnement aux notifications.",
+        "keys": "L'abonnement du navigateur est incomplet.",
+        "owned_elsewhere": "Cet appareil est encore inscrit aux notifications sur un autre compte et n'a pas pu être transféré.",
+        "not_signed_in": "Vous n'êtes pas (ou plus) connecté.",
+        "offline": "Pas de connexion.",
+        "save": "L'enregistrement dans SellQo a échoué."
       }
     },
     "event": {

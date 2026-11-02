@@ -3,10 +3,12 @@
 // KASSA-ACCOUNT-1 — het toestel meldt zich aan met een eigen gekoppelde account (code/QR uit beheer), niet
 // meer met een SellQo-account: zaak, kassa en toestel-ID komen uit de serverkoppeling (kassa_device_context).
 // De kassa krijgt een eigen TenantContext (enkel de velden die ze toont), geen tenants-select.
+// KASSA-MOBIEL-1 — de kassa heeft een eigen aanmelding (kassa-client, eigen storageKey), los van beheer. Een
+// eigenaar-sessie komt nooit in de kassa: geen kassa-sessie = koppelen (met één tik als beheer op dit toestel
+// aangemeld is). Afmelden of ontkoppelen raakt de beheer-sessie niet.
 import { useCallback, useEffect, useMemo, useState, type ContextType } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Loader2 } from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
 import { TenantContext } from '@/hooks/useTenant';
 import { KassaSessionProvider, useKassaSession } from './session';
 import { fiscalSettingsOf, KassaRuntime, loadDevice } from './runtime';
@@ -25,7 +27,9 @@ import { kassaLanguage } from './language';
 import { useKassaLockMinutes } from './horeca/paySettings';
 import { effectiveLockMinutes, revokeStaffToken } from './horeca/staffSession';
 import { clearDeviceCache, deviceConfigOf, fetchDeviceContext, unpairThisDevice, type ContextResult, type DeviceContext } from './deviceAccount';
-import { isDeviceUser } from './setup';
+import { KassaAuthProvider, useKassaAuth } from './kassaAuth';
+import { adminHref } from './horeca/quickTap';
+import { PUBLIC_SITE_URL } from '@/lib/siteUrl';
 
 function Spinner() {
   const { t } = useTranslation();
@@ -76,9 +80,9 @@ function KassaLive({ runtime, terminalName, onForgetDevice }: { runtime: KassaRu
   return <KassaHome runtime={runtime} store={store} alerts={alerts} terminalName={terminalName} onForgetDevice={onForgetDevice} />;
 }
 
-/** Aangemeld: is deze sessie een gekoppeld toestel? Zo ja de kassa, anders uitleg (eigenaar) of opnieuw koppelen. */
-function DeviceGate({ userId, deviceUser }: { userId: string; deviceUser: boolean }) {
-  const { signOut } = useAuth();
+/** Kassa-sessie: is dit (nog) een gekoppeld toestel? Zo ja de kassa, anders opnieuw koppelen of opnieuw proberen. */
+function DeviceGate({ userId, hasAdmin }: { userId: string; hasAdmin: boolean }) {
+  const { signOut } = useKassaAuth();
   const [state, setState] = useState<ContextResult | null>(null);
   const load = useCallback(() => {
     let alive = true;
@@ -87,9 +91,10 @@ function DeviceGate({ userId, deviceUser }: { userId: string; deviceUser: boolea
     return () => { alive = false; };
   }, [userId]);
   useEffect(() => load(), [load]);
-  // Eigenaar: enkel afmelden (de bewaarde toestel-ID blijft, zodat koppelen hetzelfde deviceId geeft).
-  // Ingetrokken toestel: ook de bewaarde context weg.
-  const leave = async () => { if (deviceUser) clearDeviceCache(); await signOut(); };
+  // Ingetrokken of onleesbaar: de bewaarde context weg en enkel de kassa-sessie afmelden (de toestel-ID blijft,
+  // zodat opnieuw koppelen hetzelfde deviceId geeft). Beheer blijft aangemeld.
+  const leave = async () => { clearDeviceCache(); await signOut(); };
+  // Ontkoppelen: koppeling intrekken + alle sessies van de toestel-user (global, enkel via de kassa-client).
   const unpair = async () => { await unpairThisDevice(); await signOut(); };
 
   if (!state) return <Spinner />;
@@ -100,15 +105,25 @@ function DeviceGate({ userId, deviceUser }: { userId: string; deviceUser: boolea
       </KassaSessionProvider>
     );
   }
-  if (state.kind === 'error') return <NotADevice variant="error" onSignOut={leave} onRetry={load} />;
-  return <NotADevice variant={deviceUser ? 'revoked' : 'owner'} onSignOut={leave} />;
+  return <NotADevice variant={state.kind === 'error' ? 'error' : 'revoked'} onSignOut={leave} onRetry={state.kind === 'error' ? load : undefined} hasAdmin={hasAdmin} />;
+}
+
+function KassaRoot() {
+  const { user, loading } = useKassaAuth();
+  // Beheer bestaat in dezelfde app (SellQo-app of web, route /kassa); in de aparte Kassa-app niet.
+  const hasAdmin = !adminHref(window.location.pathname, PUBLIC_SITE_URL).external;
+  if (loading) return <Spinner />;
+  if (!user) return <PairDevice hasAdmin={hasAdmin} />;
+  return <DeviceGate key={user.id} userId={user.id} hasAdmin={hasAdmin} />;
 }
 
 export function KassaApp() {
-  const { user, loading } = useAuth();
   // MELDING-1: "SellQo Kassa" als beginscherm-app (op iPad/iPhone nodig voor meldingen).
   useAppShell('/kassa.webmanifest', 'Kassa', '#0f172a');
-  if (loading) return <Spinner />;
-  if (!user) return <PairDevice />;
-  return <DeviceGate key={user.id} userId={user.id} deviceUser={isDeviceUser(user)} />;
+  const standalone = adminHref(window.location.pathname, PUBLIC_SITE_URL).external;
+  return (
+    <KassaAuthProvider standalone={standalone}>
+      <KassaRoot />
+    </KassaAuthProvider>
+  );
 }

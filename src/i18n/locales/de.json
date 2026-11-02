@@ -11632,9 +11632,8 @@
       "unpair": "Dieses Gerät entkoppeln",
       "unpairConfirm": "Dieses Gerät von {{name}} trennen? Die Kasse funktioniert hier erst wieder mit einem neuen Kopplungscode aus der Verwaltung.",
       "unpairYes": "Entkoppeln",
-      "toAdminWarning": "Die Verwaltung öffnet sich in einem neuen Fenster. Nutze dafür am besten ein anderes Gerät: Meldest du dich im selben Browser mit deinem eigenen Konto an, wird diese Kasse abgemeldet und muss neu gekoppelt werden.",
-      "toAdminOpen": "In neuem Fenster öffnen",
-      "toAdminElsewhere": "Öffne die Verwaltung auf einem anderen Gerät"
+      "toAdminWarning": "Die Verwaltung öffnet sich in deinem Browser. Diese Kasse bleibt gekoppelt.",
+      "toAdminOpen": "In neuem Fenster öffnen"
     },
     "fiscalMode": {
       "off": "nicht-fiskalischer Modus",
@@ -12085,13 +12084,20 @@
         "offline": "Keine Verbindung. Koppeln geht nur online.",
         "server": "Koppeln hat nicht geklappt. Versuche es erneut.",
         "device_already_paired": "Dieses Gerät ist bereits mit einer Kasse gekoppelt. Lass es zuerst in der Verwaltung entkoppeln (Kasse (POS) › Kassen) und versuche es dann erneut."
+      },
+      "backToAdmin": "Zurück zur Verwaltung",
+      "orCode": "oder mit einem Kopplungscode",
+      "quick": {
+        "title": "Dieses Gerät jetzt koppeln",
+        "intro": "Du bist auf diesem Gerät in der Verwaltung als {{email}} angemeldet. Wähle die Kasse und kopple mit einem Tipp. Du bleibst in der Verwaltung angemeldet.",
+        "shop": "Betrieb",
+        "terminal": "Kasse",
+        "single": "{{shop}} · Kasse {{terminal}}",
+        "submit": "Dieses Gerät jetzt koppeln",
+        "notAllowed": "Nur der Inhaber kann ein Gerät koppeln."
       }
     },
     "notDevice": {
-      "owner": {
-        "title": "Dies ist kein Kassengerät",
-        "body": "Du bist mit deinem eigenen SellQo-Konto angemeldet. Die Kasse läuft ab jetzt auf einem gekoppelten Gerät mit reinen Kassenrechten. Erstelle in der Verwaltung unter Kasse (POS) › Kassen einen Kopplungscode, melde dich hier ab und kopple dieses Gerät."
-      },
       "revoked": {
         "title": "Dieses Gerät wurde entkoppelt",
         "body": "Diese Kasse wurde in der Verwaltung oder am Gerät selbst entkoppelt. Erstelle in der Verwaltung einen neuen Kopplungscode, um sie wieder zu nutzen."
@@ -12100,9 +12106,7 @@
         "title": "Kasse nicht geladen",
         "body": "Die Daten dieses Geräts konnten nicht geladen werden. Prüfe die Verbindung und versuche es erneut."
       },
-      "toPos": "Zu Kasse (POS) › Kassen",
       "retry": "Erneut versuchen",
-      "signOutAndPair": "Abmelden und dieses Gerät koppeln",
       "pairAgain": "Erneut koppeln"
     }
   },
@@ -12142,6 +12146,17 @@
         "station": "Dieses Gerät erhält dann bei jedem neuen Bon für diese Station eine Benachrichtigung.",
         "phone": "Dieses Gerät erhält dann eine Benachrichtigung bei einer QR-Bestellung und einer Online-Zahlung. Weiteres können Sie danach hinzufügen.",
         "other": "Sie wählen danach, was dieses Gerät erhält."
+      },
+      "reason": {
+        "unsupported": "Dieser Browser oder diese App kann hier keine Benachrichtigungen empfangen.",
+        "permission": "Benachrichtigungen wurden nicht erlaubt.",
+        "service_worker": "Der Benachrichtigungsdienst des Browsers ist nicht gestartet.",
+        "subscribe": "Der Browser hat kein Benachrichtigungs-Abo geliefert.",
+        "keys": "Das Abo des Browsers ist unvollständig.",
+        "owned_elsewhere": "Dieses Gerät ist für Benachrichtigungen noch auf einem anderen Konto registriert und konnte nicht übertragen werden.",
+        "not_signed_in": "Du bist nicht (mehr) angemeldet.",
+        "offline": "Keine Verbindung.",
+        "save": "Speichern in SellQo ist fehlgeschlagen."
       }
     },
     "event": {

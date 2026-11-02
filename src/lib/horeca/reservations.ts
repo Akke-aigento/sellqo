@@ -5,6 +5,7 @@
 // (of in de database) sluit, verplaatst of wist een rekening. "Aangekomen", "niet gekomen" en
 // "geannuleerd" zet altijd een mens.
 import { supabase } from '@/integrations/supabase/client';
+import type { Db } from '@/lib/supabaseScope';
 
 /** RESERVATIE-2: 'requested' = online aangevraagd, nog niet bevestigd; 'declined' = geweigerd. */
 export type ReservationStatus = 'requested' | 'booked' | 'seated' | 'cancelled' | 'no_show' | 'declined';
@@ -108,10 +109,11 @@ export function timeLabel(iso: string, lng: string): string {
 
 // ── Lezen en schrijven (RLS: zaakvoerder en personeel) ────────────────────────────────────────
 const COLS = 'id, table_id, name, guests, phone, email, note, starts_at, duration_min, status, source';
-const table = () => supabase.from('table_reservations' as never);
+// KASSA-MOBIEL-1: `db` = de client van de omgeving (de kassa geeft haar eigen client mee); standaard beheer.
+const table = (db: Db = supabase) => db.from('table_reservations' as never);
 
-export async function fetchReservations(tenantId: string, fromIso: string, toIso: string): Promise<Reservation[]> {
-  const { data, error } = await table().select(COLS)
+export async function fetchReservations(tenantId: string, fromIso: string, toIso: string, db: Db = supabase): Promise<Reservation[]> {
+  const { data, error } = await table(db).select(COLS)
     .eq('tenant_id' as never, tenantId as never).gte('starts_at' as never, fromIso as never).lt('starts_at' as never, toIso as never)
     .order('starts_at' as never, { ascending: true }).limit(500);
   if (error) throw error;
@@ -119,16 +121,16 @@ export async function fetchReservations(tenantId: string, fromIso: string, toIso
 }
 
 /** RESERVATIE-2: alle openstaande online aanvragen vanaf vandaag (ook verder dan de geladen dagen). */
-export async function fetchPendingRequests(tenantId: string, fromIso: string): Promise<Reservation[]> {
-  const { data, error } = await table().select(COLS)
+export async function fetchPendingRequests(tenantId: string, fromIso: string, db: Db = supabase): Promise<Reservation[]> {
+  const { data, error } = await table(db).select(COLS)
     .eq('tenant_id' as never, tenantId as never).eq('status' as never, 'requested' as never).gte('starts_at' as never, fromIso as never)
     .order('starts_at' as never, { ascending: true }).limit(200);
   if (error) throw error;
   return (data ?? []) as unknown as Reservation[];
 }
 
-export async function fetchReservationSettings(tenantId: string): Promise<ReservationSettings> {
-  const { data, error } = await supabase.from('reservation_settings' as never).select('lead_minutes, late_minutes')
+export async function fetchReservationSettings(tenantId: string, db: Db = supabase): Promise<ReservationSettings> {
+  const { data, error } = await db.from('reservation_settings' as never).select('lead_minutes, late_minutes')
     .eq('tenant_id' as never, tenantId as never).maybeSingle();
   if (error) throw error;
   return (data as ReservationSettings | null) ?? DEFAULT_RESERVATION_SETTINGS;
@@ -159,13 +161,13 @@ export async function saveReservationSettings(tenantId: string, s: ReservationSe
 
 export type ReservationInput = Pick<Reservation, 'table_id' | 'name' | 'guests' | 'phone' | 'note' | 'starts_at'> & { duration_min?: number };
 
-export async function createReservation(tenantId: string, r: ReservationInput): Promise<void> {
-  const { error } = await table().insert({ tenant_id: tenantId, ...clean(r) } as never);
+export async function createReservation(tenantId: string, r: ReservationInput, db: Db = supabase): Promise<void> {
+  const { error } = await table(db).insert({ tenant_id: tenantId, ...clean(r) } as never);
   if (error) throw error;
 }
 
-export async function updateReservation(id: string, patch: Partial<ReservationInput> & { status?: ReservationStatus }): Promise<void> {
-  const { error } = await table().update(clean(patch) as never).eq('id' as never, id as never);
+export async function updateReservation(id: string, patch: Partial<ReservationInput> & { status?: ReservationStatus }, db: Db = supabase): Promise<void> {
+  const { error } = await table(db).update(clean(patch) as never).eq('id' as never, id as never);
   if (error) throw error;
 }
 

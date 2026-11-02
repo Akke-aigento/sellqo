@@ -17,8 +17,17 @@ export const supabase = {
     },
   },
   auth: { signInWithPassword: async (c: unknown) => { w.__calls.push({ name: 'signIn', body: c }); return { data: {}, error: null }; } },
+  // KASSA-MOBIEL-1: zaken en kassa's van de eigenaar (useAdminPairTargets, beheer-client).
+  from: (table: string) => {
+    const rows: Record<string, unknown[]> = {
+      tenants: [{ id: 'tn', name: 'Café De Wissel' }, { id: 'tn2', name: 'Eetcafé Het Hoekje' }],
+      pos_terminals: [{ id: 't1', name: 'Kassa 1', tenant_id: 'tn' }, { id: 't3', name: 'Terras', tenant_id: 'tn' }, { id: 't9', name: 'Toog', tenant_id: 'tn2' }],
+    };
+    const q = { select: () => q, in: () => q, is: () => q, order: () => q, then: (r: (v: unknown) => unknown) => Promise.resolve({ data: rows[table] ?? [], error: null }).then(r) };
+    return q;
+  },
   rpc: async (name: string, args: unknown) => {
-    w.__calls.push({ name, body: args });
+    w.__calls.push({ name, body: args, client: 'beheer' } as never);
     if (name === 'kassa_pair_code_create') return { data: { code: '482913', token: TOKEN, expires_at: new Date(Date.now() + 600_000).toISOString(), terminal_name: 'Kassa 1' }, error: null };
     return { data: null, error: null };
   },

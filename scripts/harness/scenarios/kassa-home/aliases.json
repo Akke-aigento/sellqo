@@ -10,5 +10,6 @@
   "@/hooks/usePrepStations": "mocks/prep.ts",
   "/^\\./printHealth$/": "mocks/printHealth.ts",
   "qr.js/lib/ErrorCorrectLevel": "mocks/qrjs.ts",
-  "qr.js/lib/QRCode": "mocks/qrjs.ts"
+  "qr.js/lib/QRCode": "mocks/qrjs.ts",
+  "@/kassa/app/kassaSupabase": "mocks/kassaSupabase.ts"
 }

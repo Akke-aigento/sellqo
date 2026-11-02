@@ -3,7 +3,8 @@
 // (queued, de printer haalt niets op) merkte niemand in de zaak. Pure functie + hook: één lichte vraag
 // per 30 s, enkel als het scherm zichtbaar is en enkel bij zaken met een actieve printer.
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+// KASSA-MOBIEL-1: de client van de omgeving (kassa-client in de kassa, anders beheer).
+import { useSupabaseClient } from '@/lib/supabaseScope';
 
 export interface PrinterRow { id: string; name: string; is_active: boolean; last_seen_at: string | null }
 export interface PrintJobRow { id: string; printer_id: string; status: string; created_at: string }
@@ -45,6 +46,7 @@ export function printHealth(printers: PrinterRow[], jobs: PrintJobRow[], nowMs: 
 export const hasPrintProblem = (h: PrintHealth, ackMs: number) => (h.failed > 0 || h.stuck > 0 || h.offline.length > 0) && h.latestMs > ackMs;
 
 export function usePrintHealth(tenantId: string | null | undefined, enabled = true) {
+  const supabase = useSupabaseClient();
   return useQuery({
     queryKey: ['print-health', tenantId],
     enabled: enabled && !!tenantId,

@@ -3,7 +3,8 @@
 // RLS: lezen = elk lid van de winkel, schrijven = tenant_admin. Een post wordt nooit echt
 // verwijderd (oude bonnen verwijzen ernaar): "verwijderen" zet is_active op false.
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+// KASSA-MOBIEL-1: de client van de omgeving (kassa-client in de kassa, anders beheer).
+import { useSupabaseClient } from '@/lib/supabaseScope';
 import { useTenant } from '@/hooks/useTenant';
 
 export type StationKind = 'kitchen' | 'bar' | 'other';
@@ -14,6 +15,7 @@ export interface PrepStationsData { stations: PrepStation[]; routes: PrepRoute[]
 export const prepStationsKey = (tenantId: string | undefined) => ['prep-stations', tenantId] as const;
 
 export function usePrepStations() {
+  const supabase = useSupabaseClient();
   const { currentTenant } = useTenant();
   const tenantId = currentTenant?.id;
   return useQuery({
@@ -33,6 +35,7 @@ export function usePrepStations() {
 }
 
 export function usePrepStationMutations() {
+  const supabase = useSupabaseClient();
   const { currentTenant } = useTenant();
   const tenantId = currentTenant?.id;
   const qc = useQueryClient();

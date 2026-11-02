@@ -6,7 +6,8 @@
 //  - 'simulator' : FDM-simulator in het toestel. Enkel voor test- en demozaken: de events
 //                  krijgen een nep-handtekening (fdmId SIM…) en gaan naar fiscal_events.
 //  - 'fdm'       : echte zwarte doos (FDM-1). Tot dan geweigerd met een duidelijke melding.
-import { supabase } from '@/integrations/supabase/client';
+// KASSA-MOBIEL-1: de kassa-client (eigen sessie van het toestel), niet de beheer-sessie.
+import { kassaSupabase as supabase } from '@/kassa/app/kassaSupabase';
 import { bookingDateFor, nextTicketNo, posDateTime, type EventMeta, type PosContext } from '../fiscal/identity';
 import { FdmSimulator } from '../fiscal/simulator/fdmSimulator';
 import { FiscalSender, MemoryPendingStore, SimulatorGateway, type SignOutcome } from '../fiscal/gateway';

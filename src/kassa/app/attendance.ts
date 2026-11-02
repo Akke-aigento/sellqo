@@ -7,7 +7,8 @@
 // een urenoverzicht is. Het fiscale pad (tekenen van WORK_IN/OUT) is ongewijzigd: kassa_clock
 // komt erna en bewaart enkel het event-id. localStorage is nog enkel een cache voor als het
 // toestel offline is.
-import { supabase } from '@/integrations/supabase/client';
+// KASSA-MOBIEL-1: de kassa-client (eigen sessie van het toestel), niet de beheer-sessie.
+import { kassaSupabase as supabase } from '@/kassa/app/kassaSupabase';
 import { buildWorkInOut } from '../fiscal/builders';
 import { FiscalUnavailableError, type KassaRuntime } from './runtime';
 

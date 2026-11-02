@@ -4,7 +4,7 @@ export async function run(page, { width, log }) {
   const base = page.url().split('?')[0];
   const browser = page.context().browser();
   const errors = [];
-  for (const s of ['pair', 'owner', 'revoked', 'admin']) {
+  for (const s of ['pair', 'pair-owner', 'revoked', 'error', 'admin']) {
     const p = await browser.newPage({ viewport: page.viewportSize() });
     p.on('pageerror', (e) => errors.push(`[${width} ${s}] ${e}`));
     p.on('console', (m) => { if (m.type() === 'error') errors.push(`[${width} ${s}] ${m.text()}`); });
@@ -39,6 +39,16 @@ export async function run(page, { width, log }) {
       log(s, 'aanroepen:', JSON.stringify(await p.evaluate(() => window.__calls.map((c) => [c.name, c.body?.code ?? c.body?.email]))));
       const dev = await p.evaluate(() => window.__calls.find((c) => c.name === 'kassa-device-pair')?.body?.device_uuid);
       log(s, 'device_uuid bewaard:', dev === await p.evaluate(() => localStorage.getItem('sq_kassa_device_uuid')));
+    } else if (s === 'pair-owner') {
+      // KASSA-MOBIEL-1: één tik met de beheer-sessie; beheer-client maakt de code, kassa-client ruilt hem in.
+      await p.getByRole('button', { name: 'Dit toestel nu koppelen' }).waitFor();
+      log(s, 'terug:', JSON.stringify(await p.locator('a').evaluateAll((as) => as.map((a) => [a.textContent, a.getAttribute('href')]))));
+      log(s, 'zaken:', (await p.locator('select').first().locator('option').allInnerTexts()).join(' | '));
+      await shot('pair-owner');
+      await p.locator('select').nth(1).selectOption('t3');
+      await p.getByRole('button', { name: 'Dit toestel nu koppelen' }).click();
+      await p.waitForTimeout(400);
+      log(s, 'aanroepen:', JSON.stringify(await p.evaluate(() => window.__calls.map((c) => [c.name, c.client, c.body?.p_terminal_id ?? (c.body?.code ? 'token' : c.body?.email)]))));
     } else if (s === 'admin') {
       log(s, 'lijst:', (await p.locator('li').allInnerTexts()).join(' | '));
       log(s, 'knoppen Toestel koppelen:', await p.getByRole('button', { name: 'Toestel koppelen' }).count(), '| Ontkoppelen:', await p.getByRole('button', { name: 'Ontkoppelen' }).count());

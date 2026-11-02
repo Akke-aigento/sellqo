@@ -4,22 +4,22 @@
 //
 // Inschrijven moet op het toestel zelf (de browser of het OS vraagt toestemming). Wat een toestel
 // ontvangt, pas je aan op één plek: Kassa (POS) › Kassa's. Hier staat enkel de samenvatting.
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { BellRing, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
-import { useAuth } from '@/hooks/useAuth';
+import { useOptionalAuth } from '@/hooks/useAuth';
+import { useSupabaseClient, useSupabaseScope } from '@/lib/supabaseScope';
 import { wakeLockSupported } from '@/hooks/useWakeLock';
 import { ding, readFlag, writeFlag } from '@/lib/ding';
 import { getInstallId } from '@/lib/installId';
 import {
   DEFAULT_EVENTS, DEFAULT_PERSONAL, defaultDeviceName, disablePushHere, enablePushHere, isSilenced, loadThisDevice, pushStateHere, removeDevice, saveDevice, SHARED_KINDS, silenceDevice,
-  type DeviceKind, type DeviceProfile, type PushHere,
+  pushErrorToast, type DeviceKind, type DeviceProfile, type PushHere, type PushTarget,
 } from '@/lib/deviceAlerts';
-
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -47,7 +47,14 @@ interface Props {
 
 export function DeviceAlertsDialog(p: Props) {
   const { t, i18n } = useTranslation();
-  const { user } = useAuth();
+  // KASSA-MOBIEL-1: in de kassa de kassa-client en (voor push) de identiteit van de kassa; in beheer zoals vroeger.
+  const scope = useSupabaseScope();
+  const auth = useOptionalAuth();
+  const db = useSupabaseClient();
+  const pushUserId = scope ? scope.push.userId : auth?.user?.id ?? null;
+  const pushDb = scope?.push.db;
+  const pushScope = scope?.push.scope;
+  const push = useMemo<PushTarget>(() => ({ db: pushDb, scope: pushScope }), [pushDb, pushScope]);
   const [state, setState] = useState<PushHere | null>(null);
   const [profile, setProfile] = useState<DeviceProfile | null>(null);
   const [busy, setBusy] = useState(false);
@@ -56,18 +63,18 @@ export function DeviceAlertsDialog(p: Props) {
 
   const refresh = useCallback(async () => {
     const [s, prof] = await Promise.all([
-      pushStateHere(user?.id ?? null).catch(() => 'unsupported' as PushHere),
-      loadThisDevice(p.tenantId).catch(() => null),
+      pushStateHere(pushUserId, push).catch(() => 'unsupported' as PushHere),
+      loadThisDevice(p.tenantId, db).catch(() => null),
     ]);
     setState(s);
     // Een stilgezet gedeeld toestel (op afstand verwijderd) telt hier als "geen profiel": aanzetten
     // bewaart dan opnieuw de standaarden voor dit soort toestel.
     setProfile(prof && isSilenced(prof) ? null : prof);
-  }, [user?.id, p.tenantId]);
+  }, [pushUserId, push, db, p.tenantId]);
   useEffect(() => { if (p.open) void refresh(); }, [p.open, refresh]);
 
   const enable = async () => {
-    if (!user) return;
+    if (!pushUserId) return;
     setBusy(true);
     try {
       // Eerst het profiel (met "persoonlijke meldingen uit" op een gedeeld toestel), dan pas inschrijven:
@@ -82,18 +89,20 @@ export function DeviceAlertsDialog(p: Props) {
           station_ids: p.kind === 'station' && p.stationId ? [p.stationId] : [],
           personal: DEFAULT_PERSONAL[p.kind],
           lang: (i18n.language || 'nl').slice(0, 2),
-        });
+        }, db);
       }
-      const r = await enablePushHere(user.id);
-      if (r !== 'on') {
-        toast.error(t(r === 'denied' ? 'deviceAlerts.push.deniedToast' : 'deviceAlerts.push.errorToast'));
+      const r = await enablePushHere(pushUserId, push);
+      if (r.status !== 'on') {
+        if (r.status === 'denied') toast.error(t('deviceAlerts.push.deniedToast'));
+        else { const e = pushErrorToast(t, r); toast.error(e.title, { description: e.description }); }
         await refresh();
         return;
       }
       toast.success(t('deviceAlerts.push.enabledToast'));
       await refresh();
     } catch (e) {
-      toast.error(t('deviceAlerts.push.errorToast'), { description: e instanceof Error ? e.message : undefined });
+      const err = pushErrorToast(t, { reason: 'save', detail: e instanceof Error ? e.message : String(e) });
+      toast.error(err.title, { description: err.description });
     } finally {
       setBusy(false);
     }
@@ -108,10 +117,10 @@ export function DeviceAlertsDialog(p: Props) {
       // De native app schrijft zich bij elke start opnieuw in: een gedeeld toestel daarom stilzetten
       // (profiel blijft, zonder meldingen) in plaats van het profiel te wissen.
       if (SHARED_KINDS.includes(profile.kind)) {
-        await disablePushHere();
-        await silenceDevice(p.tenantId, profile);
+        await disablePushHere(push);
+        await silenceDevice(p.tenantId, profile, db);
       } else {
-        await removeDevice(p.tenantId, profile.install_id);
+        await removeDevice(p.tenantId, profile.install_id, db);
       }
       toast.success(t('deviceAlerts.push.disabledToast'));
       await refresh();
@@ -183,7 +192,7 @@ export function DeviceAlertsDialog(p: Props) {
             ) : (
               <>
                 <p className="text-sm text-muted-foreground">{t(`deviceAlerts.push.offHint.${p.kind}`)}</p>
-                <Button onClick={enable} disabled={busy || !user}>
+                <Button onClick={enable} disabled={busy || !pushUserId}>
                   {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <BellRing className="mr-2 h-4 w-4" />}{t('deviceAlerts.push.enable')}
                 </Button>
               </>

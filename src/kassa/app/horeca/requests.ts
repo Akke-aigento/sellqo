@@ -8,7 +8,8 @@
 // - Lukt het versturen niet (offline, zwarte doos), dan staan de lijnen al veilig op de rekening als
 //   "nog niet verstuurd": niets gaat verloren, de bediening verstuurt ze zelf.
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+// KASSA-MOBIEL-1: de kassa-client (eigen sessie van het toestel), niet de beheer-sessie.
+import { kassaSupabase as supabase } from '@/kassa/app/kassaSupabase';
 import { sendRound, type ActionCtx, type ActionOutcome } from './actions';
 
 export interface TableRequestItem { product_id: string; variant_id: string | null; qty: number; name: string; unit_price_cents: number; addons: { name: string }[] }

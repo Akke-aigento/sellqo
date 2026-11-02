@@ -2,7 +2,11 @@
 // de context (zaak, kassa, toestel) uit kassa_device_context(), en ontkoppelen.
 // Offline: de laatst gekende context blijft bewaard (zelfde toestel-user), zodat de kassa offline kan opstarten
 // zoals vroeger met de eigenaarssessie. Intrekken werkt bij de eerstvolgende online-aanroep.
-import { supabase } from '@/integrations/supabase/client';
+// KASSA-MOBIEL-1: de kassa-client (eigen sessie van het toestel), niet de beheer-sessie.
+import { kassaSupabase as supabase } from '@/kassa/app/kassaSupabase';
+// KASSA-MOBIEL-1: enkel voor "Dit toestel nu koppelen" — de koppelcode maakt de beheer-sessie (tenant_admin).
+import { supabase as beheerSupabase } from '@/integrations/supabase/client';
+import type { Db } from '@/lib/supabaseScope';
 import { forgetDevice, saveDevice, type DeviceConfig } from './runtime';
 import { pairErrorOf, type PairError } from './setup';
 
@@ -84,8 +88,30 @@ export async function pairThisDevice(secret: string, deviceUuid: string): Promis
   return { ok: true };
 }
 
+export type QuickPairError = PairError | 'not_allowed';
+
+/** KASSA-MOBIEL-1 — één tik: de eigenaar is op dit toestel in beheer aangemeld. De beheer-client maakt een koppelcode
+ *  (bestaande RPC kassa_pair_code_create, enkel tenant_admin), de kassa-client ruilt het QR-token meteen in via
+ *  kassa-device-pair. Geen code overtikken; de server doet exact hetzelfde als bij een gescande QR. */
+export async function pairWithAdminSession(tenantId: string, terminalId: string, deviceUuid: string, adminDb: Db = beheerSupabase): Promise<{ ok: true } | { ok: false; error: QuickPairError }> {
+  let token: string | undefined;
+  try {
+    const { data, error } = await adminDb.rpc('kassa_pair_code_create' as never, { p_tenant_id: tenantId, p_terminal_id: terminalId } as never);
+    if (error) {
+      if (isNetworkError(error)) return { ok: false, error: 'offline' };
+      return { ok: false, error: (error as { code?: string }).code === '42501' ? 'not_allowed' : 'server' };
+    }
+    token = (data as { token?: string } | null)?.token;
+  } catch (e) {
+    return { ok: false, error: isNetworkError(e) ? 'offline' : 'server' };
+  }
+  if (!token) return { ok: false, error: 'server' };
+  return pairThisDevice(token, deviceUuid);
+}
+
 /** "Ontkoppel dit toestel": koppeling intrekken (best effort), alle sessies van de toestel-user weg (global),
- *  lokale kassagegevens weg. De aanroeper ruimt daarna de app-staat op (useAuth().signOut). */
+ *  lokale kassagegevens weg. KASSA-MOBIEL-1: enkel via de kassa-client — de beheer-sessie op dit toestel blijft
+ *  staan. De aanroeper ruimt daarna de kassa-staat op (useKassaAuth().signOut). */
 export async function unpairThisDevice(): Promise<void> {
   try { await supabase.rpc('kassa_device_unpair_self' as never); } catch { /* offline: beheer kan ontkoppelen */ }
   // Review 1: ook alle refresh-tokens van de toestel-user server-side intrekken.

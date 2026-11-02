@@ -73,3 +73,6 @@ describe('sortCatalog (0.6.1)', () => {
     expect(rows.slice().sort((a, b) => sortCatalog(a, b, cats)).map((r) => r.name)).toEqual(['Pils', 'Tripel', 'Duvel', 'Westmalle', 'Cola', 'Losse']);
   });
 });
+
+// KASSA-MOBIEL-1: de kassa praat via haar eigen client; in de test dezelfde nep-client.
+vi.mock('@/kassa/app/kassaSupabase', async () => ({ kassaSupabase: (await import('@/integrations/supabase/client')).supabase, KASSA_AUTH_STORAGE_KEY: 'sb-sellqo-kassa-auth', defaultAuthStorageKey: () => 'sb-test-auth-token' }));

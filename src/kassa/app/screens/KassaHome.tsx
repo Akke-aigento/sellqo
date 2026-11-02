@@ -11,7 +11,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Banknote, Bell, BellOff, Check as CheckIcon, ChefHat, Clock, ExternalLink, FileBarChart, HandCoins, LayoutGrid, Loader2, LogOut, MoreHorizontal, Languages, Plus, ShoppingBag, Users, Wifi, WifiOff, Wine } from 'lucide-react';
-import { Capacitor } from '@capacitor/core';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { SUPPORTED_LANGUAGES } from '@/i18n/languages';
@@ -182,15 +181,17 @@ export function KassaHome({ runtime, store, alerts, terminalName, onForgetDevice
   };
 
   const canAdmin = ADMIN_LINK_ROLES.has(staff.role);
-  // Review 1: op het web deelt beheer de aanmelding met dit toestel (zelfde adres) → daar geen knop, enkel uitleg.
-  // In de native Kassa-app opent beheer in de externe browser (eigen opslag) en blijft de knop.
-  const nativeApp = Capacitor.isNativePlatform();
-  // KASSA-ACCOUNT-1: nooit in hetzelfde venster. Op het web deelt beheer de aanmelding met de kassa (zelfde
-  // adres): wie daar met zijn eigen account aanmeldt, meldt het toestel af en moet het opnieuw koppelen.
+  // KASSA-MOBIEL-1: kassa en beheer hebben elk een eigen aanmelding. Op het web en in de SellQo-app (route /kassa)
+  // gaat "Naar beheer" dus gewoon naar /admin in hetzelfde venster: het toestel blijft gekoppeld, wie in beheer
+  // aangemeld is blijft dat. In de aparte Kassa-app (geen beheer) opent beheer na bevestiging in de browser.
+  const admin = adminHref(window.location.pathname, PUBLIC_SITE_URL);
+  const openAdmin = () => {
+    if (admin.external) { setConfirmAdmin(true); return; }
+    window.location.assign(admin.href);
+  };
   const toAdmin = () => {
-    const { href } = adminHref(window.location.pathname, PUBLIC_SITE_URL);
     setConfirmAdmin(false);
-    window.open(href, '_blank', 'noopener');
+    window.open(admin.href, '_blank', 'noopener');
   };
 
   // RESERVATIE-1 — een laag: nooit een rekening sluiten of wijzigen. Aangekomen op een tafel die nog
@@ -272,11 +273,8 @@ export function KassaHome({ runtime, store, alerts, terminalName, onForgetDevice
                 <DropdownMenuItem className="h-11" onClick={() => setAlertsOpen(true)}>
                   {sound ? <Bell className="mr-2 h-4 w-4" /> : <BellOff className="mr-2 h-4 w-4" />}{t('kassa.signals.button')}
                 </DropdownMenuItem>
-                {canAdmin && nativeApp && (
-                  <DropdownMenuItem className="h-11" onClick={() => setConfirmAdmin(true)}><ExternalLink className="mr-2 h-4 w-4" />{t('kassa.home.toAdmin')}</DropdownMenuItem>
-                )}
-                {canAdmin && !nativeApp && (
-                  <p className="flex items-center px-2 py-2 text-xs text-muted-foreground"><ExternalLink className="mr-2 h-4 w-4 shrink-0" />{t('kassa.home.toAdminElsewhere')}</p>
+                {canAdmin && (
+                  <DropdownMenuItem className="h-11" onClick={openAdmin}><ExternalLink className="mr-2 h-4 w-4" />{t('kassa.home.toAdmin')}</DropdownMenuItem>
                 )}
                 {canAdmin && (
                   <>

@@ -1,7 +1,8 @@
 // TAFEL-1 — de kaart op de kassa: producten (kanaal 'pos'), categorieën, btw-label en extra's.
 // Enkel voor weergave en snelle optimistische lijnen; de prijs die telt, rekent de server.
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+// KASSA-MOBIEL-1: de kassa-client (eigen sessie van het toestel), niet de beheer-sessie.
+import { kassaSupabase as supabase } from '@/kassa/app/kassaSupabase';
 import type { CheckLine } from './types';
 
 export interface CatalogAddonGroup { id: string; name: string; min: number; max: number | null; options: { id: string; name: string; price_cents: number }[] }

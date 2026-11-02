@@ -165,3 +165,6 @@ describe('automatisch bevestigen', () => {
     expect(rpc).not.toHaveBeenCalled();
   });
 });
+
+// KASSA-MOBIEL-1: de kassa praat via haar eigen client; in de test dezelfde nep-client.
+vi.mock('@/kassa/app/kassaSupabase', async () => ({ kassaSupabase: (await import('@/integrations/supabase/client')).supabase, KASSA_AUTH_STORAGE_KEY: 'sb-sellqo-kassa-auth', defaultAuthStorageKey: () => 'sb-test-auth-token' }));

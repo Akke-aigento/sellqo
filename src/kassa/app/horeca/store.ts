@@ -10,7 +10,8 @@
 // - Weigert de server een commando, dan verdwijnt het lokaal en krijgt de gebruiker een
 //   melding; nooit stil verdwijnen.
 // - Versturen, korting, verplaatsen: wachten op de server (geld/fiscaal), geen optimisme.
-import { supabase } from '@/integrations/supabase/client';
+// KASSA-MOBIEL-1: de kassa-client (eigen sessie van het toestel), niet de beheer-sessie.
+import { kassaSupabase as supabase } from '@/kassa/app/kassaSupabase';
 import type { Check, CheckLine, Snapshot } from './types';
 import type { TableCall, TableRequest } from './requests';
 
@@ -86,9 +87,9 @@ export const supabaseTransport: Transport = {
     const from = new Date(); from.setHours(0, 0, 0, 0);
     const to = new Date(from); to.setDate(to.getDate() + 3);
     const [list, pending, settings] = await Promise.all([
-      fetchReservations(tenantId, from.toISOString(), to.toISOString()),
-      fetchPendingRequests(tenantId, from.toISOString()),
-      fetchReservationSettings(tenantId),
+      fetchReservations(tenantId, from.toISOString(), to.toISOString(), supabase),
+      fetchPendingRequests(tenantId, from.toISOString(), supabase),
+      fetchReservationSettings(tenantId, supabase),
     ]);
     // RESERVATIE-2: aanvragen verder dan drie dagen erbij (voor de lijst "Aanvragen").
     const ids = new Set(list.map((r) => r.id));

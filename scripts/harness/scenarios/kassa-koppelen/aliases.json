@@ -1,3 +1,5 @@
 {
-  "@/integrations/supabase/client": "mocks/supabase.ts"
+  "@/integrations/supabase/client": "mocks/supabase.ts",
+  "@/kassa/app/kassaSupabase": "mocks/kassaSupabase.ts",
+  "@/hooks/useAuth": "mocks/useAuth.ts"
 }

@@ -11632,9 +11632,8 @@
       "unpair": "Unlink this device",
       "unpairConfirm": "Unlink this device from {{name}}? The till will only work here again with a new pairing code from the back office.",
       "unpairYes": "Unlink",
-      "toAdminWarning": "The back office opens in a new window. Preferably use another device: if you sign in with your own account in the same browser, this till is signed out and has to be linked again.",
-      "toAdminOpen": "Open in new window",
-      "toAdminElsewhere": "Open the back office on another device"
+      "toAdminWarning": "Admin opens in your browser. This till stays paired.",
+      "toAdminOpen": "Open in new window"
     },
     "fiscalMode": {
       "off": "non-fiscal mode",
@@ -12085,13 +12084,20 @@
         "offline": "No connection. Linking only works online.",
         "server": "Linking failed. Please try again.",
         "device_already_paired": "This device is already linked to a till. Have it unlinked in the back office first (Point of sale (POS) › Terminals), then try again."
+      },
+      "backToAdmin": "Back to admin",
+      "orCode": "or with a pairing code",
+      "quick": {
+        "title": "Pair this device now",
+        "intro": "You are signed in to admin on this device as {{email}}. Choose the till and pair with one tap. You stay signed in to admin.",
+        "shop": "Business",
+        "terminal": "Till",
+        "single": "{{shop}} · till {{terminal}}",
+        "submit": "Pair this device now",
+        "notAllowed": "Only the business owner can pair a device."
       }
     },
     "notDevice": {
-      "owner": {
-        "title": "This is not a till device",
-        "body": "You are signed in with your own SellQo account. The till now runs on a linked device with till rights only. Create a pairing code in the back office under Point of sale (POS) › Terminals, sign out here and link this device."
-      },
       "revoked": {
         "title": "This device was unlinked",
         "body": "This till was unlinked in the back office or on the device itself. Create a new pairing code in the back office to use it again."
@@ -12100,9 +12106,7 @@
         "title": "Till not loaded",
         "body": "The details of this device could not be loaded. Check the connection and try again."
       },
-      "toPos": "Go to Point of sale (POS) › Terminals",
       "retry": "Try again",
-      "signOutAndPair": "Sign out and link this device",
       "pairAgain": "Link again"
     }
   },
@@ -12142,6 +12146,17 @@
         "station": "This device will then get an alert for every new ticket for this station.",
         "phone": "This device will then get an alert for a QR order and an online payment. You can add more afterwards.",
         "other": "You choose afterwards what this device gets."
+      },
+      "reason": {
+        "unsupported": "This browser or app cannot receive notifications here.",
+        "permission": "Notifications were not allowed.",
+        "service_worker": "The browser's notification service did not start.",
+        "subscribe": "The browser did not return a notification subscription.",
+        "keys": "The browser's subscription is incomplete.",
+        "owned_elsewhere": "This device is still registered for notifications on another account and could not be moved.",
+        "not_signed_in": "You are not signed in (anymore).",
+        "offline": "No connection.",
+        "save": "Saving in SellQo failed."
       }
     },
     "event": {

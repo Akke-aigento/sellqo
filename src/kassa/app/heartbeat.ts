@@ -1,7 +1,8 @@
 // LIVE-1 — toestelhartslag: elke minuut meldt de kassa zich bij SellQo (versie, wachtrij,
 // ondertekende events en betalingen die nog naar de cloud moeten, laatste sync). Nooit
 // blokkerend: lukt het niet, dan is dat zelf het signaal (het toestel valt stil).
-import { supabase } from '@/integrations/supabase/client';
+// KASSA-MOBIEL-1: de kassa-client (eigen sessie van het toestel), niet de beheer-sessie.
+import { kassaSupabase as supabase } from '@/kassa/app/kassaSupabase';
 import { KASSA_SW_VERSION } from '../version';
 import type { KassaRuntime } from './runtime';
 import type { HorecaStore } from './horeca/store';
