@@ -1137,6 +1137,10 @@
           "admin_announcement": {
             "label": "Message de SellQo",
             "description": "Une annonce de l'équipe SellQo"
+          },
+          "kassa_pair_bruteforce": {
+            "label": "Tentatives de deviner les codes d'association de caisse",
+            "description": "Des codes d'association d'appareils de caisse ont été devinés à grande échelle ; les codes ouverts ont été invalidés"
           }
         },
         "ai_coach": {

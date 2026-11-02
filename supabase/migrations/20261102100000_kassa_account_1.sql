@@ -10,9 +10,11 @@
 --   - kassa_pair_codes: eenmalige koppelcode (6 cijfers) of QR-token, 10 minuten geldig, gebonden aan zaak +
 --     kassa. Enkel gehasht bewaard. Aanmaken: kassa_pair_code_create (enkel tenant_admin). Inruilen: edge
 --     function kassa-device-pair (service role) via kassa_pair_claim / kassa_pair_complete / kassa_pair_release.
---     Rate limit (review 1): 5 fouten per IP per 15 minuten (code én QR-token). Platformbreed weigert niets: boven 300
---     fouten in 15 minuten worden alle open 6-cijfercodes ongeldig gemaakt (het QR-token van die codes blijft werken),
---     zodat andermans fouten nooit een juiste code doen weigeren, en raden over veel IP's niets oplevert.
+--     Rate limit (review 1+2): per IP (de edge function geeft IPv6 per /64) 5 fouten per 15 minuten, voor code én
+--     QR-token. Onbekend IP (geen IP-header): geen limiet per IP (geen gedeelde bucket), enkel de globale rem.
+--     Globale rem: vanaf 50 fouten in 15 minuten (alle IP's samen) worden alle open 6-cijfercodes ongeldig gemaakt
+--     (het QR-token van die codes blijft werken) en krijgt platformbeheer (winkel 'sellqo') één melding per
+--     kwartier (system/kassa_pair_bruteforce). Niemand wordt geweigerd: een juiste code wordt hoogstens ongeldig.
 --     Een toestel-ID (device_uuid) dat al actief gekoppeld is, wordt niet overgenomen: 'device_already_paired'
 --     (beheer ontkoppelt eerst). can_create_tenant weigert toestelaccounts (ankerpatch, review 1).
 --   - kassa_can_operate(tenant[, device]): has_tenant_role(tenant_admin, staff) OF een niet-ingetrokken toestel van
@@ -247,7 +249,8 @@ revoke all on function public.kassa_pair_code_create(uuid, uuid, text) from publ
 grant execute on function public.kassa_pair_code_create(uuid, uuid, text) to authenticated;
 
 -- 5. Koppelcode inruilen (enkel de edge function kassa-device-pair, service role) -----------------
--- p_secret = 6 cijfers of het 64-hex QR-token; p_ip = IP van de aanroeper (wordt hier gehasht).
+-- p_secret = 6 cijfers of het 64-hex QR-token; p_ip = genormaliseerd IP van de aanroeper (IPv6 per /64, hier
+-- gehasht), null = onbekend (dan geen limiet per IP).
 -- p_device_uuid = het toestel dat wil koppelen: al actief gekoppeld = niet claimen (reason device_already_paired).
 -- Antwoord: {ok: true, code_id, tenant_id, terminal_id, terminal_name, name} of
 --           {ok: false, reason: invalid|rate_limited|device_already_paired}.
@@ -259,19 +262,24 @@ security definer
 set search_path to 'public', 'extensions'
 as $$
 declare
-  v_ip text := encode(digest('kassa-ip|' || coalesce(p_ip, ''), 'sha256'), 'hex');
+  v_known boolean := nullif(btrim(coalesce(p_ip, '')), '') is not null;
+  v_ip text := case when nullif(btrim(coalesce(p_ip, '')), '') is null then 'onbekend'
+                    else encode(digest('kassa-ip|' || btrim(p_ip), 'sha256'), 'hex') end;
+  v_slot text := to_char(date_trunc('hour', now()) + floor(extract(minute from now()) / 15) * interval '15 minutes', 'YYYY-MM-DD"T"HH24:MI');
   v_secret text := lower(btrim(coalesce(p_secret, '')));
   v_hash text;
   v_row public.kassa_pair_codes%rowtype;
   v_name text;
   v_dev text := lower(btrim(coalesce(p_device_uuid, '')));
 begin
-  -- Eén aanroep per IP tegelijk (anders telt de limiet niet bij gelijktijdige pogingen).
-  perform pg_advisory_xact_lock(hashtextextended('kassa-pair|' || v_ip, 0));
   delete from public.kassa_pair_attempts where created_at < now() - interval '1 day';
-  -- Per IP: 5 fouten per 15 minuten, voor de 6 cijfers én het QR-token.
-  if (select count(*) from public.kassa_pair_attempts where ip_hash = v_ip and not ok and created_at > now() - interval '15 minutes') >= 5 then
-    return jsonb_build_object('ok', false, 'reason', 'rate_limited');
+  -- Per IP: 5 fouten per 15 minuten, voor de 6 cijfers én het QR-token. Eén aanroep per IP tegelijk (anders telt
+  -- de limiet niet bij gelijktijdige pogingen). Onbekend IP: overslaan, enkel de globale rem hieronder.
+  if v_known then
+    perform pg_advisory_xact_lock(hashtextextended('kassa-pair|' || v_ip, 0));
+    if (select count(*) from public.kassa_pair_attempts where ip_hash = v_ip and not ok and created_at > now() - interval '15 minutes') >= 5 then
+      return jsonb_build_object('ok', false, 'reason', 'rate_limited');
+    end if;
   end if;
   if v_secret ~ '^[0-9]{6}$' or v_secret ~ '^[0-9a-f]{64}$' then
     v_hash := encode(digest('kassa-pair|' || v_secret, 'sha256'), 'hex');
@@ -282,11 +290,28 @@ begin
   end if;
   if v_row.id is null then
     insert into public.kassa_pair_attempts (ip_hash, ok) values (v_ip, false);
-    -- Platformbrede rem: niemand weigeren, wel alle open 6-cijfercodes ongeldig maken (raden over veel IP's).
-    -- Het QR-token van die codes blijft geldig; de code_hash wordt een waarde die geen invoer kan treffen.
-    if (select count(*) from public.kassa_pair_attempts where not ok and created_at > now() - interval '15 minutes') >= 300 then
+    -- Globale rem (review 2: 50 fouten per 15 minuten over alle IP's): niemand weigeren, wel alle open
+    -- 6-cijfercodes ongeldig maken. Het QR-token van die codes blijft geldig; de code_hash wordt een waarde die
+    -- geen invoer kan treffen. Platformbeheer krijgt één melding per kwartier (dedupe_key per kwartier).
+    if (select count(*) from public.kassa_pair_attempts where not ok and created_at > now() - interval '15 minutes') >= 50 then
       update public.kassa_pair_codes set code_hash = 'ongeldig:' || id::text
        where used_at is null and expires_at > now() and code_hash not like 'ongeldig:%';
+      begin
+        insert into public.notifications (tenant_id, category, type, title, message, priority, action_url, data)
+        select t.id, 'system'::notification_category, 'kassa_pair_bruteforce',
+               'Raadpogingen op kassakoppelcodes',
+               'Meer dan 50 foute koppelcodes in 15 minuten, over alle zaken. Alle open 6-cijfercodes zijn ongeldig gemaakt; QR-codes blijven werken.',
+               'high'::notification_priority, '/admin/platform',
+               jsonb_build_object('dedupe_key', 'kassa_pair_bruteforce:' || v_slot, 'slot', v_slot)
+          from public.tenants t
+         where t.slug = 'sellqo'
+           and not exists (select 1 from public.notifications n
+                            where n.tenant_id = t.id and n.type = 'kassa_pair_bruteforce'
+                              and n.data ->> 'dedupe_key' = 'kassa_pair_bruteforce:' || v_slot);
+      exception when others then
+        -- Een melding mag het koppelen nooit breken (bv. lokale testdatabank zonder notifications).
+        raise notice 'KASSA-ACCOUNT-1: melding kassa_pair_bruteforce mislukt: %', sqlerrm;
+      end;
     end if;
     return jsonb_build_object('ok', false, 'reason', 'invalid');
   end if;
@@ -325,9 +350,14 @@ begin
   if exists (select 1 from public.kassa_device_accounts a where a.device_uuid = v_dev and a.revoked_at is null) then
     raise exception 'device_already_paired' using errcode = 'KA409';
   end if;
-  insert into public.kassa_device_accounts (user_id, tenant_id, terminal_id, device_uuid, name, paired_by)
-    values (p_user_id, v_row.tenant_id, v_row.terminal_id, v_dev,
-            left(coalesce(nullif(btrim(p_name), ''), v_row.name), 60), v_row.created_by);
+  begin
+    insert into public.kassa_device_accounts (user_id, tenant_id, terminal_id, device_uuid, name, paired_by)
+      values (p_user_id, v_row.tenant_id, v_row.terminal_id, v_dev,
+              left(coalesce(nullif(btrim(p_name), ''), v_row.name), 60), v_row.created_by);
+  exception when unique_violation then
+    -- Review 2: race tussen de exists-check hierboven en de insert (unieke index op actieve device_uuid).
+    raise exception 'device_already_paired' using errcode = 'KA409';
+  end;
   update public.kassa_pair_codes set used_by = p_user_id where id = v_row.id;
   return jsonb_build_object('ok', true);
 end;
@@ -582,6 +612,11 @@ begin
   end if;
   d := pg_get_functiondef(to_regprocedure(sig));
   if position('KASSA-ACCOUNT-1' in d) > 0 then raise notice 'KASSA-ACCOUNT-1: % al gepatcht', sig; return; end if;
+  -- Review 2: driftguard op de live prosrc-md5 (read-only nagetrokken 2-11-2026).
+  if (select md5(prosrc) from pg_proc where oid = to_regprocedure(sig)) <> '66ab3e639c230e48ba11234adca303fa' then
+    raise exception 'KASSA-ACCOUNT-1: % wijkt af van de live versie van 2-11-2026 (md5 %); eerst nalezen',
+      sig, (select md5(prosrc) from pg_proc where oid = to_regprocedure(sig));
+  end if;
   if (length(d) - length(replace(d, anchor, ''))) / length(anchor) <> 1 then
     raise exception 'KASSA-ACCOUNT-1: anker niet precies één keer gevonden in %', sig;
   end if;
@@ -607,7 +642,8 @@ declare
   -- Lidmaatschapscheck: een actief toestel van deze winkel gaat door naar de rolcheck (die geeft 42501 voor
   -- elke andere reden dan sale/return); de rolcheck laat het toestel enkel door voor sale/return.
   dev1 constant text := E'\n     /* KASSA-ACCOUNT-1 */ AND NOT coalesce(public.kassa_device_tenant() = v_tenant_id, false)';
-  dev2 constant text := E'\n     /* KASSA-ACCOUNT-1 */ AND NOT (p_reason IN (''sale'', ''return'') AND coalesce(public.kassa_device_tenant() = v_tenant_id, false))';
+  -- Null-veilig (review 2): een null-reason maakt de term false, dus geen doorlating.
+  dev2 constant text := E'\n     /* KASSA-ACCOUNT-1 */ AND NOT coalesce(p_reason IN (''sale'', ''return'') AND public.kassa_device_tenant() = v_tenant_id, false)';
   a1 constant text := E'     AND v_tenant_id NOT IN (SELECT public.get_user_tenant_ids(auth.uid()))';
   a2 constant text := E'     AND NOT public.has_tenant_role(v_tenant_id, ARRAY[''tenant_admin''::app_role, ''staff''::app_role, ''warehouse''::app_role])';
   d text;

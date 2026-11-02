@@ -121,6 +121,8 @@ export const NOTIFICATION_DEFAULTS: Readonly<Record<string, TypeDefaults>> = {
   "system/trial_converted": { category: "system", inApp: true, email: false },
   "system/trial_conversion_failed": { category: "system", inApp: true, email: false },
   "system/admin_announcement": { category: "system", inApp: true, email: false },
+  // KASSA-ACCOUNT-1 review 2: raden naar kassakoppelcodes (kassa_pair_claim, enkel naar de SellQo-platformwinkel).
+  "system/kassa_pair_bruteforce": { category: "system", inApp: true, email: false },
   "ai_coach/ai_suggestion": { category: "ai_coach", inApp: true, email: false },
   "ai_coach/ai_coach_suggestion": { category: "ai_coach", inApp: true, email: false },
   "messages/email_inbound": { category: "messages", inApp: true, email: true },

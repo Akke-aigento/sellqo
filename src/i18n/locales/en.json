@@ -1109,6 +1109,10 @@
           "admin_announcement": {
             "label": "Message from SellQo",
             "description": "An announcement from the SellQo team"
+          },
+          "kassa_pair_bruteforce": {
+            "label": "Guessing attempts on till pairing codes",
+            "description": "Till pairing codes were being guessed at scale; open codes have been invalidated"
           }
         },
         "ai_coach": {

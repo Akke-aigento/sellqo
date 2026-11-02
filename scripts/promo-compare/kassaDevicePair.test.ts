@@ -31,22 +31,24 @@ const db = new StatefulDb({
   kitchen_tickets: [],
 });
 
-// Koppelcodes zoals kassa_pair_claim: 6 cijfers of 64 hex (token), eenmalig, 5 fouten per IP; boven 300 fouten
+// Koppelcodes zoals kassa_pair_claim: 6 cijfers of 64 hex (token), eenmalig, 5 fouten per IP (onbekend IP: geen
+// limiet per IP); vanaf 50 fouten
 // platformbreed worden de open 6-cijfercodes ongeldig (token blijft), nooit iemand geweigerd; een al actief
 // gekoppeld toestel-ID = device_already_paired zonder de code te verbruiken.
 const codes: { id: string; secret: string; token: string; used: boolean; tenant_id: string; terminal_id: string; codeDead?: boolean }[] = [];
 const fails: Record<string, number> = {};
 let totalFails = 0;
 let claims = 0;
-const ipSeen: string[] = [];
+const ipSeen: (string | null)[] = [];
 db.rpcs.kassa_pair_claim = ({ p_secret, p_ip, p_device_uuid }) => {
   claims += 1;
   ipSeen.push(p_ip);
-  if ((fails[p_ip] ?? 0) >= 5) return { data: { ok: false, reason: 'rate_limited' }, error: null };
+  if (p_ip && (fails[p_ip] ?? 0) >= 5) return { data: { ok: false, reason: 'rate_limited' }, error: null };
   const c = codes.find((x) => !x.used && ((x.secret === p_secret && !x.codeDead) || x.token === p_secret));
   if (!c) {
-    fails[p_ip] = (fails[p_ip] ?? 0) + 1; totalFails += 1;
-    if (totalFails >= 300) for (const x of codes) if (!x.used) x.codeDead = true;
+    if (p_ip) fails[p_ip] = (fails[p_ip] ?? 0) + 1;
+    totalFails += 1;
+    if (totalFails >= 50) for (const x of codes) if (!x.used) x.codeDead = true;
     return { data: { ok: false, reason: 'invalid' }, error: null };
   }
   if (db.tables.kassa_device_accounts.some((a) => a.device_uuid === p_device_uuid && !a.revoked_at)) return { data: { ok: false, reason: 'device_already_paired' }, error: null };
@@ -54,10 +56,10 @@ db.rpcs.kassa_pair_claim = ({ p_secret, p_ip, p_device_uuid }) => {
   return { data: { ok: true, code_id: c.id, tenant_id: c.tenant_id, terminal_id: c.terminal_id, terminal_name: 'Toog', name: 'Toog iPad' }, error: null };
 };
 let completeFails = false;
-let completeRace = false;
+let completeRace: false | 'KA409' | '23505' = false;
 db.rpcs.kassa_pair_complete = ({ p_code_id, p_user_id, p_device_uuid, p_name }, d) => {
   if (completeFails) return { data: null, error: { message: 'koppelcode niet (meer) geldig' } };
-  if (completeRace) return { data: null, error: { code: 'KA409', message: 'device_already_paired' } };
+  if (completeRace) return { data: null, error: { code: completeRace, message: completeRace === '23505' ? 'duplicate key value violates unique constraint "kassa_device_accounts_active_device"' : 'device_already_paired' } };
   const c = codes.find((x) => x.id === p_code_id)!;
   d.tables.kassa_device_accounts.push({ user_id: p_user_id, tenant_id: c.tenant_id, terminal_id: c.terminal_id, device_uuid: p_device_uuid, name: p_name ?? 'Toog iPad', revoked_at: null });
   return { data: { ok: true }, error: null };
@@ -109,6 +111,16 @@ const newCode = (secret: string, tenant = T) => {
   codes.push({ id, secret, token, used: false, tenant_id: tenant, terminal_id: TERM });
   return id;
 };
+
+Deno.test('review 2 (1): GET geeft ip_source (welke headers, aantal XFF), nooit een IP-waarde', async () => {
+  const r = await pair(new Request('https://f/x', { headers: { 'x-real-ip': '203.0.113.7', 'x-forwarded-for': '198.51.100.1, 203.0.113.7' } }));
+  const j = await r.json();
+  assert(j.version === 'KASSA-ACCOUNT-1', JSON.stringify(j));
+  assert(JSON.stringify(j.ip_source) === JSON.stringify({ cf_connecting_ip: false, x_real_ip: true, x_forwarded_for: 2, used: 'x-real-ip' }), JSON.stringify(j));
+  assert(!JSON.stringify(j).includes('203.0.113') && !JSON.stringify(j).includes('198.51'), 'IP-waarde gelekt');
+  const none = await (await pair(new Request('https://f/x'))).json();
+  assert(none.ip_source.used === 'unknown' && none.ip_source.x_forwarded_for === 0, JSON.stringify(none));
+});
 
 Deno.test('GET geeft de versiestempel (alle vier de functies)', async () => {
   for (const h of [pair, revoke, receipt, orderReady]) {
@@ -166,17 +178,17 @@ Deno.test('review 1 (2): toestel-ID al actief gekoppeld = 409, geen overname, co
 
 Deno.test('review 1 (2): race — koppelrij weigert met KA409 → 409, user weer weg, code vrij', async () => {
   const id = newCode('100300');
-  completeRace = true;
+  completeRace = 'KA409';
   const r = await call(pair, { code: '100300', device_uuid: 'aaaaaaaa-bbbb-4ccc-8ddd-0000000000c1' }, { 'cf-connecting-ip': '10.0.0.7' });
   completeRace = false;
   assert(r.status === 409 && r.json.error === 'device_already_paired', JSON.stringify(r));
   assert(deleted.includes(created.at(-1).id) && released.includes(id), 'opruimen');
 });
 
-Deno.test('review 1 (3): veel fouten over veel IPs: niemand geweigerd (geen 429), open 6-cijfercodes ongeldig, QR-token werkt', async () => {
+Deno.test('review 1+2 (3): vanaf 50 fouten over veel IPs: niemand geweigerd (geen 429), open 6-cijfercodes ongeldig, QR-token werkt', async () => {
   newCode('555666');
   const token = codes.at(-1)!.token;
-  for (let i = 0; totalFails < 300; i++) await call(pair, { code: String(200000 + i), device_uuid: DEV }, { 'cf-connecting-ip': `172.16.${Math.floor(i / 4)}.${i % 4}` });
+  for (let i = 0; totalFails < 50; i++) await call(pair, { code: String(200000 + i), device_uuid: DEV }, { 'cf-connecting-ip': `172.16.${Math.floor(i / 4)}.${i % 4}` });
   const r = await call(pair, { code: '555666', device_uuid: 'aaaaaaaa-bbbb-4ccc-8ddd-0000000000d1' }, { 'cf-connecting-ip': '192.168.9.9' });
   assert(r.status === 404, `juiste code van een vers IP: ongeldig gemaakt, niet geweigerd (${JSON.stringify(r)})`);
   const q = await call(pair, { code: token, device_uuid: 'aaaaaaaa-bbbb-4ccc-8ddd-0000000000d1' }, { 'cf-connecting-ip': '192.168.9.9' });
@@ -256,4 +268,37 @@ Deno.test('kassaDeviceAuth: een gekoppeld toestel mag "Mail bon" en "klant melde
   assert((await call(orderReady, { order_id: 'o1' }, { Authorization: 'Bearer tok-staff-other' })).status === 403, 'ander lid');
   const own = await call(orderReady, { order_id: 'o1' }, { Authorization: 'Bearer tok-owner' });
   assert(own.status === 200, JSON.stringify(own));
+});
+
+Deno.test('review 2 (2): IPv6 telt per /64 — roteren binnen dezelfde /64 helpt niet; ander /64 = eigen teller', async () => {
+  newCode('640640');
+  ipSeen.length = 0;
+  for (let i = 0; i < 5; i++) {
+    const r = await call(pair, { code: String(310000 + i), device_uuid: DEV }, { 'cf-connecting-ip': `2001:db8:aa:bb:${i + 1}::${i + 7}` });
+    assert(r.status === 404, `fout ${i}`);
+  }
+  assert(ipSeen.every((x) => x === '2001:db8:aa:bb::/64'), JSON.stringify(ipSeen));
+  const r = await call(pair, { code: '640640', device_uuid: 'aaaaaaaa-bbbb-4ccc-8ddd-0000000000a6' }, { 'cf-connecting-ip': '2001:0db8:00aa:00bb:ffff::1' });
+  assert(r.status === 429, JSON.stringify(r));
+  const other = await call(pair, { code: '640640', device_uuid: 'aaaaaaaa-bbbb-4ccc-8ddd-0000000000a6' }, { 'cf-connecting-ip': '2001:db8:aa:bc::1' });
+  assert(other.status === 200 || other.status === 404, `ander /64 is niet geblokkeerd (${other.status})`);
+  assert(other.status !== 429, 'ander /64 mocht niet meetellen');
+});
+
+Deno.test('review 2 (1): onbekend IP = geen limiet per IP (geen gedeelde bucket), null naar de databank', async () => {
+  ipSeen.length = 0;
+  for (let i = 0; i < 7; i++) {
+    const r = await call(pair, { code: String(320000 + i), device_uuid: DEV });
+    assert(r.status === 404, `poging ${i}: ${r.status}`);
+  }
+  assert(ipSeen.length === 7 && ipSeen.every((x) => x === null), JSON.stringify(ipSeen));
+});
+
+Deno.test('review 2 (3): race via de unieke index (23505) → ook 409, user weer weg, code vrij', async () => {
+  const id = newCode('100500');
+  completeRace = '23505';
+  const r = await call(pair, { code: '100500', device_uuid: 'aaaaaaaa-bbbb-4ccc-8ddd-0000000000c2' }, { 'cf-connecting-ip': '10.0.0.8' });
+  completeRace = false;
+  assert(r.status === 409 && r.json.error === 'device_already_paired', JSON.stringify(r));
+  assert(deleted.includes(created.at(-1).id) && released.includes(id), 'opruimen');
 });

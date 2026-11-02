@@ -256,6 +256,8 @@ export const NOTIFICATION_CONFIG: NotificationCategoryConfig[] = [
       { type: 'trial_converted', defaultInApp: true, defaultEmail: false },
       { type: 'trial_conversion_failed', defaultInApp: true, defaultEmail: false },
       { type: 'admin_announcement', defaultInApp: true, defaultEmail: false },
+      // KASSA-ACCOUNT-1 review 2: raden naar kassakoppelcodes (enkel naar de SellQo-platformwinkel, kassa_pair_claim).
+      { type: 'kassa_pair_bruteforce', defaultInApp: true, defaultEmail: false },
     ]
   },
   {

@@ -1109,6 +1109,10 @@
           "admin_announcement": {
             "label": "Bericht van SellQo",
             "description": "Een mededeling van het SellQo-team"
+          },
+          "kassa_pair_bruteforce": {
+            "label": "Raadpogingen op kassakoppelcodes",
+            "description": "Er werd op grote schaal naar koppelcodes van kassatoestellen geraden; open codes zijn ongeldig gemaakt"
           }
         },
         "ai_coach": {

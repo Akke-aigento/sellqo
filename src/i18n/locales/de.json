@@ -1137,6 +1137,10 @@
           "admin_announcement": {
             "label": "Nachricht von SellQo",
             "description": "Eine Mitteilung des SellQo-Teams"
+          },
+          "kassa_pair_bruteforce": {
+            "label": "Rateversuche bei Kassen-Kopplungscodes",
+            "description": "Kopplungscodes für Kassengeräte wurden in großem Umfang erraten; offene Codes wurden ungültig gemacht"
           }
         },
         "ai_coach": {

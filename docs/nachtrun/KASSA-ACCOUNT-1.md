@@ -1,7 +1,7 @@
 # KASSA-ACCOUNT-1 — eigen identiteit per kassatoestel — 2 november 2026
 
 Branch `account-1` (worktree `/home/claude/sellqo-account`), gerebased op `origin/main` @ `b3eb700`
-(PRIJS-GATEN-2). Drie commits: 1a (server), 1b (frontend + docs), 1c (security-review 1). Niet gepusht, niet
+(PRIJS-GATEN-2). Vier commits: 1a (server), 1b (frontend + docs), 1c (security-review 1), 1d (review 2). Niet gepusht, niet
 gedeployed, geen DB-writes. Plan en recon:
 `docs/kassa-account-1-plan.md`. Akke koos optie D en alle aanbevelingen (beslispunten 1-4).
 
@@ -25,8 +25,9 @@ gedeployed, geen DB-writes. Plan en recon:
     `kassa_can_operate(tenant, device)` (toestel: `p_device_id` moet zijn eigen `device_uuid` zijn);
   - `kassa_pair_code_create` (enkel `tenant_admin`, eigen niet-virtuele kassa; nieuwe code vervangt de open code),
     `kassa_pair_claim(secret, ip, device_uuid)` / `kassa_pair_complete` / `kassa_pair_release` (enkel service role;
-    rate limit 5 fouten per IP per 15 min voor code én QR-token; boven 300 fouten platformbreed worden de open
-    6-cijfercodes ongeldig gemaakt, niemand geweigerd; atomaire claim; een toestel-ID dat al actief gekoppeld is,
+    rate limit 5 fouten per IP (IPv6 per /64) per 15 min voor code én QR-token, onbekend IP zonder limiet per IP;
+    vanaf 50 fouten platformbreed worden de open 6-cijfercodes ongeldig gemaakt + één melding per kwartier aan
+    platformbeheer, niemand geweigerd; atomaire claim; een toestel-ID dat al actief gekoppeld is,
     wordt niet overgenomen: `device_already_paired`, beheer ontkoppelt eerst);
   - `kassa_device_context()` (zaak: naam, taal, modules, adres/btw voor het ticket, IBAN/BIC voor de
     overschrijvings-QR; kassa; toestel), `kassa_device_unpair_self()`, `kassa_kitchen_orders(tenant)` (smalle
@@ -112,13 +113,13 @@ gedeployed, geen DB-writes. Plan en recon:
 
 **Verificatie**
 - `scripts/gks/sql/run.sh` op een verse PG16-cluster (UTF8, `initdb -E UTF8 --locale=C.UTF-8`): **exit 0**, alle
-  suites geslaagd incl. PRIJS-GATEN-1/2 en `test_kassa_account.sql` (134 controles). **Correctie:** de eerdere melding "exit 1 door
+  suites geslaagd incl. PRIJS-GATEN-1/2 en `test_kassa_account.sql` (140 controles). **Correctie:** de eerdere melding "exit 1 door
   `test_kaart.sql`" lag aan de omgeving: mijn eerste testcluster was met `SQL_ASCII` aangemaakt, waardoor
   `kaart_slug` accenten fout vertaalde. Geen fout in de code. Extra run met de migratie vóór
   `test_kassa_nachtrun.sql`: groen.
 - Live read-only natrek (2-11-2026): de 26 ankers staan precies één keer in de live definities; geen botsende
   tabel-/functie-/policynamen.
-- `deno test` `scripts/promo-compare/kassaDevicePair.test.ts` (12) + `horecaReceiptMail.test.ts` (5): 17/17.
+- `deno test` `scripts/promo-compare/kassaDevicePair.test.ts` (16) + `horecaReceiptMail.test.ts` (5): 21/21.
 - `deno check` (`/tmp/im_real.json`) op de 4 functies: exit 0. `node scripts/verify-edge-pins.mjs`: ok.
 - `npx tsc --noEmit -p tsconfig.app.json`: exit 0. `npx vite build`: exit 0.
 - `npx vitest run src/kassa src/components/admin/kitchen src/test/kassaTerminalDevices.test.ts`: groen.
@@ -142,6 +143,11 @@ gedeployed, geen DB-writes. Plan en recon:
   - (8) `products` select versmallen (kolommen, o.a. `cost_price`) en `kitchen_tickets` update via een RPC i.p.v.
     een tabelbrede update-policy;
   - (11) QR-token in de URL (`/kassa?koppel=`): aanvaard (eenmalig, 10 min, wordt meteen uit de URL gehaald).
+  - (review 2) Opruimcron voor toestel-auth-users zonder actieve koppeling (ingetrokken of half aangemaakt):
+    na een bewaartermijn verwijderen of gebannen laten, `profiles`-rij mee.
+  - (review 2) `device_uuid` wordt door de client gekozen: wie het toestel-ID van een gekoppeld toestel kent,
+    kan met een geldige code van die zaak niets overnemen (409), maar blokkeert wel het opnieuw koppelen van
+    een ander toestel met dat ID tot beheer ontkoppelt. Server-side ID bij het koppelen uitreiken.
   - Een toestel kan `record_stock_movement`/`increment_stock` rechtstreeks aanroepen met reason `sale`/`return`
     voor producten van zijn eigen zaak (voorraad op/af binnen de kassarechten); versmallen tot het triggerpad.
 - Restrisico: toestel-users hebben een `profiles`-rij (trigger `handle_new_user`, naam "Kassa · …"); controleer
@@ -165,7 +171,7 @@ Alle fixes in de nog niet live migratie `20261102100000_kassa_account_1.sql` zel
 - (2) Geen overname van een toestel-ID: `kassa_pair_claim` geeft `device_already_paired` zonder de code te
   verbruiken, `kassa_pair_complete` weigert met `KA409` bij een race; unieke index nu op `device_uuid` over alle
   zaken (`where revoked_at is null`). `kassa-device-pair` → HTTP 409; `PairDevice` toont de melding (5 talen).
-- (3) Geen platformbrede weigering meer. Per IP 5 fouten per 15 min (code én token). Boven 300 fouten
+- (3) Geen platformbrede weigering meer. Per IP 5 fouten per 15 min (code én token). Boven 300 (sinds 1d: 50) fouten
   platformbreed krijgen alle open 6-cijfercodes een onbruikbare `code_hash` (`ongeldig:<id>`); het QR-token van
   die codes blijft werken. Een juiste code wordt dus nooit geweigerd door andermans fouten, enkel ongeldig.
 - (4) Client-IP: `cf-connecting-ip`, dan `x-real-ip`, dan het laatste element van `x-forwarded-for`.
@@ -189,6 +195,29 @@ Alle fixes in de nog niet live migratie `20261102100000_kassa_account_1.sql` zel
   rolcheck enkel met reason `sale` of `return`; manual/adjustment/opening/purchase/sync = 42501.
   `bulk_adjust_stock` blijft dicht voor toestellen. Test: een toestelverkoop (trigger) laat de voorraad dalen
   en boekt een `sale`-beweging op naam van het toestel; `manual` = 42501; een viewer blijft dicht.
+
+## KASSA-ACCOUNT-1d — review 2 — 2 november 2026
+
+- (1) IP-bron meetbaar: `GET kassa-device-pair` geeft `ip_source` = `{cf_connecting_ip, x_real_ip,
+  x_forwarded_for (aantal), used}`, nooit een IP-waarde. Geen IP-header (`used: unknown`): de edge function geeft
+  `p_ip = null` en `kassa_pair_claim` slaat de limiet per IP over (geen gedeelde bucket), enkel de globale rem.
+  Na de deploy meten: `net.http_get` op de functie → `ip_source.used` (verwacht `cf-connecting-ip`).
+- (2) IPv6 per /64 genormaliseerd vóór het hashen (`normalizeIp`; IPv4 en `::ffff:a.b.c.d` = het IPv4-adres).
+  Globale drempel 300 → **50 fouten per 15 minuten**. Daarbij één melding `system/kassa_pair_bruteforce` (prioriteit
+  high, `/admin/platform`) aan de platformwinkel `sellqo` (zelfde patroon als `notifySellqo` in
+  `_shared/billingReopen.ts`), dedupe per kwartier via `data.dedupe_key`; een mislukte melding breekt het koppelen
+  nooit. Type toegevoegd aan `NOTIFICATION_CONFIG`, `_shared/notificationDefaults.ts` en de labels (5 talen).
+  Commentaar in migratie en functie beschrijft nu precies dit gedrag.
+- (3) `kassa_pair_complete`: insert in `begin … exception when unique_violation then raise … errcode 'KA409'`;
+  de edge function mapt ook `23505` naar 409.
+- (4) `record_stock_movement`-anker null-veilig: `NOT coalesce(p_reason IN ('sale','return') AND
+  kassa_device_tenant() = v_tenant_id, false)`; test: reason null vanaf een toestel = 42501.
+- (5) `can_create_tenant` (§9) met driftguard op de live prosrc-md5 `66ab3e639c230e48ba11234adca303fa`
+  (read-only nagetrokken 2-11-2026).
+- Deploy: `_shared/notificationDefaults.ts` gewijzigd (enkel een nieuw type). Wordt geïmporteerd door
+  `create-notification`, `send-push-notification`, `forward-printful-order` en via `_shared/billingAlerts.ts` door
+  meer functies. Niet nodig voor deze batch (een onbekend type valt terug op de defaults); meenemen bij hun
+  volgende deploy.
 
 ## Uitrolvolgorde (per stap Akke's go)
 

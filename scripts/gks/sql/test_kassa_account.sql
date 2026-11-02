@@ -156,25 +156,47 @@ update public.kassa_pair_codes set used_at = null, expires_at = now() - interval
 set role service_role;
 select public.kassa_pair_claim(:'token3', '10.0.0.5', 'aaaaaaaa-bbbb-4ccc-8ddd-0000000000aa') ->> 'reason' = 'invalid' as ok_expired_invalid;
 reset role;
--- Review 1 (3): platformbreed wordt NIEMAND geweigerd. Boven 300 fouten in 15 minuten worden de open 6-cijfercodes
--- ongeldig gemaakt; het QR-token van die code blijft werken, en een juiste code van een vers IP krijgt "invalid",
--- nooit "rate_limited".
+-- Review 1 (3) + 2: platformbreed wordt NIEMAND geweigerd. Vanaf 50 fouten in 15 minuten (alle IP's samen)
+-- worden de open 6-cijfercodes ongeldig; het QR-token blijft werken; een juiste code van een vers IP krijgt
+-- "invalid", nooit "rate_limited"; platformbeheer (winkel 'sellqo') krijgt één melding per kwartier.
+do $$ begin
+  if to_regtype('public.notification_category') is null then create type public.notification_category as enum ('system', 'orders'); end if;
+  if to_regtype('public.notification_priority') is null then create type public.notification_priority as enum ('low', 'medium', 'high', 'urgent'); end if;
+end $$;
+create table if not exists public.notifications (id uuid primary key default gen_random_uuid(), tenant_id uuid, category public.notification_category,
+  type text, title text, message text, priority public.notification_priority, action_url text, data jsonb, created_at timestamptz default now());
+insert into public.tenants (id, name, slug) values ('5e110000-0000-0000-0000-000000000001', 'SellQo', 'sellqo') on conflict do nothing;
 set role authenticated; set request.jwt.claim.sub = 'aaaaaaaa-0000-0000-0000-000000000002';
 select public.kassa_pair_code_create('22222222-2222-2222-2222-222222222222', '5e000000-0000-0000-0000-0000000000b2') as pc5 \gset
 reset role;
 select :'pc5'::jsonb ->> 'code' as code5, :'pc5'::jsonb ->> 'token' as token5 \gset
-insert into public.kassa_pair_attempts (ip_hash, ok) select 'x' || g, false from generate_series(1, 300) g;
+-- Aanvullen tot 48 fouten in het venster; de 49e (hieronder) blijft onder de drempel.
+insert into public.kassa_pair_attempts (ip_hash, ok)
+  select 'x' || g, false from generate_series(1, 48 - (select count(*) from public.kassa_pair_attempts where not ok and created_at > now() - interval '15 minutes')) g;
+set role service_role;
+select public.kassa_pair_claim('000000', '10.0.0.97', 'aaaaaaaa-bbbb-4ccc-8ddd-0000000000aa') ->> 'reason' = 'invalid' as ok_global_49;
+reset role;
+select (select code_hash not like 'ongeldig:%' from public.kassa_pair_codes where token_hash = encode(digest('kassa-pair|' || :'token5', 'sha256'), 'hex')) as ok_global_below_50_code_valid;
 set role service_role;
 select public.kassa_pair_claim(lpad(((:'code5'::int + 7) % 1000000)::text, 6, '0'), '10.0.0.98', 'aaaaaaaa-bbbb-4ccc-8ddd-0000000000aa') ->> 'reason' = 'invalid' as ok_global_no_refusal;
 select public.kassa_pair_claim(:'code5', '10.0.0.99', 'aaaaaaaa-bbbb-4ccc-8ddd-0000000000aa') ->> 'reason' = 'invalid' as ok_global_codes_invalidated;
 reset role;
 select (select code_hash like 'ongeldig:%' and used_at is null from public.kassa_pair_codes where token_hash = encode(digest('kassa-pair|' || :'token5', 'sha256'), 'hex')) as ok_global_token_kept;
+select (select count(*) = 1 from public.notifications where type = 'kassa_pair_bruteforce' and tenant_id = '5e110000-0000-0000-0000-000000000001'
+          and category = 'system' and data ->> 'dedupe_key' like 'kassa_pair_bruteforce:%') as ok_global_one_notification_per_quarter;
 set role service_role;
 select (public.kassa_pair_claim(:'token5', '10.0.0.99', 'aaaaaaaa-bbbb-4ccc-8ddd-0000000000aa') ->> 'ok')::boolean as ok_global_token_still_works;
 reset role;
 select (select count(*) = 0 from public.kassa_pair_attempts a join (values ('10.0.0.98'), ('10.0.0.99')) v(ip) on a.ip_hash = v.ip) as ok_no_plain_ip;
-delete from public.kassa_pair_attempts where ip_hash like 'x%';
+delete from public.kassa_pair_attempts where ip_hash like 'x%' or not ok;
 delete from public.kassa_pair_codes where token_hash = encode(digest('kassa-pair|' || :'token5', 'sha256'), 'hex');
+-- Review 2: onbekend IP (null) = geen limiet per IP (geen gedeelde bucket); de fouten tellen wel globaal.
+set role service_role;
+select bool_and(public.kassa_pair_claim(lpad(g::text, 6, '0'), null, 'aaaaaaaa-bbbb-4ccc-8ddd-0000000000aa') ->> 'reason' = 'invalid') as ok_unknown_ip_never_rate_limited
+  from generate_series(1, 7) g;
+reset role;
+select (select count(*) = 7 from public.kassa_pair_attempts where ip_hash = 'onbekend' and not ok) as ok_unknown_ip_counts_globally;
+delete from public.kassa_pair_attempts where ip_hash = 'onbekend';
 
 -- ── Review 1 (2): een al actief gekoppeld toestel-ID wordt niet overgenomen ──
 insert into public.kassa_device_accounts (user_id, tenant_id, terminal_id, device_uuid, name)
@@ -349,6 +371,7 @@ select pg_temp.try($$select public.record_stock_movement(null, 'eeeeeeee-0000-00
 select pg_temp.try($$select public.record_stock_movement(null, 'eeeeeeee-0000-0000-0000-0000000000b1', null, 50, 'adjustment')$$) = '42501' as ok_device_adjustment_refused;
 select pg_temp.try($$select public.record_stock_movement(null, 'eeeeeeee-0000-0000-0000-0000000000b1', null, 50, 'opening')$$) = '42501' as ok_device_opening_refused;
 select pg_temp.try($$select public.record_stock_movement(null, 'eeeeeeee-0000-0000-0000-0000000000b1', null, 50, 'purchase')$$) = '42501' as ok_device_purchase_refused;
+select pg_temp.try($$select public.record_stock_movement(null, 'eeeeeeee-0000-0000-0000-0000000000b1', null, 50, null)$$) = '42501' as ok_device_null_reason_refused;
 -- Ander winkel: ook 'sale' dicht.
 select pg_temp.try($$select public.record_stock_movement(null, 'eeeeeeee-0000-0000-0000-000000000001', null, -1, 'sale')$$) <> 'ok' as ok_device_other_tenant_sale_refused;
 select pg_temp.try($$select public.bulk_adjust_stock(array['eeeeeeee-0000-0000-0000-0000000000b1']::uuid[], 'set', 99)$$) <> 'ok' as ok_device_bulk_adjust_refused;

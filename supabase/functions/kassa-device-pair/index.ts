@@ -1,14 +1,19 @@
 // KASSA-ACCOUNT-1 — een kassatoestel koppelen met een koppelcode (6 cijfers) of het QR-token uit beheer.
 //
 // Zonder sessie (verify_jwt = false): het toestel heeft nog geen account. Stappen:
-//   1. kassa_pair_claim(code, ip, device_uuid): rate limit (5 fouten per IP per 15 min; platformbreed worden
-//      bij een aanval de open 6-cijfercodes ongeldig, nooit een juiste code geweigerd) en de code eenmalig
-//      claimen (atomair, in de databank). Een toestel-ID dat al actief gekoppeld is: 409 device_already_paired
-//      (geen overname; beheer ontkoppelt eerst), de code blijft geldig.
+//   1. kassa_pair_claim(code, ip, device_uuid): de code eenmalig claimen (atomair, in de databank), met
+//      - per IP (IPv6 per /64): 5 fouten per 15 min, dan 429. Is het IP onbekend (geen van de drie headers), dan
+//        geen limiet per IP (anders deelt iedereen zonder header één bucket), enkel de globale rem;
+//      - globale rem: vanaf 50 fouten in 15 min (over alle IP's) worden alle open 6-cijfercodes ongeldig gemaakt
+//        (het QR-token blijft werken) en krijgt platformbeheer één melding per kwartier. Niemand wordt geweigerd.
+//      Een toestel-ID dat al actief gekoppeld is: 409 device_already_paired (geen overname; beheer ontkoppelt
+//      eerst), de code blijft geldig.
+//   GET geeft naast de versie ook `ip_source`: welke IP-headers aankomen en hoeveel XFF-elementen (nooit een IP).
 //   2. Met de service role een auth-user voor het toestel maken: adres zonder mailbox
 //      (kassa-<random>@toestel.sellqo.app), willekeurig wachtwoord, e-mail bevestigd,
 //      app_metadata.kind = 'kassa'. Niet in user_roles: zie de migratie (default-deny).
-//   3. kassa_pair_complete: de koppelrij (zaak, kassa, device_uuid). Intussen (race) toch al gekoppeld = 409.
+//   3. kassa_pair_complete: de koppelrij (zaak, kassa, device_uuid). Intussen (race) toch al gekoppeld = 409
+//      (KA409 uit de functie, of 23505 van de unieke index).
 //   4. Eénmalig e-mail + wachtwoord terug; het toestel meldt zich daarmee aan (signInWithPassword) en houdt
 //      de sessie zoals vandaag. Het wachtwoord wordt nergens bewaard.
 // Mislukt stap 2 of 3: de code komt vrij (kassa_pair_release) en een half aangemaakte user wordt verwijderd.
@@ -31,20 +36,49 @@ function randomPassword(): string {
   return btoa(String.fromCharCode(...b)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
-/** Review 1: cf-connecting-ip, dan x-real-ip, dan het LAATSTE element van x-forwarded-for (het eerste kiest de
- *  aanroeper zelf, en daarmee zou hij de limiet per IP omzeilen). */
-export function clientIp(req: Request): string {
+/** Review 2: een IPv6-adres per /64 (één aansluiting krijgt een heel /64; anders roteert een aanvaller vrij).
+ *  IPv4 en IPv4-in-IPv6 (::ffff:1.2.3.4) blijven het IPv4-adres. Geen geldig IPv6 = ongewijzigd. */
+export function normalizeIp(ip: string): string {
+  let s = ip.trim().replace(/^\[|\]$/g, "").replace(/%.*$/, "").toLowerCase();
+  if (!s.includes(":")) return s;
+  const mapped = /^::ffff:(\d{1,3}(?:\.\d{1,3}){3})$/.exec(s);
+  if (mapped) return mapped[1];
+  const halves = s.split("::");
+  if (halves.length > 2) return s;
+  const head = halves[0] ? halves[0].split(":") : [];
+  const tail = halves.length === 2 && halves[1] ? halves[1].split(":") : [];
+  const missing = 8 - head.length - tail.length;
+  if (halves.length === 1 ? head.length !== 8 : missing < 0) return s;
+  const full = [...head, ...Array(halves.length === 2 ? missing : 0).fill("0"), ...tail];
+  if (full.some((h) => !/^[0-9a-f]{1,4}$/.test(h))) return s;
+  s = full.slice(0, 4).map((h) => h.replace(/^0+(?=.)/, "")).join(":");
+  return `${s}::/64`;
+}
+
+/** Review 1+2: cf-connecting-ip, dan x-real-ip, dan het LAATSTE element van x-forwarded-for (het eerste kiest de
+ *  aanroeper zelf). Genormaliseerd (IPv6 per /64). null = onbekend: dan geen limiet per IP. */
+export function clientIp(req: Request): string | null {
   const cf = req.headers.get("cf-connecting-ip")?.trim();
-  if (cf) return cf;
+  if (cf) return normalizeIp(cf);
   const real = req.headers.get("x-real-ip")?.trim();
-  if (real) return real;
+  if (real) return normalizeIp(real);
   const xff = (req.headers.get("x-forwarded-for") ?? "").split(",").map((x) => x.trim()).filter(Boolean);
-  return xff.at(-1) ?? "unknown";
+  const last = xff.at(-1);
+  return last ? normalizeIp(last) : null;
+}
+
+/** Review 2: meetbaar welke IP-bron er na de deploy aankomt, zonder ooit een IP-waarde te tonen. */
+export function ipSource(req: Request): { cf_connecting_ip: boolean; x_real_ip: boolean; x_forwarded_for: number; used: string } {
+  const cf = !!req.headers.get("cf-connecting-ip")?.trim();
+  const real = !!req.headers.get("x-real-ip")?.trim();
+  const xff = (req.headers.get("x-forwarded-for") ?? "").split(",").map((x) => x.trim()).filter(Boolean).length;
+  return { cf_connecting_ip: cf, x_real_ip: real, x_forwarded_for: xff,
+    used: cf ? "cf-connecting-ip" : real ? "x-real-ip" : xff ? "x-forwarded-for" : "unknown" };
 }
 
 serve(async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
-  if (req.method === "GET") return json({ ok: true, version: VERSION });
+  if (req.method === "GET") return json({ ok: true, version: VERSION, ip_source: ipSource(req) });
   if (req.method !== "POST") return json({ error: "method" }, 405);
 
   try {
@@ -88,7 +122,7 @@ serve(async (req: Request): Promise<Response> => {
       await db.auth.admin.deleteUser(userId);
       await db.rpc("kassa_pair_release", { p_code_id: c.code_id });
       const code = (doneErr as { code?: string }).code;
-      if (code === "KA409" || /device_already_paired/.test(doneErr.message)) return json({ error: "device_already_paired" }, 409);
+      if (code === "KA409" || code === "23505" || /device_already_paired/.test(doneErr.message)) return json({ error: "device_already_paired" }, 409);
       throw new Error(`complete: ${doneErr.message}`);
     }
 
