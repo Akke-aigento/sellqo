@@ -1,0 +1,8 @@
+{
+  "@/integrations/supabase/client": "mocks/supabase.ts",
+  "@/hooks/useTenant": "mocks/tenant.ts",
+  "@/hooks/useBusinessModules": "mocks/tracks.ts",
+  "@/components/admin/kitchen/useKitchenBoard": "mocks/kitchenBoard.ts",
+  "@/hooks/usePrepStations": "mocks/prep.ts",
+  "/^@/components/horeca/printHealth$/": "mocks/printHealth.ts"
+}

@@ -26,7 +26,7 @@ Exit 1 bij een paginafout of console-error. Playwright komt uit `PLAYWRIGHT_PATH
   `export const widths = [390, 1024, 1280]` om andere breedtes te nemen (1024 = tablet liggend, 1024×768) en
   `export async function run(page, { width, shot, log })` voor klikken; `shot('naam')` maakt een extra screenshot.
 
-Scenario's: `kassa-koppelen` (toestel koppelen met code/QR, "geen kassatoestel", beheer: Toestel koppelen/Ontkoppelen), `onderbalk` (gsm-onderbalk), `kassa-home` (een dienst op de kassa met
+Scenario's: `kassa-koppelen` (toestel koppelen met code/QR of met één tik vanuit een beheer-sessie, ontkoppeld/fout met terugknop, beheer: Toestel koppelen/Ontkoppelen), `keuken` (KASSA-MOBIEL-1: kop van het keukenscherm, meet of elke knop binnen beeld valt), `onderbalk` (gsm-onderbalk), `kassa-home` (een dienst op de kassa met
 het zaalplan en de kaart van Café De Wissel: tafel, tikken, rekening, toog, ⋯-menu; meet ook horizontale overloop).
 `qr-aan-tafel` (QR-MODULES-1: "QR aan tafel" per variant — op de tafelrekening, elke bestelling apart, zonder Stripe,
 met FDM, enkel bekijken, databank zonder de oproep-kolommen, Engels — en Kassa › Betalen; controleert ook wat er bewaard wordt).
@@ -67,3 +67,8 @@ en stop de server daarna (`ps -eo pid,args | awk '$3=="scripts/harness/shoot.mjs
 **Veel schermen in één scenario.** Laad schermen lazy in `main.tsx` (`?screen=…`) en open per scherm
 een vers tabblad (zie `scenarios/horeca-beheer`): tien schermen na elkaar in één tabblad liet chromium
 in de sandbox crashen op geheugen.
+
+KASSA-MOBIEL-1: de kassa praat via `@/kassa/app/kassaSupabase` (eigen client). Mock die in elk kassascenario
+(`aliases.json`), en importeer hem in de code altijd via dat alias-pad, nooit relatief (`./kassaSupabase`):
+een relatieve import ontsnapt aan de alias, maakt in het harnas een echte client zonder env en geeft een leeg scherm
+zonder foutmelding.

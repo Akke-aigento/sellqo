@@ -83,14 +83,16 @@ export default function KitchenPage() {
     // HORECA-0 — notch en statusbalk (app) en de home-balk onderaan respecteren.
     // WANDELING: een dekkende achtergrond. Met enkel bg-muted/40 schemerde de zijbalk van het beheer door het keukenscherm.
     <div className="fixed inset-0 z-50 flex flex-col bg-background" style={{ paddingTop: 'var(--safe-top)', paddingBottom: 'var(--safe-bottom)', backgroundImage: 'linear-gradient(hsl(var(--muted) / 0.4), hsl(var(--muted) / 0.4))' }}>
-      <header className="flex items-center gap-2 sm:gap-3 border-b bg-background px-3 sm:px-4 py-3">
+      {/* KASSA-MOBIEL-1: op een smal scherm (gsm, 390 px) loopt de kop door op een tweede rij in plaats van knoppen
+          buiten beeld te duwen; vanaf lg weer één rij. */}
+      <header className="flex flex-wrap items-center gap-x-2 gap-y-2 sm:gap-3 lg:flex-nowrap border-b bg-background px-3 sm:px-4 py-3">
         <Button asChild variant="ghost" size="icon" aria-label={t('admin.kitchen.back_to_admin')}><Link to="/admin"><ArrowLeft className="h-5 w-5" /></Link></Button>
         <h1 className="text-lg sm:text-xl font-bold truncate">{t('admin.kitchen.title')}</h1>
         <span className="text-xl sm:text-2xl font-bold tabular-nums">{hhmm(now, i18n.language)}</span>
         <span className="hidden text-sm text-muted-foreground xl:inline">
           {t('admin.kitchen.summary', { new: count('new'), preparing: count('preparing'), ready: count('ready'), nextHour })}
         </span>
-        <div className="ml-auto flex shrink-0 items-center gap-1.5 sm:gap-2">
+        <div className="flex w-full min-w-0 flex-wrap items-center justify-end gap-1.5 sm:gap-2 lg:ml-auto lg:w-auto lg:shrink-0 lg:flex-nowrap">
           <StationSelect stations={stations} value={activeStation} onChange={choose} />
           <KitchenPauseControl now={now} />
           <Button variant={autoPrint ? 'secondary' : 'outline'} size="sm" onClick={toggleAutoPrint} title={t('admin.kitchen.auto_print_hint')} aria-label={autoPrint ? t('admin.kitchen.auto_print_aan') : t('admin.kitchen.auto_print_uit')}>
