@@ -11,7 +11,7 @@ values ('tenant', 'a0000001-0000-0000-0000-000000000006', '/kassa', 'tafel-oproe
   'Oproepen van tafels: bediening roepen en rekening vragen',
   'Gasten roepen via de QR-code op hun tafel de bediening of vragen de rekening. Je ziet het op de kassa bij Binnenkomend en tikt op Afgehandeld.',
   $c$
-<p>Via de QR-code op hun tafel kunnen gasten de bediening roepen of de rekening vragen, zonder te zwaaien. Dat werkt zodra het QR-menu aanstaat (<strong>Bestellen › QR-menu</strong>).</p>
+<p>Via de QR-code op hun tafel kunnen gasten de bediening roepen of de rekening vragen, zonder te zwaaien. Dat werkt zodra het QR-menu aanstaat (<strong>Kaart › Instellen › QR-menu</strong>).</p>
 
 <h2>Wat je ziet op de kassa</h2>
 <ul>

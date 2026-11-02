@@ -13,7 +13,7 @@ values ('tenant', 'a0000001-0000-0000-0000-000000000009', '/admin/connect', 'kas
 
 <h2>Aanzetten</h2>
 <ol>
-  <li>Ga naar <strong>SellQo Connect › Odoo Boekhouding</strong>. De Odoo-verbinding en de facturensync moeten al werken.</li>
+  <li>Ga naar <strong>SellQo Connect › Odoo Boekhouding</strong> (zaak met enkel horeca: <strong>Instellingen › Boekhouding</strong>). De Odoo-verbinding en de facturensync moeten al werken.</li>
   <li>Zet <strong>Z-rapporten van de kassa naar Odoo</strong> aan.</li>
   <li>Kies <strong>vanaf welke bedrijfsdag</strong>. Standaard is dat de huidige bedrijfsdag van je kassa (die begint op het afkapuur, standaard 6 uur): Z-rapporten van vóór die dag blijven buiten Odoo, zodat niets dubbel komt wat je boekhouder al met de hand boekte. Kies je een dag in het verleden, dan toont SellQo eerst hoeveel Z-rapporten er dan geboekt worden en vraagt het je bevestiging.</li>
   <li>Kies eventueel een eigen <strong>kassadagboek</strong>. Laat je het leeg, dan gebruikt SellQo het verkoopdagboek van je facturen. Een apart verkoopdagboek (bv. "Kassa") houdt de nummering van je facturen en je Z-boekingen uit elkaar; dat raden we aan.</li>
