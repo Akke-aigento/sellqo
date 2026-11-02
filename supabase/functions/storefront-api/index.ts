@@ -20,7 +20,7 @@ import { cachedShopStatus } from "../_shared/shopStatus.ts";
 
 const corsHeaders = {
   // PLANS-2 — versiestempel: bewijst een deploy zonder neveneffect (lees de header).
-  "X-SellQo-Api-Rev": "allergeen-verklaard-1",
+  "X-SellQo-Api-Rev": "qr-modules-1",
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
@@ -1191,6 +1191,10 @@ async function tableRequestStatus(supabase: SupabaseLike, tenantId: string, para
       if (error) throw error;
       out.calls = data ?? [];
     }
+    // QR-MODULES-1 — additief: welke oproepen de zaak toelaat ('waiter', 'bill'), zodat de storefront
+    // enkel die knoppen toont. Leeg als het QR-menu uitstaat (table_call weigert dan toch).
+    const { data: fsq } = await supabase.from('fulfillment_settings').select('qr_mode').eq('tenant_id', tenantId).maybeSingle();
+    out.call_kinds = await tableCallKinds(supabase, tenantId, (fsq as DbRow | null)?.qr_mode as string | null | undefined);
   }
   return out;
 }
@@ -1203,6 +1207,25 @@ const TABLE_CALL_ERRORS: Record<string, string> = {
   TABLE_CALL_INVALID: 'Oproepen lukte niet, probeer het opnieuw',
   TOO_MANY_REQUESTS: 'Even geduld: er komen veel oproepen tegelijk binnen. Vraag het even aan de bediening.',
 };
+// QR-MODULES-1 — additief: de zaak zet "Ober roepen" en "Rekening vragen" elk apart aan of uit
+// (fulfillment_settings.qr_call_waiter / qr_call_bill, standaard aan). Aparte, foutbestendige lees:
+// ontbreken de kolommen (migratie nog niet gedraaid) of faalt de lees, dan staat alles aan zoals
+// voorheen. loadFulfillmentSettings zelf blijft ongemoeid, zodat bestellen aan tafel er nooit op breekt.
+type CallKind = 'waiter' | 'bill';
+const TABLE_CALL_KIND_OFF: Record<CallKind, string> = {
+  waiter: 'De bediening roepen via de QR-code staat uit in deze zaak. Steek even je hand op.',
+  bill: 'De rekening vragen via de QR-code staat uit in deze zaak. Vraag ze aan de bediening.',
+};
+async function tableCallKinds(supabase: SupabaseLike, tenantId: string, qrMode?: string | null): Promise<CallKind[]> {
+  if ((qrMode || 'view') === 'off') return [];
+  try {
+    const { data, error } = await supabase.from('fulfillment_settings').select('qr_call_waiter, qr_call_bill').eq('tenant_id', tenantId).maybeSingle();
+    if (error || !data) return ['waiter', 'bill'];
+    return (['waiter', 'bill'] as CallKind[]).filter((k) => (data as DbRow)[`qr_call_${k}`] !== false);
+  } catch {
+    return ['waiter', 'bill'];
+  }
+}
 async function tableCall(supabase: SupabaseLike, tenantId: string, params: Record<string, unknown>) {
   const kind = String(params.kind ?? '');
   const callId = params.call_id == null || params.call_id === '' ? null : String(params.call_id);
@@ -1212,6 +1235,10 @@ async function tableCall(supabase: SupabaseLike, tenantId: string, params: Recor
   const fs = await loadFulfillmentSettings(supabase, tenantId);
   // Zelfde standaard als resolve_domain: geen instelling = 'view' (QR-menu staat aan).
   if ((fs?.qr_mode || 'view') === 'off') return { success: false, error: { code: 'TABLE_CALL_OFF', message: TABLE_CALL_ERRORS.TABLE_CALL_OFF } };
+  // QR-MODULES-1 — deze soort oproep staat uit in de zaak.
+  if (!(await tableCallKinds(supabase, tenantId, fs?.qr_mode)).includes(kind as CallKind)) {
+    return { success: false, error: { code: 'TABLE_CALL_KIND_OFF', message: TABLE_CALL_KIND_OFF[kind as CallKind] } };
+  }
   const resolved = await resolveTableInput(supabase, tenantId, { table: params.table, table_token: params.table_token });
   if (!resolved.ok) return { success: false, error: { code: resolved.code, message: resolved.message } };
   const { data, error } = await supabase.rpc('table_call_place', {
@@ -6328,7 +6355,7 @@ const CLOSED_SHOP_BLOCKED_ACTIONS: ReadonlySet<string> = new Set([
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
   // Versiestempel voor deploy-verificatie (neveneffectvrij); bij elke batch ophogen.
-  if (req.method === 'GET') return new Response(JSON.stringify({ ok: true, version: 'ALLERGEEN-VERKLAARD-1' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  if (req.method === 'GET') return new Response(JSON.stringify({ ok: true, version: 'QR-MODULES-1' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
   try {
     const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);

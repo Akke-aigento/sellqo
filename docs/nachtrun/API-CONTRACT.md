@@ -150,3 +150,18 @@ Lezen in de storefront:
 | niet leeg | `true` | de allergenen (zoals nu) |
 | ontbreekt | `true` | "Bevat geen van de 14 allergenen" |
 | ontbreekt | ontbreekt | niet ingevuld: "Vraag de bediening naar allergenen" (niets beweren) |
+
+## 6. QR-MODULES-1 — oproepen per soort aan/uit
+
+Versiestempel: `GET storefront-api` → `{ "ok": true, "version": "QR-MODULES-1" }`, header
+`X-SellQo-Api-Rev: qr-modules-1`.
+
+De zaak zet **Ober roepen** en **Rekening vragen** elk apart aan of uit (SellQo › Kaart › Instellen ›
+QR-menu, `fulfillment_settings.qr_call_waiter` / `qr_call_bill`, standaard aan = gedrag van vóór deze batch).
+
+- `table_request_status` met `call_ids` (§3d) geeft **additief** `call_kinds: ("waiter" | "bill")[]`:
+  de soorten die de zaak toelaat. Leeg als het QR-menu uitstaat. Een lege lijst `call_ids: []` is
+  de neveneffectvrije manier om het op te vragen. **Ontbreekt het veld** (oudere API), toon dan beide
+  knoppen zoals voorheen. Het oude pad (enkel `request_id`) krijgt het veld niet.
+- `table_call` met een soort die uitstaat → `{ success: false, error: { code: "TABLE_CALL_KIND_OFF", message } }`,
+  zonder oproep. De melding is per soort geschreven en kan zo getoond worden.

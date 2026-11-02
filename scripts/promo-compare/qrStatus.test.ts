@@ -4,7 +4,8 @@
 //     enkel met de order van dít mandje; anders de oude fout;
 //   - table_check_pay met release_payment_ids → oude pogingen op dezelfde tafel vrijgegeven;
 //   - table_request_status: oud antwoord + progress, lijst, order, oproepen; nooit andere tenants;
-//   - table_call: invoer, aan/uit, tafel via QR-token, foutcodes, IP-rem.
+//   - table_call: invoer, aan/uit, tafel via QR-token, foutcodes, IP-rem;
+//   - QR-MODULES-1: oproepen per soort aan/uit (TABLE_CALL_KIND_OFF) en call_kinds in table_request_status.
 // De databankfuncties zelf (table_call_place-rem, idempotentie) worden live getest.
 //
 // Run (vanuit de repo-root, netwerkloos):
@@ -212,7 +213,47 @@ Deno.test('table_call: QR staat uit → TABLE_CALL_OFF', async () => {
   }
 });
 
-Deno.test('GET-stempel ALLERGEEN-VERKLAARD-1', async () => {
+// --- QR-MODULES-1 --------------------------------------------------------------------------------
+const fs0 = () => (db as any).tables.fulfillment_settings[0];
+Deno.test('QR-MODULES-1: zonder instelling staan beide oproepen aan (oud gedrag) en meldt de status ze', async () => {
+  const d = (await call('table_request_status', { call_ids: [] })).json.data;
+  assert(Array.isArray(d.calls) && d.calls.length === 0 && JSON.stringify(d.call_kinds) === '["waiter","bill"]', JSON.stringify(d));
+});
+Deno.test('QR-MODULES-1: oud statuspad (enkel request_id) krijgt geen call_kinds', async () => {
+  const d = (await call('table_request_status', { request_id: REQ_PENDING })).json.data;
+  assert(d.id === REQ_PENDING && !('call_kinds' in d), JSON.stringify(d));
+});
+Deno.test('QR-MODULES-1: "Ober roepen" uit → TABLE_CALL_KIND_OFF, geen databankaanroep; rekening vragen werkt nog', async () => {
+  fs0().qr_call_waiter = false;
+  try {
+    rpcCalls.length = 0;
+    const d = (await call('table_call', { table_token: TOKEN, kind: 'waiter' }, '5.5.5.5')).json.data;
+    assert(d.success === false && d.error.code === 'TABLE_CALL_KIND_OFF' && /bediening roepen/.test(d.error.message) && !rpcCalls.length, JSON.stringify(d));
+    rpcAnswer = { table_call_place: { data: { call_id: CALL, kind: 'bill', status: 'open', created_at: 'x', duplicate: false, retry_after_s: 120 }, error: null } };
+    const ok = (await call('table_call', { table_token: TOKEN, kind: 'bill', call_id: CALL }, '5.5.5.5')).json;
+    assert(ok.success === true && ok.data.call_id === CALL, JSON.stringify(ok));
+    const st = (await call('table_request_status', { call_ids: [] })).json.data;
+    assert(JSON.stringify(st.call_kinds) === '["bill"]', JSON.stringify(st));
+  } finally { delete fs0().qr_call_waiter; }
+});
+Deno.test('QR-MODULES-1: "Rekening vragen" uit → TABLE_CALL_KIND_OFF', async () => {
+  fs0().qr_call_bill = false;
+  try {
+    const d = (await call('table_call', { table_token: TOKEN, kind: 'bill' }, '6.6.6.6')).json.data;
+    assert(d.success === false && d.error.code === 'TABLE_CALL_KIND_OFF' && /rekening vragen/.test(d.error.message), JSON.stringify(d));
+    const st = (await call('table_request_status', { call_ids: [] })).json.data;
+    assert(JSON.stringify(st.call_kinds) === '["waiter"]', JSON.stringify(st));
+  } finally { delete fs0().qr_call_bill; }
+});
+Deno.test('QR-MODULES-1: QR-menu uit → call_kinds leeg', async () => {
+  fs0().qr_mode = 'off';
+  try {
+    const st = (await call('table_request_status', { call_ids: [] })).json.data;
+    assert(Array.isArray(st.call_kinds) && st.call_kinds.length === 0, JSON.stringify(st));
+  } finally { fs0().qr_mode = 'view'; }
+});
+
+Deno.test('GET-stempel QR-MODULES-1', async () => {
   const r = await handler(new Request('https://f/storefront-api', { method: 'GET' }));
-  assert((await r.json()).version === 'ALLERGEEN-VERKLAARD-1' && r.headers.get('X-SellQo-Api-Rev') === 'allergeen-verklaard-1', 'stempel');
+  assert((await r.json()).version === 'QR-MODULES-1' && r.headers.get('X-SellQo-Api-Rev') === 'qr-modules-1', 'stempel');
 });
