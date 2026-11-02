@@ -1706,14 +1706,15 @@
       "printers_status_few": "{{count}} Drucker · Beleg drucken {{print}} · mailen {{mail}}",
       "printers_status_many": "{{count}} Drucker · Beleg drucken {{print}} · mailen {{mail}}",
       "printers_status_other": "{{count}} Drucker · Beleg drucken {{print}} · mailen {{mail}}",
-      "pay_status_one": "{{count}} Zahlungsart · Online-Zahlung {{online}}",
-      "pay_status_few": "{{count}} Zahlungsarten · Online-Zahlung {{online}}",
-      "pay_status_many": "{{count}} Zahlungsarten · Online-Zahlung {{online}}",
-      "pay_status_other": "{{count}} Zahlungsarten · Online-Zahlung {{online}}",
       "gks_title": "SellQo Kassa ist noch kein registriertes Kassensystem (GKS)",
       "gks_body": "SellQo Kassa ist (noch) nicht als registriertes Kassensystem (GKS 2.0) zertifiziert.",
       "gks_rule": "Verkaufst du mehr als 25.000 € pro Jahr (ohne MwSt.) an Mahlzeiten zum Verzehr vor Ort, oder hat deine aktuelle Kasse ein fiskalisches Datenmodul (FDM, die „Blackbox“), dann bist du GKS-pflichtig. Nutze SellQo dann nicht als registrierende Kasse, solange SellQo Kassa nicht zertifiziert ist.",
-      "gks_doubt": "Unsicher, ob das für dein Lokal gilt? Frag deine Steuerberatung."
+      "gks_doubt": "Unsicher, ob das für dein Lokal gilt? Frag deine Steuerberatung.",
+      "qr_online": "Rechnung online bezahlen {{online}}",
+      "pay_methods_one": "{{count}} Zahlungsart an der Kasse",
+      "pay_methods_few": "{{count}} Zahlungsarten an der Kasse",
+      "pay_methods_many": "{{count}} Zahlungsarten an der Kasse",
+      "pay_methods_other": "{{count}} Zahlungsarten an der Kasse"
     },
     "bottomNav": {
       "title": "Meine untere Leiste auf dem Handy",
@@ -6937,11 +6938,8 @@
         },
         "qrModeSettings": {
           "aan_de_toog": "An der Theke",
-          "qr_menu_in_je_zaak": "QR-Menü in Ihrem Lokal",
           "wat_ziet_een_klant_die_de": "Was sieht ein Gast, der den QR-Code am Tisch oder an der Theke scannt?",
-          "hoe_rekent_de_klant_af": "Wie bezahlt der Gast?",
           "na_de_maaltijd_via_je_eigen": "Nach dem Essen über Ihre eigene Kasse. Die Bestellung kommt als „noch zu zahlen“ in die Küche.",
-          "meteen_online": "Sofort online",
           "bancontact_kaart_of_apple_pay_zoals": "Bancontact, Karte oder Apple Pay, wie im Webshop.",
           "restaurant_met_een_witte_kassa_gks": "Restaurant mit zertifizierter Registrierkasse (GKS / „weiße Kasse“)? Lassen Sie „an der Theke“ an: SellQo leitet die Bestellung an die Küche weiter, Ihre zertifizierte Kasse erfasst den Verkauf."
         },
@@ -9274,11 +9272,7 @@
       "kassa_tip": "Trinkgeld an der Kasse",
       "kassa_tip_desc": "Beim Abrechnen ein Trinkgeld separat eingeben (bar, Karte oder Überweisung).",
       "qr_title": "Bezahlen über den QR-Code am Tisch",
-      "qr_desc_order": "Ihr QR-Menü steht auf Bestellen am Tisch. So bezahlt der Gast:",
-      "qr_desc_off": "Ihr QR-Menü steht nicht auf Bestellen am Tisch; diese Wahl gilt, sobald Sie das einschalten.",
-      "qr_to_menu": "QR-Menü einrichten",
       "qr_none": "noch nichts gewählt",
-      "qr_set_in_pay": "Einstellbar unter Kasse › Bezahlen",
       "saved": "Zahlungseinstellungen gespeichert",
       "save_failed": "Speichern fehlgeschlagen: {{reason}}",
       "online_pay": "Gäste bezahlen am Tisch online",
@@ -9289,7 +9283,11 @@
       "online_split": "Aufteilen erlauben",
       "online_split_desc": "Gäste können ihre eigenen Positionen bezahlen oder die Rechnung gleichmäßig teilen.",
       "online_tip": "Trinkgeld anbieten",
-      "online_tip_desc": "Gäste wählen 5, 10 oder 15 % oder einen eigenen Betrag. Trinkgeld erscheint separat in Ihren Berichten."
+      "online_tip_desc": "Gäste wählen 5, 10 oder 15 % oder einen eigenen Betrag. Trinkgeld erscheint separat in Ihren Berichten.",
+      "qr_moved": "Wie Gäste über den QR-Code bezahlen (an der Theke, sofort online, die Rechnung online, Teilen und Trinkgeld), stellen Sie unter QR am Tisch ein, zusammen mit den anderen QR-Schaltern.",
+      "qr_now": "Jetzt:",
+      "qr_not_ordering": "das QR-Menü steht nicht auf Bestellen am Tisch",
+      "qr_to_settings": "Zu QR am Tisch"
     },
     "qrFlow": {
       "title": "Wohin geht eine Tischbestellung?",
@@ -9300,7 +9298,6 @@
       "auto_title": "Automatisch bestätigen",
       "auto_desc": "Eine geöffnete Kasse setzt neue Bestellungen sofort auf die Rechnung, ohne dass jemand auf Bestätigen tippt. Nur für Tische aus Ihrem Raumplan (jeweils mit eigenem QR-Code).",
       "auto_warning": "Achtung: Niemand prüft die Bestellung vorher. Ist etwas ausverkauft oder geht etwas schief, muss das Personal das nachträglich auf der Rechnung korrigieren. Schalten Sie das nur ein, wenn Sie Ihren Bestand gut pflegen (Produkte auf der Karte als \"Ausverkauft\" markieren).",
-      "pay_on_check": "Tischbestellungen kommen auf die Tischrechnung: Der Gast bezahlt am Ende an der Kasse (bar, Überweisung, …). Einstellbar unter Bestellen › QR-Menü.",
       "offline_title": "Ihr QR-Menü ist für Gäste noch nicht sichtbar",
       "offline_desc": "Ihr Betrieb ist noch offline. Schalten Sie ihn unter Onlineshop › Shop öffnen online; Bestellungen für zu Hause bleiben dabei aus.",
       "offline_link": "Zu „Shop öffnen“",
@@ -9345,7 +9342,7 @@
       "receipt_print_hint": "Nach jeder Zahlung an der Kasse kommt der Zahlungsbeleg aus diesem Drucker.",
       "mail_online": "Beleg nach Online-Zahlung mailen",
       "mail_online_hint": "Bezahlt ein Gast online über den QR am Tisch, bekommt er den Beleg automatisch an die E-Mail-Adresse, die er beim Bezahlen angegeben hat.",
-      "mail_online_needs_online": "Schalte zuerst Online-Zahlung unter Kasse › Bezahlen ein.",
+      "mail_online_needs_online": "Schalten Sie zuerst „Die Rechnung online bezahlen“ unter QR am Tisch ein.",
       "mail_button": "Schaltfläche „Beleg mailen“ im Bezahlbildschirm",
       "mail_button_hint": "Möchte ein Kunde seinen Beleg per Mail, tippst du nach dem Bezahlen auf die Schaltfläche und gibst seine Adresse ein. Die Adresse wird nicht gespeichert.",
       "add_title": "Drucker hinzufügen",
@@ -9582,6 +9579,26 @@
       "locked_horeca": "Verfügbar mit {{plan}}",
       "locked_description": "Automatische Synchronisierung von Rechnungen und Gutschriften mit Ihrem eigenen Odoo Accounting. Führen Sie ein Upgrade durch, um diese Anbindung zu aktivieren.",
       "locked_cta": "Abonnements ansehen"
+    },
+    "qrTable": {
+      "title": "QR am Tisch",
+      "desc": "Alles, was ein Gast über den QR-Code am Tisch tun kann, an einem Ort. Jeder Schalter funktioniert für sich.",
+      "group_menu": "QR-Menü",
+      "order_only": "Bestellen, Bezahlen und die Bedienung rufen über den QR-Code geht erst, wenn Ihr QR-Menü auf Bestellen am Tisch steht.",
+      "group_order": "Bestellen",
+      "group_pay": "Bezahlen durch den Gast",
+      "pay_desc_order": "Jede Bestellung wird einzeln bezahlt. Lassen Sie mindestens eine Möglichkeit an.",
+      "pay_desc_check": "Auf der Tischrechnung bezahlt der Gast am Ende: an der Kasse oder selbst online, wenn Sie das hier einschalten.",
+      "pay_online": "Sofort online beim Bestellen",
+      "check_online": "Die Rechnung online bezahlen",
+      "needs_check_online": "Funktioniert nur, wenn „Die Rechnung online bezahlen“ eingeschaltet ist.",
+      "fiscal_link": "Mehr zur registrierten Kasse",
+      "group_calls": "Die Bedienung rufen",
+      "calls_desc": "Schaltflächen im QR-Menü am Tisch. Ein Ruf kommt an der Kasse unter Eingehend an.",
+      "call_waiter": "Bedienung rufen",
+      "call_waiter_desc": "Der Gast tippt auf Bedienung rufen und die Bedienung kommt an den Tisch.",
+      "call_bill": "Rechnung verlangen",
+      "call_bill_desc": "Der Gast verlangt die Rechnung, ohne zu winken, auch auf seiner Rechnungsseite, wenn Online-Bezahlen aus ist."
     }
   },
   "billing": {

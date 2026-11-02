@@ -293,7 +293,7 @@ export function HorecaPrinters() {
           <div className="flex items-start justify-between gap-4">
             <div>
               <Label htmlFor="rc-online" className="text-sm font-medium">{t('admin.horecaPrint.mail_online')}</Label>
-              <p className="text-xs text-muted-foreground">{data.receipt.online_pay ? t('admin.horecaPrint.mail_online_hint') : t('admin.horecaPrint.mail_online_needs_online')}</p>
+              <p className="text-xs text-muted-foreground">{data.receipt.online_pay ? t('admin.horecaPrint.mail_online_hint') : <>{t('admin.horecaPrint.mail_online_needs_online')} <Link to="/admin/bestellen?tab=qr" className="font-medium text-primary underline">{t('admin.horecaPay.qr_to_settings')}</Link></>}</p>
             </div>
             <Switch id="rc-online" checked={data.receipt.mail_online} disabled={busy !== null || data.fiscal || !data.receipt.online_pay}
               onCheckedChange={(v) => saveReceipt({ mail_online: v })} />

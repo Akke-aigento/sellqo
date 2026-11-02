@@ -1678,14 +1678,15 @@
       "printers_status_few": "{{count}} printers · betaalbewijs afdrukken {{print}} · mailen {{mail}}",
       "printers_status_many": "{{count}} printers · betaalbewijs afdrukken {{print}} · mailen {{mail}}",
       "printers_status_other": "{{count}} printers · betaalbewijs afdrukken {{print}} · mailen {{mail}}",
-      "pay_status_one": "{{count}} betaalwijze · online betalen {{online}}",
-      "pay_status_few": "{{count}} betaalwijzen · online betalen {{online}}",
-      "pay_status_many": "{{count}} betaalwijzen · online betalen {{online}}",
-      "pay_status_other": "{{count}} betaalwijzen · online betalen {{online}}",
       "gks_title": "SellQo Kassa is nog geen geregistreerd kassasysteem (GKS)",
       "gks_body": "SellQo Kassa is (nog) niet gecertificeerd als geregistreerd kassasysteem (GKS 2.0).",
       "gks_rule": "Verkoop je meer dan € 25.000 per jaar (excl. btw) aan maaltijden die ter plaatse gegeten worden, of staat er bij je huidige kassa een fiscale datamodule (FDM, de “zwarte doos”), dan ben je GKS-plichtig. Gebruik SellQo dan niet als je registrerende kassa zolang SellQo Kassa niet gecertificeerd is.",
-      "gks_doubt": "Twijfel je of dit voor jouw zaak geldt? Vraag het na bij je boekhouder."
+      "gks_doubt": "Twijfel je of dit voor jouw zaak geldt? Vraag het na bij je boekhouder.",
+      "qr_online": "rekening online betalen {{online}}",
+      "pay_methods_one": "{{count}} betaalwijze aan de kassa",
+      "pay_methods_few": "{{count}} betaalwijzen aan de kassa",
+      "pay_methods_many": "{{count}} betaalwijzen aan de kassa",
+      "pay_methods_other": "{{count}} betaalwijzen aan de kassa"
     },
     "bottomNav": {
       "title": "Mijn onderbalk op de gsm",
@@ -6840,12 +6841,9 @@
           "extra_s_beheren": "Extra's beheren"
         },
         "qrModeSettings": {
-          "qr_menu_in_je_zaak": "QR-menu in je zaak",
           "wat_ziet_een_klant_die_de": "Wat ziet een klant die de QR-code op tafel of aan de toog scant?",
-          "hoe_rekent_de_klant_af": "Hoe rekent de klant af?",
           "aan_de_toog": "Aan de toog",
           "na_de_maaltijd_via_je_eigen": "Na de maaltijd, via je eigen kassa. De bestelling komt als \"nog te betalen\" in de keuken.",
-          "meteen_online": "Meteen online",
           "bancontact_kaart_of_apple_pay_zoals": "Bancontact, kaart of Apple Pay, zoals in de webshop.",
           "restaurant_met_een_witte_kassa_gks": "Restaurant met een witte kassa (GKS)? Laat \"aan de toog\" aan: SellQo geeft de bestelling door aan de keuken, je gecertificeerde kassa registreert de verkoop."
         },
@@ -9619,11 +9617,7 @@
       "kassa_tip": "Fooi aan de kassa",
       "kassa_tip_desc": "Een fooi apart ingeven bij het afrekenen (contant, kaart of overschrijving).",
       "qr_title": "Afrekenen via de QR aan tafel",
-      "qr_desc_order": "Je QR-menu staat op bestellen aan tafel. Zo rekent de klant af:",
-      "qr_desc_off": "Je QR-menu staat nu niet op bestellen aan tafel; deze keuze geldt zodra je dat aanzet.",
-      "qr_to_menu": "QR-menu instellen",
       "qr_none": "nog niets gekozen",
-      "qr_set_in_pay": "Instellen bij Kassa › Betalen",
       "saved": "Betaalinstellingen bewaard",
       "save_failed": "Bewaren lukte niet: {{reason}}",
       "online_pay": "Gasten betalen online aan tafel",
@@ -9634,7 +9628,11 @@
       "online_split": "Splitsen toestaan",
       "online_split_desc": "Gasten kunnen hun eigen items betalen of de rekening gelijk delen.",
       "online_tip": "Fooi aanbieden",
-      "online_tip_desc": "Gasten kiezen 5, 10 of 15 % of een eigen bedrag. De fooi staat apart in je rapporten."
+      "online_tip_desc": "Gasten kiezen 5, 10 of 15 % of een eigen bedrag. De fooi staat apart in je rapporten.",
+      "qr_moved": "Hoe gasten via de QR-code afrekenen (aan de toog, meteen online, de rekening online, delen en fooi) stel je in bij QR aan tafel, samen met de andere QR-schakelaars.",
+      "qr_now": "Nu:",
+      "qr_not_ordering": "het QR-menu staat niet op bestellen aan tafel",
+      "qr_to_settings": "Naar QR aan tafel"
     },
     "qrFlow": {
       "title": "Waar komt een bestelling aan tafel terecht?",
@@ -9645,7 +9643,6 @@
       "auto_title": "Automatisch bevestigen",
       "auto_desc": "Een kassa die openstaat zet nieuwe bestellingen meteen op de rekening, zonder dat iemand op Bevestigen tikt. Enkel voor tafels uit je zaalplan (met een eigen QR-code per tafel).",
       "auto_warning": "Let op: niemand kijkt de bestelling eerst na. Is iets op of gaat er iets mis, dan moet de bediening dat achteraf rechtzetten op de rekening. Zet dit enkel aan als je je voorraad goed opvolgt (zet producten op \"Op\" op de Kaart).",
-      "pay_on_check": "Bestellingen aan tafel komen op de tafelrekening: de gast betaalt op het einde, aan de kassa (contant, overschrijving, …). Instellen bij Bestellen › QR-menu.",
       "offline_title": "Je QR-menu is nog niet zichtbaar voor gasten",
       "offline_desc": "Je zaak staat nog offline. Zet ze online onder Webshop › Winkel openen; online bestellen voor thuis blijft daarbij uit.",
       "offline_link": "Naar Winkel openen",
@@ -9690,7 +9687,7 @@
       "receipt_print_hint": "Na elke betaling aan de kassa komt het betaalbewijs uit deze printer.",
       "mail_online": "Betaalbewijs mailen na online betalen",
       "mail_online_hint": "Betaalt een gast online via de QR aan tafel, dan krijgt hij het betaalbewijs automatisch op het e-mailadres dat hij bij het betalen opgaf.",
-      "mail_online_needs_online": "Zet eerst online betalen aan in Kassa › Betalen.",
+      "mail_online_needs_online": "Zet eerst \"De rekening online afrekenen\" aan bij QR aan tafel.",
       "mail_button": "Knop \"Mail bon\" op het afrekenscherm",
       "mail_button_hint": "Vraagt een klant zijn bon per mail, dan tik je na het afrekenen op de knop en vul je zijn adres in. Het adres wordt niet bewaard.",
       "add_title": "Printer toevoegen",
@@ -9927,6 +9924,26 @@
       "locked_horeca": "Beschikbaar op {{plan}}",
       "locked_description": "Automatische facturen- en creditnota-sync met jouw eigen Odoo Accounting. Upgrade om deze koppeling te activeren.",
       "locked_cta": "Bekijk abonnementen"
+    },
+    "qrTable": {
+      "title": "QR aan tafel",
+      "desc": "Alles wat een gast via de QR-code op tafel kan doen, op één plek. Elke schakelaar werkt apart.",
+      "group_menu": "QR-menu",
+      "order_only": "Bestellen, afrekenen en de bediening roepen via de QR-code kan pas als je QR-menu op bestellen aan tafel staat.",
+      "group_order": "Bestellen",
+      "group_pay": "Afrekenen door de gast",
+      "pay_desc_order": "Elke bestelling wordt apart afgerekend. Laat minstens één manier aan.",
+      "pay_desc_check": "Op de tafelrekening betaalt de gast op het einde: aan de kassa, of zelf online als je dat hier aanzet.",
+      "pay_online": "Meteen online bij het bestellen",
+      "check_online": "De rekening online afrekenen",
+      "needs_check_online": "Werkt enkel als \"De rekening online afrekenen\" aanstaat.",
+      "fiscal_link": "Meer over de geregistreerde kassa",
+      "group_calls": "De bediening roepen",
+      "calls_desc": "Knoppen op het QR-menu aan tafel. Een oproep komt op de kassa binnen bij Binnenkomend.",
+      "call_waiter": "Ober roepen",
+      "call_waiter_desc": "De gast tikt op Ober roepen en de bediening komt naar de tafel.",
+      "call_bill": "Rekening vragen",
+      "call_bill_desc": "De gast vraagt de rekening zonder te zwaaien, ook op zijn rekening als online afrekenen uitstaat."
     }
   },
   "product_form": {

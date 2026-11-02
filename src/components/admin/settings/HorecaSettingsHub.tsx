@@ -66,7 +66,8 @@ export function HorecaSettingsHub() {
     {
       title: t('settings.horecaHub.group_ordering'),
       rows: [
-        { icon: QrCode, title: t('settings.horecaHub.qr'), status: t(`settings.horecaHub.qr_mode_${data.qrMode === 'order' ? 'order' : data.qrMode === 'off' ? 'off' : 'view'}`), to: '/admin/bestellen?tab=qr' },
+        // QR-MODULES-1: online afrekenen door de gast staat sinds deze batch bij QR aan tafel, niet meer bij Kassa › Betalen.
+        { icon: QrCode, title: t('settings.horecaHub.qr'), status: t(`settings.horecaHub.qr_mode_${data.qrMode === 'order' ? 'order' : data.qrMode === 'off' ? 'off' : 'view'}`) + (data.qrMode === 'order' ? ` · ${t('settings.horecaHub.qr_online', { online: onOff(data.onlinePay) })}` : ''), to: '/admin/bestellen?tab=qr' },
         { icon: LayoutGrid, title: t('settings.horecaHub.floor'), status: t('settings.horecaHub.tables', { count: data.tables }), to: FLOOR_EDIT_URL },
         { icon: CalendarClock, title: t('reservations.title'), status: data.leadMinutes >= 1440 ? t('reservations.leadAllDay') : t('reservations.hubStatus', { count: data.leadMinutes }), to: '/admin/bestellen?tab=reservaties' },
         { icon: UtensilsCrossed, title: t('settings.horecaHub.stations'), status: t('settings.horecaHub.stations_count', { count: data.stations }), to: '/admin/bestellen?tab=posten' },
@@ -77,7 +78,7 @@ export function HorecaSettingsHub() {
       rows: [
         { icon: Monitor, title: t('settings.horecaHub.terminals'), status: t('settings.horecaHub.terminals_count', { count: data.terminals }), to: '/admin/pos' },
         { icon: Users, title: t('settings.horecaHub.staff'), status: t('settings.horecaHub.staff_count', { count: data.staff }), to: '/admin/pos?tab=personeel' },
-        { icon: CreditCard, title: t('settings.horecaHub.pay'), status: t('settings.horecaHub.pay_status', { count: data.methods, online: onOff(data.onlinePay) }), to: '/admin/pos?tab=betalen' },
+        { icon: CreditCard, title: t('settings.horecaHub.pay'), status: t('settings.horecaHub.pay_methods', { count: data.methods }), to: '/admin/pos?tab=betalen' },
         { icon: Printer, title: t('settings.horecaHub.printers'), status: t('settings.horecaHub.printers_status', { count: data.printers, print: onOff(data.receiptPrint), mail: onOff(data.mailOnline) }), to: '/admin/pos?tab=printers' },
         { icon: Bell, title: t('settings.horecaHub.alerts'), status: t('settings.horecaHub.devices_count', { count: data.devices }), to: '/admin/pos' },
       ],

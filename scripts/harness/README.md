@@ -28,6 +28,8 @@ Exit 1 bij een paginafout of console-error. Playwright komt uit `PLAYWRIGHT_PATH
 
 Scenario's: `kassa-setup` (eerste toestel), `onderbalk` (gsm-onderbalk), `kassa-home` (een dienst op de kassa met
 het zaalplan en de kaart van Café De Wissel: tafel, tikken, rekening, toog, ⋯-menu; meet ook horizontale overloop).
+`qr-aan-tafel` (QR-MODULES-1: "QR aan tafel" per variant — op de tafelrekening, elke bestelling apart, zonder Stripe,
+met FDM, enkel bekijken, databank zonder de oproep-kolommen, Engels — en Kassa › Betalen; controleert ook wat er bewaard wordt).
 
 Lessen: mock het spoorfilter (`isItemBlocked`) bewust, anders zie je items die de echte app verbergt.
 Nooit `pkill -f` op de vite-server; `shoot.mjs` stopt hem zelf.

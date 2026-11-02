@@ -1678,14 +1678,15 @@
       "printers_status_few": "{{count}} printers · print receipt {{print}} · email {{mail}}",
       "printers_status_many": "{{count}} printers · print receipt {{print}} · email {{mail}}",
       "printers_status_other": "{{count}} printers · print receipt {{print}} · email {{mail}}",
-      "pay_status_one": "{{count}} payment method · online payment {{online}}",
-      "pay_status_few": "{{count}} payment methods · online payment {{online}}",
-      "pay_status_many": "{{count}} payment methods · online payment {{online}}",
-      "pay_status_other": "{{count}} payment methods · online payment {{online}}",
       "gks_title": "SellQo Kassa is not yet a certified cash register system (GKS)",
       "gks_body": "SellQo Kassa is not (yet) certified as a registered cash register system (GKS 2.0) under Belgian law.",
       "gks_rule": "If you sell more than €25,000 a year (excl. VAT) in meals eaten on the premises, or your current register has a fiscal data module (FDM, the “black box”), you are required to use a GKS. In that case, do not use SellQo as your registering cash register as long as SellQo Kassa is not certified.",
-      "gks_doubt": "Not sure whether this applies to your business? Check with your accountant."
+      "gks_doubt": "Not sure whether this applies to your business? Check with your accountant.",
+      "qr_online": "pay the bill online {{online}}",
+      "pay_methods_one": "{{count}} payment method at the till",
+      "pay_methods_few": "{{count}} payment methods at the till",
+      "pay_methods_many": "{{count}} payment methods at the till",
+      "pay_methods_other": "{{count}} payment methods at the till"
     },
     "bottomNav": {
       "title": "My bottom bar on the phone",
@@ -7268,11 +7269,8 @@
         },
         "qrModeSettings": {
           "aan_de_toog": "At the counter",
-          "qr_menu_in_je_zaak": "QR menu in your venue",
           "wat_ziet_een_klant_die_de": "What does a customer see who scans the QR code on the table or at the bar?",
-          "hoe_rekent_de_klant_af": "How does the customer pay?",
           "na_de_maaltijd_via_je_eigen": "After the meal, through your own POS. The order reaches the kitchen as \"to be paid\".",
-          "meteen_online": "Online right away",
           "bancontact_kaart_of_apple_pay_zoals": "Bancontact, card or Apple Pay, as in the webshop.",
           "restaurant_met_een_witte_kassa_gks": "Restaurant with a certified POS (GKS / \"witte kassa\")? Keep \"at the counter\" on: SellQo sends the order to the kitchen, your certified POS records the sale."
         },
@@ -9605,11 +9603,7 @@
       "kassa_tip": "Tips at the POS",
       "kassa_tip_desc": "Enter a tip separately at checkout (cash, card or bank transfer).",
       "qr_title": "Paying via the table QR code",
-      "qr_desc_order": "Your QR menu is set to ordering at the table. This is how guests pay:",
-      "qr_desc_off": "Your QR menu is not set to ordering at the table; this choice applies once you turn that on.",
-      "qr_to_menu": "Set up QR menu",
       "qr_none": "nothing chosen yet",
-      "qr_set_in_pay": "Set in POS › Payments",
       "saved": "Payment settings saved",
       "save_failed": "Could not save: {{reason}}",
       "online_pay": "Guests pay online at the table",
@@ -9620,7 +9614,11 @@
       "online_split": "Allow splitting",
       "online_split_desc": "Guests can pay for their own items or split the bill equally.",
       "online_tip": "Offer a tip",
-      "online_tip_desc": "Guests choose 5, 10 or 15% or their own amount. Tips show separately in your reports."
+      "online_tip_desc": "Guests choose 5, 10 or 15% or their own amount. Tips show separately in your reports.",
+      "qr_moved": "How guests pay via the QR code (at the counter, online straight away, the bill online, splitting and tips) is set in QR at the table, together with the other QR switches.",
+      "qr_now": "Now:",
+      "qr_not_ordering": "the QR menu is not set to ordering at the table",
+      "qr_to_settings": "Go to QR at the table"
     },
     "qrFlow": {
       "title": "Where does a table order go?",
@@ -9631,7 +9629,6 @@
       "auto_title": "Confirm automatically",
       "auto_desc": "An open POS puts new orders on the bill straight away, without anyone tapping Confirm. Only for tables from your floor plan (each with its own QR code).",
       "auto_warning": "Note: nobody checks the order first. If something is sold out or goes wrong, staff have to fix it on the bill afterwards. Only turn this on if you keep your stock up to date (mark products \"Sold out\" on the Menu).",
-      "pay_on_check": "Table orders go onto the table's bill: the guest pays at the end, at the POS (cash, bank transfer, …). Set in Ordering › QR menu.",
       "offline_title": "Your QR menu isn't visible to guests yet",
       "offline_desc": "Your venue is still offline. Put it online under Webshop › Open your store; ordering for delivery or pickup stays off.",
       "offline_link": "Go to Open your store",
@@ -9676,7 +9673,7 @@
       "receipt_print_hint": "After every payment at the POS, the payment receipt comes out of this printer.",
       "mail_online": "Email the receipt after online payment",
       "mail_online_hint": "When a guest pays online via the table QR, they automatically receive the payment receipt at the email address they gave when paying.",
-      "mail_online_needs_online": "First turn on online payment in POS › Payments.",
+      "mail_online_needs_online": "First turn on \"Pay the bill online\" in QR at the table.",
       "mail_button": "\"Email receipt\" button on the payment screen",
       "mail_button_hint": "If a customer asks for their receipt by email, tap the button after payment and enter their address. The address is not stored.",
       "add_title": "Add printer",
@@ -9913,6 +9910,26 @@
       "locked_horeca": "Available on {{plan}}",
       "locked_description": "Automatic invoice and credit note sync with your own Odoo Accounting. Upgrade to activate this integration.",
       "locked_cta": "View plans"
+    },
+    "qrTable": {
+      "title": "QR at the table",
+      "desc": "Everything a guest can do with the QR code on the table, in one place. Each switch works on its own.",
+      "group_menu": "QR menu",
+      "order_only": "Ordering, paying and calling staff via the QR code only work when your QR menu is set to ordering at the table.",
+      "group_order": "Ordering",
+      "group_pay": "Payment by the guest",
+      "pay_desc_order": "Each order is paid separately. Keep at least one option on.",
+      "pay_desc_check": "On the table’s bill, the guest pays at the end: at the till, or online themselves if you turn that on here.",
+      "pay_online": "Online straight away when ordering",
+      "check_online": "Pay the bill online",
+      "needs_check_online": "Only works when \"Pay the bill online\" is on.",
+      "fiscal_link": "More about the registered till",
+      "group_calls": "Calling staff",
+      "calls_desc": "Buttons on the QR menu at the table. A call arrives on the till under Incoming.",
+      "call_waiter": "Call a waiter",
+      "call_waiter_desc": "The guest taps Call a waiter and staff come to the table.",
+      "call_bill": "Ask for the bill",
+      "call_bill_desc": "The guest asks for the bill without waving, also on their bill page when online payment is off."
     }
   },
   "product_form": {

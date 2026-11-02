@@ -1706,14 +1706,15 @@
       "printers_status_few": "{{count}} imprimantes · imprimer la preuve {{print}} · e-mail {{mail}}",
       "printers_status_many": "{{count}} imprimantes · imprimer la preuve {{print}} · e-mail {{mail}}",
       "printers_status_other": "{{count}} imprimantes · imprimer la preuve {{print}} · e-mail {{mail}}",
-      "pay_status_one": "{{count}} moyen de paiement · paiement en ligne {{online}}",
-      "pay_status_few": "{{count}} moyens de paiement · paiement en ligne {{online}}",
-      "pay_status_many": "{{count}} moyens de paiement · paiement en ligne {{online}}",
-      "pay_status_other": "{{count}} moyens de paiement · paiement en ligne {{online}}",
       "gks_title": "SellQo Kassa n’est pas encore un système de caisse enregistreuse (SCE)",
       "gks_body": "SellQo Kassa n’est pas (encore) certifié comme système de caisse enregistreuse (SCE 2.0).",
       "gks_rule": "Si tu vends plus de 25 000 € par an (hors TVA) de repas consommés sur place, ou si ta caisse actuelle a un module de données fiscales (FDM, la « boîte noire »), tu es soumis au SCE. N’utilise alors pas SellQo comme caisse enregistreuse tant que SellQo Kassa n’est pas certifié.",
-      "gks_doubt": "Tu ne sais pas si cela s’applique à ton établissement ? Renseigne-toi auprès de ton comptable."
+      "gks_doubt": "Tu ne sais pas si cela s’applique à ton établissement ? Renseigne-toi auprès de ton comptable.",
+      "qr_online": "addition en ligne {{online}}",
+      "pay_methods_one": "{{count}} moyen de paiement à la caisse",
+      "pay_methods_few": "{{count}} moyens de paiement à la caisse",
+      "pay_methods_many": "{{count}} moyens de paiement à la caisse",
+      "pay_methods_other": "{{count}} moyens de paiement à la caisse"
     },
     "bottomNav": {
       "title": "Ma barre du bas sur le téléphone",
@@ -6937,11 +6938,8 @@
         },
         "qrModeSettings": {
           "aan_de_toog": "Au comptoir",
-          "qr_menu_in_je_zaak": "Menu QR dans votre établissement",
           "wat_ziet_een_klant_die_de": "Que voit un client qui scanne le QR code sur la table ou au comptoir ?",
-          "hoe_rekent_de_klant_af": "Comment le client paie-t-il ?",
           "na_de_maaltijd_via_je_eigen": "Après le repas, via votre propre caisse. La commande arrive en cuisine comme « à payer ».",
-          "meteen_online": "En ligne immédiatement",
           "bancontact_kaart_of_apple_pay_zoals": "Bancontact, carte ou Apple Pay, comme dans la boutique en ligne.",
           "restaurant_met_een_witte_kassa_gks": "Restaurant avec une caisse enregistreuse certifiée (SCE / « caisse blanche ») ? Laissez « au comptoir » activé : SellQo transmet la commande à la cuisine, votre caisse certifiée enregistre la vente."
         },
@@ -9274,11 +9272,7 @@
       "kassa_tip": "Pourboire à la caisse",
       "kassa_tip_desc": "Saisir un pourboire séparément à l'encaissement (espèces, carte ou virement).",
       "qr_title": "Payer via le QR à table",
-      "qr_desc_order": "Votre menu QR permet de commander à table. Voici comment le client paie :",
-      "qr_desc_off": "Votre menu QR ne permet pas encore de commander à table ; ce choix s'applique dès que vous l'activez.",
-      "qr_to_menu": "Configurer le menu QR",
       "qr_none": "rien de choisi",
-      "qr_set_in_pay": "Réglable dans Caisse › Paiements",
       "saved": "Réglages de paiement enregistrés",
       "save_failed": "Échec de l'enregistrement : {{reason}}",
       "online_pay": "Les clients paient en ligne à table",
@@ -9289,7 +9283,11 @@
       "online_split": "Autoriser le partage",
       "online_split_desc": "Les clients peuvent payer leurs propres articles ou partager l'addition à parts égales.",
       "online_tip": "Proposer un pourboire",
-      "online_tip_desc": "Les clients choisissent 5, 10 ou 15 % ou leur propre montant. Le pourboire apparaît séparément dans vos rapports."
+      "online_tip_desc": "Les clients choisissent 5, 10 ou 15 % ou leur propre montant. Le pourboire apparaît séparément dans vos rapports.",
+      "qr_moved": "La façon dont les clients paient via le code QR (au comptoir, en ligne dès la commande, l’addition en ligne, partage et pourboire) se règle dans QR à table, avec les autres interrupteurs QR.",
+      "qr_now": "Actuellement :",
+      "qr_not_ordering": "le menu QR n’est pas réglé sur la commande à table",
+      "qr_to_settings": "Aller à QR à table"
     },
     "qrFlow": {
       "title": "Où va une commande à table ?",
@@ -9300,7 +9298,6 @@
       "auto_title": "Confirmer automatiquement",
       "auto_desc": "Une caisse ouverte met directement les nouvelles commandes sur l'addition, sans que personne ne touche Confirmer. Uniquement pour les tables de votre plan de salle (chacune avec son propre code QR).",
       "auto_warning": "Attention : personne ne vérifie la commande d'abord. Si un article est épuisé ou en cas de problème, le personnel doit corriger l'addition après coup. N'activez ceci que si vous suivez bien votre stock (marquez les produits « Épuisé » sur la Carte).",
-      "pay_on_check": "Les commandes à table arrivent sur l'addition : le client paie à la fin, à la caisse (espèces, virement, …). Réglable dans Commander › Menu QR.",
       "offline_title": "Votre menu QR n'est pas encore visible pour les clients",
       "offline_desc": "Votre établissement est encore hors ligne. Mettez-le en ligne sous Boutique en ligne › Ouvrir la boutique ; la commande à domicile reste désactivée.",
       "offline_link": "Aller à « Ouvrir la boutique »",
@@ -9345,7 +9342,7 @@
       "receipt_print_hint": "Après chaque paiement à la caisse, la preuve de paiement sort de cette imprimante.",
       "mail_online": "Envoyer la preuve après un paiement en ligne",
       "mail_online_hint": "Quand un client paie en ligne via le QR de la table, il reçoit automatiquement la preuve de paiement à l'adresse e-mail indiquée lors du paiement.",
-      "mail_online_needs_online": "Activez d'abord le paiement en ligne dans Caisse › Paiements.",
+      "mail_online_needs_online": "Activez d’abord « Régler l’addition en ligne » dans QR à table.",
       "mail_button": "Bouton « Envoyer le ticket » sur l'écran de paiement",
       "mail_button_hint": "Si un client demande son ticket par e-mail, touchez le bouton après le paiement et saisissez son adresse. L'adresse n'est pas conservée.",
       "add_title": "Ajouter une imprimante",
@@ -9582,6 +9579,26 @@
       "locked_horeca": "Disponible avec {{plan}}",
       "locked_description": "Synchronisation automatique des factures et notes de crédit avec votre propre Odoo Accounting. Passez à un plan supérieur pour activer cette intégration.",
       "locked_cta": "Voir les abonnements"
+    },
+    "qrTable": {
+      "title": "QR à table",
+      "desc": "Tout ce qu’un client peut faire avec le code QR sur la table, au même endroit. Chaque interrupteur fonctionne séparément.",
+      "group_menu": "Menu QR",
+      "order_only": "Commander, payer et appeler le personnel via le code QR ne fonctionnent que si votre menu QR est réglé sur la commande à table.",
+      "group_order": "Commander",
+      "group_pay": "Paiement par le client",
+      "pay_desc_order": "Chaque commande est réglée séparément. Laissez au moins une option activée.",
+      "pay_desc_check": "Sur l’addition de la table, le client paie à la fin : à la caisse, ou lui-même en ligne si vous l’activez ici.",
+      "pay_online": "En ligne dès la commande",
+      "check_online": "Régler l’addition en ligne",
+      "needs_check_online": "Ne fonctionne que si « Régler l’addition en ligne » est activé.",
+      "fiscal_link": "En savoir plus sur la caisse enregistreuse",
+      "group_calls": "Appeler le personnel",
+      "calls_desc": "Boutons sur le menu QR à table. Un appel arrive sur la caisse sous Entrant.",
+      "call_waiter": "Appeler un serveur",
+      "call_waiter_desc": "Le client appuie sur Appeler un serveur et le personnel vient à la table.",
+      "call_bill": "Demander l’addition",
+      "call_bill_desc": "Le client demande l’addition sans faire signe, aussi sur sa page d’addition si le paiement en ligne est désactivé."
     }
   },
   "billing": {
