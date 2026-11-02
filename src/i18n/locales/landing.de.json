@@ -2488,6 +2488,10 @@
         "qr_modules_1": {
           "title": "Alles für den QR-Code am Tisch an einem Ort, mit einem Schalter pro Funktion",
           "description": "Unter Karte › Einstellungen › QR-Menü findest du jetzt QR am Tisch: das QR-Menü, das Bestellen, das Bezahlen durch deinen Gast und das Rufen der Bedienung, jeweils mit eigenem Schalter. So schaltest du zum Beispiel das Online-Bezahlen der Rechnung ein und Bedienung rufen oder Rechnung anfordern aus. Ist ein Schalter ausgegraut, siehst du, warum und wie du es behebst. Kasse › Bezahlen behält die Zahlungsarten deiner Kasse."
+        },
+        "stock_roles": {
+          "title": "Bestand aktualisieren nur noch Administratoren, Mitarbeiter und Lager",
+          "description": "Den Bestand deiner Produkte und Varianten anpassen (auch per Massenbearbeitung, im Produktraster oder beim Wareneingang einer Bestellung) kann ab sofort nur noch ein Administrator, Mitarbeiter oder Lagermitarbeiter deines Shops. Rollen wie Marketing, Buchhaltung oder Leser sehen den Bestand weiterhin, aber die Schaltflächen zum Ändern werden ihnen nicht mehr angezeigt. Verkäufe über deine Kasse und deinen Webshop aktualisieren den Bestand wie bisher."
         }
       },
       "copyLink": "Link kopieren",

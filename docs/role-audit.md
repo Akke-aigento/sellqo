@@ -1,3 +1,45 @@
+## PRIJS-GATEN-2 — voorraad bijstellen enkel nog door beheerder, medewerker of magazijn; tenantlek in record_stock_movement dicht; productraster alleen-lezen (2026.15b) — 2 november 2026
+
+Vervolg op PRIJS-GATEN-1 (go via de hoofdsessie, 2-11). Branch `gaten-2`.
+
+**Root cause**
+- `record_stock_movement` (SECURITY DEFINER, execute `authenticated`) controleerde enkel lidmaatschap van de winkel (`get_user_tenant_ids`): elk lid (viewer, accountant, marketing) kon voorraad bijstellen. `bulk_adjust_stock` idem. `increment_stock`/`increment_variant_stock` (execute `authenticated`, zonder eigen check) lopen via `record_stock_movement`.
+- **Tenantlek** in `record_stock_movement`: `v_tenant_id := p_tenant_id` werd van de beller overgenomen en enkel opgezocht als die null was. Met `p_tenant_id` = eigen winkel en een product- of variant-id van een andere winkel slaagde de lidmaatschapscheck en werd de voorraad van die andere winkel gewijzigd (+ een logboekrij met de verkeerde winkel). Idem met `p_product_id` (eigen) + `p_variant_id` (vreemd). Geen enkele caller geeft vandaag `p_tenant_id` of beide id's mee (src/, supabase/functions en pg_proc nagetrokken), dus misbruik vraagt een handgemaakte RPC-call.
+- UI: het productraster had geen alleen-lezen-stand voor rollen zonder schrijfrecht op producten (naam, kanalen, tags, schakelaars bewerkbaar, RLS weigert). De bulkbewerking toonde marketing de tabs Prijzen en Voorraad en het btw-veld (DB weigert). De variantentab liet marketing de voorraad in het bewerkformulier wijzigen.
+
+**Uitgevoerd**
+- `supabase/migrations/20261102100000_prijs_gaten_2.sql`: drift-controle (prosrc-md5 2-11-2026, marker `PRIJS-GATEN-2`), snapshot `snapshots.sellqo_20261102_fn_prijs_gaten_2`.
+  - `record_stock_movement`: product en winkel altijd uit de eigen rijen (variant → product → winkel); `p_tenant_id` dat afwijkt → 42501; product + variant die niet samenhoren → 22023; met een gebruikers-JWT bovenop de lidmaatschapscheck `has_tenant_role(winkel, {tenant_admin, staff, warehouse})` → anders 42501. Rest (update, logboek, terugkeerwaarde) identiek.
+  - `bulk_adjust_stock`: zelfde rolcheck per product.
+- `src/hooks/useProductFieldAccess.ts`: `canAdjustStock` (bestond sinds deel 3) volgt nu exact de DB-regel.
+- `ProductGridView.tsx`: zonder schrijfrecht op producten is elke cel alleen-lezen (slotje, tooltip, geen klik/bewerken/bulk), behalve voorraad voor wie die mag bijstellen (warehouse); voorraadcellen (product en variant) op slot zonder `canAdjustStock` (dus ook voor marketing). Uitleg boven het raster (`grid_read_only_hint` / `grid_read_only_stock_hint`).
+- `ProductBulkEditDialog.tsx` + `bulk/BulkBasicTab.tsx`: tab Prijzen enkel met prijsrecht, tab Voorraad enkel met `canAdjustStock`, btw-veld enkel met prijsrecht.
+- `ProductVariantsTab.tsx`: voorraadveld in het bewerkformulier uitgeschakeld en niet geboekt zonder `canAdjustStock`.
+- i18n: 2 keys onder `product_form` in nl/en/fr/de/uk. Changelog 2026.15b (`stock_roles`, security) in 5 talen; nieuwsbrief.
+- Tests: `scripts/gks/sql/07_voorraad_prelude.sql` (live definities verbatim) + `test_voorraad_rollen.sql` (39 controles), als laatste blok in `run.sh`. Harnas `prijs-slot` uitgebreid (raster alleen-lezen voor warehouse/viewer, bulktabs marketing/beheerder).
+
+**Security-keuzes**
+- Rolset tenant_admin, staff, warehouse = de UI-rechten (`canAdjustStock`) en de matrix (`pos` write); platformadmin via `has_tenant_role`.
+- Service role / cron (geen `auth.uid()`) ongewijzigd: `storefront-api`, `stripe-connect-webhook`, `sync-bol-orders` (via `decrement_stock`/`decrement_variant_stock`, enkel service_role) breken niet.
+- POS-verkoop: `handle_pos_transaction_stock` → `decrement_stock` → `record_stock_movement` draait onder de JWT van wie `pos_transactions` schrijft; RLS laat daar enkel tenant_admin/staff toe, beide toegelaten. Getest.
+- `handle_pos_refund_stock` is een triggerfunctie (niet als RPC aanroepbaar), RLS op `pos_transactions` = tenant_admin/staff: ongemoeid.
+- Client-callers: `useStockLedger` (variantentab), `ProductGridView`, `useProducts.bulkAdjustStock`, `usePurchaseOrders` (`increment_stock`, ontvangen), `ai-assistant-action` (asUser, eist zelf tenant_admin/staff). Allemaal enkel bereikbaar voor rollen die nu nog mogen (UI-gating hierboven).
+- Geen policies of grants gewijzigd.
+
+**Gedeelde-paden-waarschuwing**
+- `storefront-api` niet gewijzigd; het roept `decrement_stock`/`decrement_variant_stock` aan met de service role (geen `auth.uid()`), dus de nieuwe rolcheck geldt daar niet. Het tenantlek-herstel verandert niets voor callers die enkel een product- of variant-id geven (alle bestaande). Custom frontends: geen impact.
+
+**Verificatie**
+- PG16 lokaal: volledige `run.sh` (alle kassatests, PRIJS-GATEN-1 en -2, migraties 2×) 2× exit 0. Negatieve controle: met de oude definities uit de snapshot faalt `test_voorraad_rollen.sql` op 19 controles (waaronder het tenantlek), na opnieuw migreren 0.
+- tsc exit 0; i18n-parity exit 0; vitest groen; eslint op de gewijzigde bestanden gelijk aan de baseline.
+- Harnas `prijs-slot` 390/1280 exit 0: warehouse kan in het raster enkel voorraad bewerken, viewer niets; marketing ziet in de bulkbewerking Basis/Zichtbaar/Kanalen/Tags/Specs zonder btw, beheerder alle zeven tabs. Screenshots nagekeken.
+- Na de migratie live natrekken: marker `PRIJS-GATEN-2` in `pg_proc.prosrc` van `record_stock_movement` en `bulk_adjust_stock`; daarna als tenant-account (niet platform_admin) één `record_stock_movement` met een vreemde `p_tenant_id` in een `begin … rollback` → 42501.
+
+**Bewust ongemoeid / Vervolg**
+- `handle_pos_refund_stock` zet `products.stock` rechtstreeks zonder logboekregel (bestaand, geen rechtenprobleem).
+- `decrement_variant_stock` heeft geen SQL-caller en enkel service_role-grant: ongemoeid.
+- Producten-pagina: overige bulkknoppen (activeren, verwijderen, AI) staan al achter `PermissionGate write products`.
+
 ## QR-MODULES-1 — "QR aan tafel": alle gastschakelaars op één plek, plus Ober roepen / Rekening vragen aan-uit — 2 november 2026
 
 Branch `qr-modules-1` in `sellqo` en in `sellqo-storefront`. Contract: `docs/nachtrun/API-CONTRACT.md` §6.

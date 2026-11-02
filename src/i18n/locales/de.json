@@ -10074,7 +10074,9 @@
     "field_locked": "Mit Ihrer Rolle können Sie dieses Feld nicht ändern.",
     "variant_compare_at_price": "Streichpreis",
     "variants_read_only_hint": "Sie können die Varianten ansehen; Änderungen macht jemand mit Bearbeitungsrechten für Produkte.",
-    "variants_read_only_stock_hint": "Sie können die Varianten ansehen und den Bestand aktualisieren; den Rest ändert jemand mit Bearbeitungsrechten für Produkte."
+    "variants_read_only_stock_hint": "Sie können die Varianten ansehen und den Bestand aktualisieren; den Rest ändert jemand mit Bearbeitungsrechten für Produkte.",
+    "grid_read_only_hint": "Sie können die Produkte ansehen; Änderungen macht jemand mit Bearbeitungsrechten für Produkte.",
+    "grid_read_only_stock_hint": "Sie können die Produkte ansehen und den Bestand aktualisieren; den Rest ändert jemand mit Bearbeitungsrechten für Produkte."
   },
   "admin_billing": {
     "apply_discount": "Rabatt anwenden",

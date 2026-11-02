@@ -61,4 +61,15 @@ for T in test_kassa_nachtrun.sql test_prijs_gaten.sql; do
   if echo "$out" | grep -qE '^ f$'; then echo "$out" | grep -B3 -E '^ f$'; echo "FOUT: controle faalt in $T"; fail=1; fi
   echo "$out" | tail -1
 done
+# PRIJS-GATEN-2 als laatste: de prelude vervangt de stubs decrement_stock/handle_pos_transaction_stock van
+# 04_pos_prelude door de live versies (de kassatests hierboven leunen op de stub).
+# PRIJS-GATEN-2: live voorraad-RPC's + POS-trigger, dan de migratie (2×) en de test.
+$P -d $DB -f 07_voorraad_prelude.sql >/dev/null
+for M in ../../../supabase/migrations/20261102100000_prijs_gaten_2.sql; do
+  $P -d $DB -f $M >/dev/null 2>/tmp/kassa_mig.err || { cat /tmp/kassa_mig.err; echo "FOUT in $M"; exit 1; }
+  $P -d $DB -f $M >/dev/null 2>/tmp/kassa_mig.err || { cat /tmp/kassa_mig.err; echo "FOUT bij tweede keer $M"; exit 1; }
+done
+out=$($P -d $DB -f test_voorraad_rollen.sql 2>&1 | grep -v NOTICE) || { echo "$out" | tail -5; echo "FOUT in test_voorraad_rollen.sql"; exit 1; }
+if echo "$out" | grep -qE '^ f$'; then echo "$out" | grep -B3 -E '^ f$'; echo "FOUT: controle faalt in test_voorraad_rollen.sql"; fail=1; fi
+echo "$out" | tail -1
 exit $fail

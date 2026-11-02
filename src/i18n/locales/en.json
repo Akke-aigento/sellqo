@@ -10156,7 +10156,9 @@
     "field_locked": "You can't change this field with your role.",
     "variant_compare_at_price": "Compare-at price",
     "variants_read_only_hint": "You can view the variants; someone with edit rights on products makes changes.",
-    "variants_read_only_stock_hint": "You can view the variants and update stock; someone with edit rights on products changes the rest."
+    "variants_read_only_stock_hint": "You can view the variants and update stock; someone with edit rights on products changes the rest.",
+    "grid_read_only_hint": "You can view the products; someone with edit rights on products makes changes.",
+    "grid_read_only_stock_hint": "You can view the products and update stock; someone with edit rights on products changes the rest."
   },
   "admin_billing": {
     "apply_discount": "Apply discount",

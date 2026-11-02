@@ -6,11 +6,18 @@ import { MemoryRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ProductVariantsTab } from '@/components/admin/products/ProductVariantsTab';
 import { ProductGridView } from '@/components/admin/products/grid/ProductGridView';
+import { ProductBulkEditDialog } from '@/components/admin/products/ProductBulkEditDialog';
 import type { Product } from '@/types/product';
 import { products, readOnly } from './mocks/data';
 
 const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-createRoot(document.getElementById('root')!).render(
+// PRIJS-GATEN-2: ?screen=bulk toont enkel de bulkbewerking (een modaal venster).
+const screen = new URLSearchParams(location.search).get('screen');
+createRoot(document.getElementById('root')!).render(screen === 'bulk' ? (
+  <QueryClientProvider client={qc}>
+    <ProductBulkEditDialog open onOpenChange={() => {}} selectedCount={2} selectedIds={['p1', 'p2']} onApply={async () => {}} />
+  </QueryClientProvider>
+) : (
   <QueryClientProvider client={qc}>
     <MemoryRouter>
       <div className="p-4 space-y-6 max-w-6xl mx-auto" data-harness="root">
@@ -19,4 +26,4 @@ createRoot(document.getElementById('root')!).render(
       </div>
     </MemoryRouter>
   </QueryClientProvider>,
-);
+));

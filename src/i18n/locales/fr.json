@@ -10074,7 +10074,9 @@
     "field_locked": "Votre rôle ne permet pas de modifier ce champ.",
     "variant_compare_at_price": "Prix barré",
     "variants_read_only_hint": "Vous pouvez consulter les variantes ; les modifications sont faites par une personne ayant les droits de modification des produits.",
-    "variants_read_only_stock_hint": "Vous pouvez consulter les variantes et mettre à jour le stock ; le reste est modifié par une personne ayant les droits de modification des produits."
+    "variants_read_only_stock_hint": "Vous pouvez consulter les variantes et mettre à jour le stock ; le reste est modifié par une personne ayant les droits de modification des produits.",
+    "grid_read_only_hint": "Vous pouvez consulter les produits ; les modifications sont faites par une personne ayant les droits de modification des produits.",
+    "grid_read_only_stock_hint": "Vous pouvez consulter les produits et mettre à jour le stock ; le reste est modifié par une personne ayant les droits de modification des produits."
   },
   "admin_billing": {
     "apply_discount": "Appliquer la remise",

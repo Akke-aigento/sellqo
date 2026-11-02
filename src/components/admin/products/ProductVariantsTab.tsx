@@ -239,7 +239,7 @@ export function ProductVariantsTab({ productId, productImages = [], trackInvento
       delete rest.cost_price;
     }
     updateVariant.mutate({ id: editingVariantId, data: rest });
-    if (variant && typeof stock === 'number' && stock !== variant.stock) {
+    if (canAdjustStock && variant && typeof stock === 'number' && stock !== variant.stock) {
       handleStockChange(editingVariantId, variant.stock ?? 0, stock);
     }
     setEditingVariantId(null);
@@ -540,7 +540,7 @@ export function ProductVariantsTab({ productId, productImages = [], trackInvento
                         {trackInventory && (
                         <div>
                           <Label className="text-xs text-muted-foreground">{t('admin.stockReport.colStock')}</Label>
-                          <Input type="number" value={editVariantData.stock ?? 0} onChange={e => setEditVariantData(prev => ({ ...prev, stock: Number(e.target.value) }))} className="h-8 text-sm" />
+                          <Input type="number" disabled={!canAdjustStock} value={editVariantData.stock ?? 0} onChange={e => setEditVariantData(prev => ({ ...prev, stock: Number(e.target.value) }))} className="h-8 text-sm" />
                         </div>
                         )}
                         <div className="flex items-end gap-2 pb-1">
@@ -716,7 +716,7 @@ export function ProductVariantsTab({ productId, productImages = [], trackInvento
                         <TableCell>
                           {trackInventory ? (
                             editingVariantId === variant.id ? (
-                              <Input type="number" value={editVariantData.stock ?? 0} onChange={e => setEditVariantData(prev => ({ ...prev, stock: Number(e.target.value) }))} className="w-20" />
+                              <Input type="number" disabled={!canAdjustStock} value={editVariantData.stock ?? 0} onChange={e => setEditVariantData(prev => ({ ...prev, stock: Number(e.target.value) }))} className="w-20" />
                             ) : (
                               <div className="inline-flex items-center gap-1">{canAdjustStock ? <InlineStockStepper stock={variant.stock} onUpdate={(newStock) => handleStockChange(variant.id, variant.stock ?? 0, newStock)} /> : <span className="text-sm font-mono">{variant.stock}</span>}<Button type="button" variant="ghost" size="icon" className="h-6 w-6" title={t('admin.stockLedger.title')} onClick={e => { e.stopPropagation(); setLedgerVariantId(variant.id); }}><History className="h-3.5 w-3.5" /></Button></div>
                             )

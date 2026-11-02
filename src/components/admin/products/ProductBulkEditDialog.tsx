@@ -19,6 +19,7 @@ import { BulkTagsTab } from './bulk/BulkTagsTab';
 import { BulkSpecificationsTab } from './bulk/BulkSpecificationsTab';
 import type { BulkEditState } from './bulk/BulkEditTypes';
 import { useTranslation } from 'react-i18next';
+import { useProductFieldAccess } from '@/hooks/useProductFieldAccess';
 
 interface ProductBulkEditDialogProps {
   open: boolean;
@@ -40,6 +41,10 @@ export function ProductBulkEditDialog({
   const [enabledFields, setEnabledFields] = useState<Set<string>>(new Set());
   const [isApplying, setIsApplying] = useState(false);
   const [activeTab, setActiveTab] = useState('basis');
+  // PRIJS-GATEN-2 — tabs die de DB voor deze rol toch weigert, tonen we niet (prijzen: product_prices,
+  // voorraad: bulk_adjust_stock en low_stock_threshold). Marketing ziet ze dus niet.
+  const { canEditCommercial, canAdjustStock } = useProductFieldAccess();
+  const tabCount = 5 + (canEditCommercial ? 1 : 0) + (canAdjustStock ? 1 : 0);
 
   const handleChange = useCallback((updates: Partial<BulkEditState>) => {
     setState((prev) => ({ ...prev, ...updates }));
@@ -98,10 +103,10 @@ export function ProductBulkEditDialog({
         </DialogHeader>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 overflow-hidden flex flex-col">
-          <TabsList className="flex w-full overflow-x-auto sm:grid sm:grid-cols-7">
+          <TabsList className="flex w-full overflow-x-auto sm:grid" style={{ gridTemplateColumns: `repeat(${tabCount}, minmax(0, 1fr))` }}>
             <TabsTrigger value="basis">{t('admin.products.productBulkEditDialog.basis')}</TabsTrigger>
-            <TabsTrigger value="prijzen">{t('admin.products.productBulkEditDialog.prijzen')}</TabsTrigger>
-            <TabsTrigger value="voorraad">{t('admin.stockReport.colStock')}</TabsTrigger>
+            {canEditCommercial && <TabsTrigger value="prijzen">{t('admin.products.productBulkEditDialog.prijzen')}</TabsTrigger>}
+            {canAdjustStock && <TabsTrigger value="voorraad">{t('admin.stockReport.colStock')}</TabsTrigger>}
             <TabsTrigger value="zichtbaarheid">{t('admin.products.productBulkEditDialog.zichtbaar')}</TabsTrigger>
             <TabsTrigger value="kanalen">{t('admin.products.productBulkEditDialog.kanalen')}</TabsTrigger>
             <TabsTrigger value="tags">{t('admin.marketing.segmentBuilder.tags')}</TabsTrigger>

@@ -6,11 +6,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { productTypeInfo, type ProductType } from '@/types/product';
 import type { BulkEditTabProps } from './BulkEditTypes';
 import { useTranslation } from 'react-i18next';
+import { useProductFieldAccess } from '@/hooks/useProductFieldAccess';
 
 export function BulkBasicTab({ state, onChange, enabledFields, onToggleField }: BulkEditTabProps) {
   const { t } = useTranslation();
   const { categories } = useCategories();
   const { vatRates } = useVatRates();
+  // PRIJS-GATEN-2 — btw wijzigen enkel met prijsrecht (DB-guard guard_product_commercial_fields).
+  const { canEditCommercial } = useProductFieldAccess();
 
   const productTypes = Object.entries(productTypeInfo) as [ProductType, typeof productTypeInfo[ProductType]][];
 
@@ -49,7 +52,7 @@ export function BulkBasicTab({ state, onChange, enabledFields, onToggleField }: 
       </div>
 
       {/* BTW-tarief */}
-      <div className="space-y-3">
+      {canEditCommercial && <div className="space-y-3">
         <div className="flex items-center gap-2">
           <Checkbox
             id="enable-vat"
@@ -78,7 +81,7 @@ export function BulkBasicTab({ state, onChange, enabledFields, onToggleField }: 
             </SelectContent>
           </Select>
         )}
-      </div>
+      </div>}
 
       {/* Product Type */}
       <div className="space-y-3">

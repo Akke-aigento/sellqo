@@ -2488,6 +2488,10 @@
         "qr_modules_1": {
           "title": "Everything for the table QR in one place, with a switch per feature",
           "description": "Under Menu › Settings › QR menu you now find QR at the table: the QR menu, ordering, guest payment and calling for service, each with its own switch. For example, switch on paying the bill online, and switch Call for service or Ask for the bill off. If a switch is greyed out, you see why and how to fix it. POS › Payments keeps your till's payment methods."
+        },
+        "stock_roles": {
+          "title": "Only administrators, staff and warehouse can update stock",
+          "description": "From now on, only an administrator, staff member or warehouse member of your shop can adjust the stock of your products and variants (including in bulk, in the product grid or when receiving a purchase order). Roles such as marketing, accountant or viewer can still see the stock, but the controls to change it no longer appear for them. Sales through your POS and webshop keep updating stock as before."
         }
       },
       "copyLink": "Copy link",

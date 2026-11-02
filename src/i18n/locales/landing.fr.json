@@ -2488,6 +2488,10 @@
         "qr_modules_1": {
           "title": "Tout pour le QR à table au même endroit, avec un interrupteur par fonction",
           "description": "Sous Carte › Paramètres › Menu QR, tu trouves maintenant QR à table : le menu QR, la commande, le paiement par ton client et l'appel du service, chacun avec son propre interrupteur. Tu actives par exemple le paiement de l'addition en ligne, et tu désactives Appeler le service ou Demander l'addition. Si un interrupteur est grisé, tu vois pourquoi et comment y remédier. Caisse › Paiements garde les moyens de paiement de ta caisse."
+        },
+        "stock_roles": {
+          "title": "Seuls les administrateurs, collaborateurs et l’entrepôt mettent encore le stock à jour",
+          "description": "Désormais, seul un administrateur, un collaborateur ou un membre de l'entrepôt de ta boutique peut ajuster le stock de tes produits et variantes (y compris en masse, dans la grille produits ou à la réception d'une commande fournisseur). Les rôles comme marketing, comptable ou lecteur voient toujours le stock, mais les boutons pour le modifier ne s'affichent plus pour eux. Les ventes via ta caisse et ta boutique en ligne continuent de mettre le stock à jour comme avant."
         }
       },
       "copyLink": "Copier le lien",

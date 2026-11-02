@@ -10,6 +10,7 @@ import { useVatRates } from '@/hooks/useVatRates';
 import { useProducts } from '@/hooks/useProducts';
 import { useProductGrid } from '@/hooks/useProductGrid';
 import { useTenant } from '@/hooks/useTenant';
+import { useCan } from '@/hooks/useCan';
 import type { Product } from '@/types/product';
 import type { ProductSocialChannels } from '@/types/socialChannels';
 import type { ProductVariant } from '@/hooks/useProductVariants';
@@ -48,12 +49,21 @@ export function ProductGridView({ products }: ProductGridViewProps) {
   const grid = useProductGrid(products);
 
   // PRIJS-GATEN-1 — velden die de DB-guards voor deze rol weigeren, tonen we alleen-lezen.
-  const { canEditCommercial, canEditStock } = useProductFieldAccess();
-  const isLocked = useCallback((field: string) =>
-    (!canEditCommercial && (PRODUCT_PRICE_FIELDS.has(field) || PRODUCT_CODE_FIELDS.has(field)))
-    || (!canEditStock && PRODUCT_STOCK_FIELDS.has(field)), [canEditCommercial, canEditStock]);
-  const isVariantLocked = useCallback((field: string) =>
-    !canEditCommercial && VARIANT_PRICE_FIELDS.has(field), [canEditCommercial]);
+  const { canEditCommercial, canEditStock, canAdjustStock } = useProductFieldAccess();
+  // PRIJS-GATEN-2 — zonder schrijfrecht op producten staat het hele raster alleen-lezen; enkel de
+  // voorraad blijft voor wie die mag bijstellen (warehouse), want die loopt via het voorraadlogboek.
+  const canWriteProducts = useCan('write', 'products');
+  const isLocked = useCallback((field: string) => {
+    if (field === 'stock') return !canAdjustStock;
+    if (!canWriteProducts) return true;
+    return (!canEditCommercial && (PRODUCT_PRICE_FIELDS.has(field) || PRODUCT_CODE_FIELDS.has(field)))
+      || (!canEditStock && PRODUCT_STOCK_FIELDS.has(field));
+  }, [canWriteProducts, canEditCommercial, canEditStock, canAdjustStock]);
+  const isVariantLocked = useCallback((field: string) => {
+    if (field === 'stock') return !canAdjustStock;
+    if (!canWriteProducts) return true;
+    return !canEditCommercial && VARIANT_PRICE_FIELDS.has(field);
+  }, [canWriteProducts, canEditCommercial, canAdjustStock]);
   const lockedHint = t('product_form.field_locked');
   // Alleen-lezen: dezelfde weergave, zonder klik of bewerken, met slotje en uitleg.
   const readOnlyCell = (content: React.ReactNode) => (
@@ -539,7 +549,12 @@ export function ProductGridView({ products }: ProductGridViewProps) {
         />
       </div>
 
-      {!canEditCommercial && (
+      {!canWriteProducts ? (
+        <p className="mb-2 flex items-center gap-1.5 text-xs text-muted-foreground">
+          <Lock className="h-3 w-3 shrink-0" />
+          {t(canAdjustStock ? 'product_form.grid_read_only_stock_hint' : 'product_form.grid_read_only_hint')}
+        </p>
+      ) : !canEditCommercial && (
         <p className="mb-2 flex items-center gap-1.5 text-xs text-muted-foreground">
           <Lock className="h-3 w-3 shrink-0" />
           {t('product_form.grid_locked_hint')}

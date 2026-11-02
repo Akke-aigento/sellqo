@@ -4,6 +4,10 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.15b — Voorraad bijwerken enkel nog door beheerder, medewerker of magazijn (security, 02-11-2026)
+De voorraad van je producten en varianten bijstellen (ook in bulk, via het productraster of bij het ontvangen van een inkooporder) kan voortaan enkel een beheerder, medewerker of magazijnmedewerker van je winkel. Rollen zoals marketing, boekhouder of lezer zien de voorraad nog, maar de knoppen om hem aan te passen staan voor hen niet meer op het scherm. Verkopen via je kassa en webshop werken de voorraad gewoon bij zoals voorheen.
+i18n: `public.changelog.changes.stock_roles`
+
 ### 2026.15a — Alles voor de QR aan tafel op één plek, met een schakelaar per functie (improvement, 02-11-2026)
 Onder Kaart › Instellen › QR-menu vind je nu QR aan tafel: het QR-menu, bestellen, afrekenen door je gast en de bediening roepen, elk met een eigen schakelaar. Staat een schakelaar grijs, dan zie je waarom en hoe je dat oplost.
 i18n: `public.changelog.changes.qr_modules_1`
