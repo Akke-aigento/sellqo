@@ -9781,6 +9781,64 @@ export type Database = {
           },
         ]
       }
+      kassa_device_accounts: {
+        Row: {
+          device_uuid: string
+          name: string
+          paired_at: string
+          paired_by: string | null
+          revoked_at: string | null
+          revoked_by: string | null
+          tenant_id: string
+          terminal_id: string
+          user_id: string
+        }
+        Insert: {
+          device_uuid: string
+          name?: string
+          paired_at?: string
+          paired_by?: string | null
+          revoked_at?: string | null
+          revoked_by?: string | null
+          tenant_id: string
+          terminal_id: string
+          user_id: string
+        }
+        Update: {
+          device_uuid?: string
+          name?: string
+          paired_at?: string
+          paired_by?: string | null
+          revoked_at?: string | null
+          revoked_by?: string | null
+          tenant_id?: string
+          terminal_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kassa_device_accounts_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kassa_device_accounts_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kassa_device_accounts_terminal_id_fkey"
+            columns: ["terminal_id"]
+            isOneToOne: false
+            referencedRelation: "pos_terminals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       kassa_devices: {
         Row: {
           device_id: string
@@ -9843,6 +9901,91 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      kassa_pair_attempts: {
+        Row: {
+          created_at: string
+          id: number
+          ip_hash: string
+          ok: boolean
+        }
+        Insert: {
+          created_at?: string
+          id?: never
+          ip_hash: string
+          ok: boolean
+        }
+        Update: {
+          created_at?: string
+          id?: never
+          ip_hash?: string
+          ok?: boolean
+        }
+        Relationships: []
+      }
+      kassa_pair_codes: {
+        Row: {
+          code_hash: string
+          created_at: string
+          created_by: string | null
+          expires_at: string
+          id: string
+          name: string
+          tenant_id: string
+          terminal_id: string
+          token_hash: string
+          used_at: string | null
+          used_by: string | null
+        }
+        Insert: {
+          code_hash: string
+          created_at?: string
+          created_by?: string | null
+          expires_at: string
+          id?: string
+          name?: string
+          tenant_id: string
+          terminal_id: string
+          token_hash: string
+          used_at?: string | null
+          used_by?: string | null
+        }
+        Update: {
+          code_hash?: string
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string
+          id?: string
+          name?: string
+          tenant_id?: string
+          terminal_id?: string
+          token_hash?: string
+          used_at?: string | null
+          used_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kassa_pair_codes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kassa_pair_codes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kassa_pair_codes_terminal_id_fkey"
+            columns: ["terminal_id"]
+            isOneToOne: false
+            referencedRelation: "pos_terminals"
             referencedColumns: ["id"]
           },
         ]
@@ -25492,6 +25635,12 @@ export type Database = {
         Args: { p_at: string; p_tenant_id: string }
         Returns: string
       }
+      kassa_can_operate:
+        | { Args: { p_tenant_id: string }; Returns: boolean }
+        | {
+            Args: { p_device_id: string; p_tenant_id: string }
+            Returns: boolean
+          }
       kassa_cash_move: {
         Args: { p: Json; p_device_id: string; p_tenant_id: string }
         Returns: Json
@@ -25524,6 +25673,10 @@ export type Database = {
         Args: { p_day: string; p_tenant_id: string }
         Returns: string
       }
+      kassa_device_context: { Args: never; Returns: Json }
+      kassa_device_tenant: { Args: never; Returns: string }
+      kassa_device_terminal: { Args: never; Returns: string }
+      kassa_device_unpair_self: { Args: never; Returns: boolean }
       kassa_fiscal_ref_ok: {
         Args: {
           p_event: string
@@ -25547,6 +25700,7 @@ export type Database = {
         Returns: Json
       }
       kassa_insz_key: { Args: never; Returns: string }
+      kassa_kitchen_orders: { Args: { p_tenant_id: string }; Returns: Json }
       kassa_my_shift: {
         Args: { p_staff_id: string; p_tenant_id: string }
         Returns: Json
@@ -25585,6 +25739,24 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      kassa_pair_claim: {
+        Args: { p_device_uuid: string; p_ip: string; p_secret: string }
+        Returns: Json
+      }
+      kassa_pair_code_create: {
+        Args: { p_name?: string; p_tenant_id: string; p_terminal_id: string }
+        Returns: Json
+      }
+      kassa_pair_complete: {
+        Args: {
+          p_code_id: string
+          p_device_uuid: string
+          p_name: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
+      kassa_pair_release: { Args: { p_code_id: string }; Returns: undefined }
       kassa_product_quick_edit: {
         Args: { p: Json; p_device_id: string; p_tenant_id: string }
         Returns: Json
