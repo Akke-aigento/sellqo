@@ -5981,6 +5981,7 @@ export type Database = {
           carried_to: string | null
           closed_at: string | null
           cost_center_reference: string
+          course_fired: number | null
           guests: number | null
           id: string
           kind: string
@@ -6006,6 +6007,7 @@ export type Database = {
           carried_to?: string | null
           closed_at?: string | null
           cost_center_reference: string
+          course_fired?: number | null
           guests?: number | null
           id: string
           kind?: string
@@ -6031,6 +6033,7 @@ export type Database = {
           carried_to?: string | null
           closed_at?: string | null
           cost_center_reference?: string
+          course_fired?: number | null
           guests?: number | null
           id?: string
           kind?: string
@@ -8651,6 +8654,9 @@ export type Database = {
       }
       horeca_pay_settings: {
         Row: {
+          course_by_category: Json
+          courses_enabled: boolean
+          kassa_lock_minutes: number
           kassa_tip: boolean
           mail_button: boolean
           mail_online: boolean
@@ -8667,6 +8673,9 @@ export type Database = {
           updated_by: string | null
         }
         Insert: {
+          course_by_category?: Json
+          courses_enabled?: boolean
+          kassa_lock_minutes?: number
           kassa_tip?: boolean
           mail_button?: boolean
           mail_online?: boolean
@@ -8683,6 +8692,9 @@ export type Database = {
           updated_by?: string | null
         }
         Update: {
+          course_by_category?: Json
+          courses_enabled?: boolean
+          kassa_lock_minutes?: number
           kassa_tip?: boolean
           mail_button?: boolean
           mail_online?: boolean
@@ -9680,6 +9692,89 @@ export type Database = {
           },
         ]
       }
+      kassa_approvals: {
+        Row: {
+          action: string
+          amount_cents: number | null
+          approver_id: string
+          check_id: string | null
+          command_id: string | null
+          created_at: string
+          device_id: string | null
+          expires_at: string
+          id: string
+          line_id: string | null
+          percent: number | null
+          qty: number | null
+          staff_id: string | null
+          tenant_id: string
+          used_at: string | null
+        }
+        Insert: {
+          action: string
+          amount_cents?: number | null
+          approver_id: string
+          check_id?: string | null
+          command_id?: string | null
+          created_at?: string
+          device_id?: string | null
+          expires_at: string
+          id?: string
+          line_id?: string | null
+          percent?: number | null
+          qty?: number | null
+          staff_id?: string | null
+          tenant_id: string
+          used_at?: string | null
+        }
+        Update: {
+          action?: string
+          amount_cents?: number | null
+          approver_id?: string
+          check_id?: string | null
+          command_id?: string | null
+          created_at?: string
+          device_id?: string | null
+          expires_at?: string
+          id?: string
+          line_id?: string | null
+          percent?: number | null
+          qty?: number | null
+          staff_id?: string | null
+          tenant_id?: string
+          used_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kassa_approvals_approver_id_fkey"
+            columns: ["approver_id"]
+            isOneToOne: false
+            referencedRelation: "pos_cashiers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kassa_approvals_staff_id_fkey"
+            columns: ["staff_id"]
+            isOneToOne: false
+            referencedRelation: "pos_cashiers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kassa_approvals_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kassa_approvals_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       kassa_devices: {
         Row: {
           device_id: string
@@ -9859,6 +9954,199 @@ export type Database = {
           },
           {
             foreignKeyName: "kassa_reports_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      kassa_shift_corrections: {
+        Row: {
+          action: string
+          clock_in_at: string | null
+          clock_out_at: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          reason: string
+          shift_id: string | null
+          staff_id: string
+          tenant_id: string
+        }
+        Insert: {
+          action: string
+          clock_in_at?: string | null
+          clock_out_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          reason: string
+          shift_id?: string | null
+          staff_id: string
+          tenant_id: string
+        }
+        Update: {
+          action?: string
+          clock_in_at?: string | null
+          clock_out_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          reason?: string
+          shift_id?: string | null
+          staff_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kassa_shift_corrections_shift_id_fkey"
+            columns: ["shift_id"]
+            isOneToOne: false
+            referencedRelation: "kassa_shifts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kassa_shift_corrections_staff_id_fkey"
+            columns: ["staff_id"]
+            isOneToOne: false
+            referencedRelation: "pos_cashiers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kassa_shift_corrections_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kassa_shift_corrections_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      kassa_shifts: {
+        Row: {
+          clock_in_at: string
+          clock_out_at: string | null
+          closed_by: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          in_device_id: string | null
+          in_fiscal_event_id: string | null
+          in_terminal_id: string | null
+          out_device_id: string | null
+          out_fiscal_event_id: string | null
+          out_terminal_id: string | null
+          staff_id: string
+          tenant_id: string
+        }
+        Insert: {
+          clock_in_at?: string
+          clock_out_at?: string | null
+          closed_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          in_device_id?: string | null
+          in_fiscal_event_id?: string | null
+          in_terminal_id?: string | null
+          out_device_id?: string | null
+          out_fiscal_event_id?: string | null
+          out_terminal_id?: string | null
+          staff_id: string
+          tenant_id: string
+        }
+        Update: {
+          clock_in_at?: string
+          clock_out_at?: string | null
+          closed_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          in_device_id?: string | null
+          in_fiscal_event_id?: string | null
+          in_terminal_id?: string | null
+          out_device_id?: string | null
+          out_fiscal_event_id?: string | null
+          out_terminal_id?: string | null
+          staff_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kassa_shifts_staff_id_fkey"
+            columns: ["staff_id"]
+            isOneToOne: false
+            referencedRelation: "pos_cashiers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kassa_shifts_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kassa_shifts_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      kassa_staff_sessions: {
+        Row: {
+          created_at: string
+          device_id: string | null
+          expires_at: string
+          revoked_at: string | null
+          staff_id: string
+          tenant_id: string
+          token_hash: string
+        }
+        Insert: {
+          created_at?: string
+          device_id?: string | null
+          expires_at: string
+          revoked_at?: string | null
+          staff_id: string
+          tenant_id: string
+          token_hash: string
+        }
+        Update: {
+          created_at?: string
+          device_id?: string | null
+          expires_at?: string
+          revoked_at?: string | null
+          staff_id?: string
+          tenant_id?: string
+          token_hash?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kassa_staff_sessions_staff_id_fkey"
+            columns: ["staff_id"]
+            isOneToOne: false
+            referencedRelation: "pos_cashiers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kassa_staff_sessions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kassa_staff_sessions_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -11164,6 +11452,100 @@ export type Database = {
           },
           {
             foreignKeyName: "odoo_journal_mappings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      odoo_pos_z_sync_log: {
+        Row: {
+          accepted_at: string | null
+          accepted_by: string | null
+          accepted_note: string | null
+          amounts: Json | null
+          attempts: number
+          booking_date: string | null
+          created_at: string
+          deferrals: number
+          error_message: string | null
+          finished_at: string | null
+          id: string
+          kassa_report_id: string
+          move_type: string | null
+          odoo_journal_id: string | null
+          odoo_move_id: string | null
+          odoo_move_name: string | null
+          odoo_state: string | null
+          report_no: number | null
+          retry_round: number
+          sync_status: string
+          tenant_id: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          accepted_note?: string | null
+          amounts?: Json | null
+          attempts?: number
+          booking_date?: string | null
+          created_at?: string
+          deferrals?: number
+          error_message?: string | null
+          finished_at?: string | null
+          id?: string
+          kassa_report_id: string
+          move_type?: string | null
+          odoo_journal_id?: string | null
+          odoo_move_id?: string | null
+          odoo_move_name?: string | null
+          odoo_state?: string | null
+          report_no?: number | null
+          retry_round?: number
+          sync_status: string
+          tenant_id: string
+        }
+        Update: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          accepted_note?: string | null
+          amounts?: Json | null
+          attempts?: number
+          booking_date?: string | null
+          created_at?: string
+          deferrals?: number
+          error_message?: string | null
+          finished_at?: string | null
+          id?: string
+          kassa_report_id?: string
+          move_type?: string | null
+          odoo_journal_id?: string | null
+          odoo_move_id?: string | null
+          odoo_move_name?: string | null
+          odoo_state?: string | null
+          report_no?: number | null
+          retry_round?: number
+          sync_status?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "odoo_pos_z_sync_log_kassa_report_id_fkey"
+            columns: ["kassa_report_id"]
+            isOneToOne: false
+            referencedRelation: "kassa_reports"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "odoo_pos_z_sync_log_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "odoo_pos_z_sync_log_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -14874,6 +15256,7 @@ export type Database = {
         Row: {
           access_duration_days: number | null
           allergens: string[]
+          allergens_declared: boolean
           allow_backorder: boolean | null
           amazon_asin: string | null
           amazon_bullets: string[] | null
@@ -15013,6 +15396,7 @@ export type Database = {
         Insert: {
           access_duration_days?: number | null
           allergens?: string[]
+          allergens_declared?: boolean
           allow_backorder?: boolean | null
           amazon_asin?: string | null
           amazon_bullets?: string[] | null
@@ -15152,6 +15536,7 @@ export type Database = {
         Update: {
           access_duration_days?: number | null
           allergens?: string[]
+          allergens_declared?: boolean
           allow_backorder?: boolean | null
           amazon_asin?: string | null
           amazon_bullets?: string[] | null
@@ -18079,6 +18464,7 @@ export type Database = {
           billing_same_as_shipping: boolean | null
           calculated_fee_cents: number | null
           checkout_status: string | null
+          converted_order_id: string | null
           created_at: string
           currency: string
           customer_company_name: string | null
@@ -18116,6 +18502,7 @@ export type Database = {
           billing_same_as_shipping?: boolean | null
           calculated_fee_cents?: number | null
           checkout_status?: string | null
+          converted_order_id?: string | null
           created_at?: string
           currency?: string
           customer_company_name?: string | null
@@ -18153,6 +18540,7 @@ export type Database = {
           billing_same_as_shipping?: boolean | null
           calculated_fee_cents?: number | null
           checkout_status?: string | null
+          converted_order_id?: string | null
           created_at?: string
           currency?: string
           customer_company_name?: string | null
@@ -19600,6 +19988,70 @@ export type Database = {
           },
         ]
       }
+      table_calls: {
+        Row: {
+          created_at: string
+          dining_table_id: string | null
+          handled_at: string | null
+          handled_by: string | null
+          id: string
+          kind: string
+          last_called_at: string
+          repeat_count: number
+          status: string
+          table_label: string
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          dining_table_id?: string | null
+          handled_at?: string | null
+          handled_by?: string | null
+          id: string
+          kind: string
+          last_called_at?: string
+          repeat_count?: number
+          status?: string
+          table_label: string
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          dining_table_id?: string | null
+          handled_at?: string | null
+          handled_by?: string | null
+          id?: string
+          kind?: string
+          last_called_at?: string
+          repeat_count?: number
+          status?: string
+          table_label?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "table_calls_dining_table_id_fkey"
+            columns: ["dining_table_id"]
+            isOneToOne: false
+            referencedRelation: "dining_tables"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "table_calls_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "table_calls_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       table_requests: {
         Row: {
           cart_id: string | null
@@ -20798,6 +21250,15 @@ export type Database = {
           odoo_journal_name: string | null
           odoo_sync_enabled: boolean
           peppol_send_enabled: boolean
+          pos_z_backfill_confirmed_at: string | null
+          pos_z_backfill_confirmed_by: string | null
+          pos_z_backfill_from: string | null
+          pos_z_enabled_at: string | null
+          pos_z_enabled_day: string | null
+          pos_z_journal_id: string | null
+          pos_z_journal_name: string | null
+          pos_z_sync_enabled: boolean
+          pos_z_sync_from: string | null
           push_supplier_documents: boolean
           tenant_id: string
           updated_at: string
@@ -20815,6 +21276,15 @@ export type Database = {
           odoo_journal_name?: string | null
           odoo_sync_enabled?: boolean
           peppol_send_enabled?: boolean
+          pos_z_backfill_confirmed_at?: string | null
+          pos_z_backfill_confirmed_by?: string | null
+          pos_z_backfill_from?: string | null
+          pos_z_enabled_at?: string | null
+          pos_z_enabled_day?: string | null
+          pos_z_journal_id?: string | null
+          pos_z_journal_name?: string | null
+          pos_z_sync_enabled?: boolean
+          pos_z_sync_from?: string | null
           push_supplier_documents?: boolean
           tenant_id: string
           updated_at?: string
@@ -20832,6 +21302,15 @@ export type Database = {
           odoo_journal_name?: string | null
           odoo_sync_enabled?: boolean
           peppol_send_enabled?: boolean
+          pos_z_backfill_confirmed_at?: string | null
+          pos_z_backfill_confirmed_by?: string | null
+          pos_z_backfill_from?: string | null
+          pos_z_enabled_at?: string | null
+          pos_z_enabled_day?: string | null
+          pos_z_journal_id?: string | null
+          pos_z_journal_name?: string | null
+          pos_z_sync_enabled?: boolean
+          pos_z_sync_from?: string | null
           push_supplier_documents?: boolean
           tenant_id?: string
           updated_at?: string
@@ -24777,6 +25256,10 @@ export type Database = {
         }
         Returns: Json
       }
+      horeca_analysis: {
+        Args: { p_from_day: string; p_tenant_id: string; p_to_day: string }
+        Returns: Json
+      }
       horeca_apply: {
         Args: { p_commands: Json; p_device_id: string; p_tenant_id: string }
         Returns: Json
@@ -24795,6 +25278,10 @@ export type Database = {
           p_tenant_id: string
         }
         Returns: undefined
+      }
+      horeca_line_allergens: {
+        Args: { p_addons: Json; p_product_id: string }
+        Returns: Json
       }
       horeca_line_part_cents: {
         Args: {
@@ -24864,6 +25351,10 @@ export type Database = {
       }
       horeca_round5: { Args: { p_cents: number }; Returns: number }
       horeca_snapshot: { Args: { p_tenant_id: string }; Returns: Json }
+      horeca_table_call_handle: {
+        Args: { p_call_id: string; p_staff_id: string; p_tenant_id: string }
+        Returns: Json
+      }
       horeca_table_request_accept: {
         Args: {
           p_device_id: string
@@ -24987,12 +25478,31 @@ export type Database = {
         Returns: number
       }
       kaart_slug: { Args: { p_name: string }; Returns: string }
+      kassa_approve: {
+        Args: { p: Json; p_device_id: string; p_tenant_id: string }
+        Returns: Json
+      }
       kassa_business_day: {
         Args: { p_at: string; p_tenant_id: string }
         Returns: string
       }
       kassa_cash_move: {
         Args: { p: Json; p_device_id: string; p_tenant_id: string }
+        Returns: Json
+      }
+      kassa_clock: {
+        Args: {
+          p_device_id: string
+          p_direction: string
+          p_fiscal_event_id: string
+          p_staff_id: string
+          p_tenant_id: string
+          p_terminal_id: string
+        }
+        Returns: Json
+      }
+      kassa_clock_state: {
+        Args: { p_staff_id: string; p_tenant_id: string }
         Returns: Json
       }
       kassa_counter_after: {
@@ -25026,7 +25536,15 @@ export type Database = {
         }
         Returns: undefined
       }
+      kassa_hours_report: {
+        Args: { p_from: string; p_tenant_id: string; p_to: string }
+        Returns: Json
+      }
       kassa_insz_key: { Args: never; Returns: string }
+      kassa_my_shift: {
+        Args: { p_staff_id: string; p_tenant_id: string }
+        Returns: Json
+      }
       kassa_open_session: {
         Args: {
           p_note: string
@@ -25035,6 +25553,31 @@ export type Database = {
           p_terminal_id: string
         }
         Returns: string
+      }
+      kassa_open_shift: {
+        Args: { p_staff_id: string; p_tenant_id: string }
+        Returns: {
+          clock_in_at: string
+          clock_out_at: string | null
+          closed_by: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          in_device_id: string | null
+          in_fiscal_event_id: string | null
+          in_terminal_id: string | null
+          out_device_id: string | null
+          out_fiscal_event_id: string | null
+          out_terminal_id: string | null
+          staff_id: string
+          tenant_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "kassa_shifts"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       kassa_product_quick_edit: {
         Args: { p: Json; p_device_id: string; p_tenant_id: string }
@@ -25069,13 +25612,41 @@ export type Database = {
         Args: { p_device_id: string; p_report_id: string; p_tenant_id: string }
         Returns: Json
       }
+      kassa_require_approval: {
+        Args: { cmd: Json; p_check_id: string; p_tenant_id: string }
+        Returns: undefined
+      }
       kassa_shift: {
         Args: { p: Json; p_device_id: string; p_tenant_id: string }
         Returns: Json
       }
+      kassa_shift_correct: {
+        Args: { p: Json; p_tenant_id: string }
+        Returns: string
+      }
+      kassa_shifts_effective: {
+        Args: { p_from: string; p_tenant_id: string; p_to: string }
+        Returns: {
+          clock_in_at: string
+          clock_out_at: string
+          corrected: boolean
+          corrected_at: string
+          id: string
+          original_in: string
+          original_out: string
+          reason: string
+          source: string
+          staff_id: string
+          voided: boolean
+        }[]
+      }
       kassa_staff_login: {
         Args: { p_cashier_id: string; p_device_id?: string; p_pin: string }
         Returns: Json
+      }
+      kassa_staff_logout: {
+        Args: { p_tenant_id: string; p_token: string }
+        Returns: undefined
       }
       kassa_staff_save: {
         Args: {
@@ -25090,6 +25661,14 @@ export type Database = {
           p_tenant_id: string
         }
         Returns: string
+      }
+      kassa_staff_session_start: {
+        Args: { p_device_id: string; p_staff_id: string; p_tenant_id: string }
+        Returns: Json
+      }
+      kassa_staff_session_valid: {
+        Args: { p_staff_id: string; p_tenant_id: string; p_token: string }
+        Returns: boolean
       }
       kassa_staff_set_insz: {
         Args: { p_cashier_id: string; p_insz: string }
@@ -25203,6 +25782,31 @@ export type Database = {
         Returns: number
       }
       notify_plan_usage: { Args: never; Returns: number }
+      odoo_pos_z_accept: {
+        Args: { p_log_id: string; p_note: string }
+        Returns: Json
+      }
+      odoo_pos_z_backfill_count: {
+        Args: { p_from: string; p_tenant_id: string }
+        Returns: number
+      }
+      odoo_pos_z_business_day: {
+        Args: { p_tenant_id: string }
+        Returns: string
+      }
+      odoo_pos_z_can_manage: { Args: { p_tenant_id: string }; Returns: boolean }
+      odoo_pos_z_confirm_backfill: {
+        Args: {
+          p_count: number
+          p_from: string
+          p_journal_id: string
+          p_journal_name: string
+          p_tenant_id: string
+        }
+        Returns: Json
+      }
+      odoo_pos_z_day_now: { Args: { p_tenant_id: string }; Returns: string }
+      odoo_pos_z_retry: { Args: { p_log_id: string }; Returns: Json }
       perform_scan: {
         Args: {
           p_device_id?: string
@@ -25533,6 +26137,16 @@ export type Database = {
       sync_order_from_returns: {
         Args: { _order_id: string }
         Returns: undefined
+      }
+      table_call_place: {
+        Args: {
+          p_call_id: string
+          p_kind: string
+          p_table_id: string
+          p_table_label: string
+          p_tenant_id: string
+        }
+        Returns: Json
       }
       table_check_pay_mark: {
         Args: {
