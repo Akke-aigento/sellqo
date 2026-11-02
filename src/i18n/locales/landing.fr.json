@@ -2472,6 +2472,14 @@
         "kassa_z_to_odoo": {
           "title": "Le chiffre d'affaires de ta caisse vers Odoo, si tu l'actives",
           "description": "Tes réglages comptables Odoo comprennent désormais « Chiffre d'affaires de la caisse vers Odoo ». Si tu l'actives, SellQo comptabilise chaque rapport Z clôturé, à partir du jour que tu choisis, en une seule écriture avec le chiffre d'affaires par taux de TVA, identique au centime à ton rapport Z. C'est désactivé par défaut. Les pourboires et les paiements ne sont pas comptabilisés ; si Odoo diffère, l'écriture reste un brouillon et tu reçois une notification. Disponible dans les forfaits avec la connexion Odoo."
+        },
+        "odoo_horeca_big": {
+          "title": "Comptabilité Odoo aussi dans Horeca Big",
+          "description": "Avec Horeca Big, tu connectes désormais ta propre comptabilité Odoo : les factures et notes de crédit partent automatiquement vers Odoo, et si tu l'actives, les rapports Z de ta caisse aussi. Sur Horeca Small, la section Comptabilité indique que la connexion fait partie de Horeca Big."
+        },
+        "cost_price_name": {
+          "title": "Le prix de revient porte partout le même nom",
+          "description": "Dans ton formulaire produit, le champ s'appelle désormais « Prix de revient (HTVA) », comme sur la Carte, dans le rapport de stock et dans les articles d'aide. C'est le même chiffre qu'avant ; seul le nom a été harmonisé."
         }
       },
       "copyLink": "Copier le lien",

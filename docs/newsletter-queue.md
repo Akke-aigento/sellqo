@@ -4,6 +4,15 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.14y — Odoo-boekhouding ook in Horeca Big (feature, 02-11-2026)
+Heb je Horeca Big, dan koppel je voortaan je eigen Odoo-boekhouding: facturen en creditnota's gaan automatisch naar Odoo, en als je dat aanzet ook de Z-rapporten van je kassa.
+i18n: `public.changelog.changes.odoo_horeca_big`
+
+### 2026.14y — Kostprijs heet overal hetzelfde (improvement, 02-11-2026)
+In je productformulier heet het veld nu "Kostprijs (excl. btw)", net als op de Kaart en in het voorraadrapport. Het is hetzelfde getal als voorheen.
+i18n: `public.changelog.changes.cost_price_name`
+
+
 ### 2026.14x — Nachtrun horeca: QR-menu, keuken, kassa, uren, rapporten en Odoo (16 items, 02-11-2026)
 
 **Status:** wacht op go: uitrol volgens `docs/nachtrun/UITROL.md` (migraties, deploys `storefront-api`/`horeca-print`/`horeca-receipt-mail`/`horeca-device-push`/`sync-odoo-pos-z`/`manage-odoo-connection`, publish sellqo.app en de storefront, nieuwe native build kassa-app 0.20.0). Bundelen per onderwerp (2-4 items per nieuwsbrief), niet alle 16 tegelijk.

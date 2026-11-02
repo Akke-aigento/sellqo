@@ -1,3 +1,33 @@
+## VERVOLG-1 — aanbevelingen uit de nachtrun (Odoo in Horeca Big, Kostprijs, gangenbon, kassa-README, prijslek-recon) (2026.14y) — 2 november 2026
+
+Go van Akke 2-11 ("akkoord met je aanbevelingen"). Details per onderdeel: `docs/nachtrun/ODOO-HORECA-1.md`, `KOSTPRIJS-NAAM-1.md`, `GANGEN-BON-1.md`, `KASSA-README.md`, `PRIJS-REST-RECON.md`.
+
+**Root cause**
+- `pricing_plans.features.odoo_sync` stond uit op Horeca Small en Big; een zaak met enkel horeca vond de Odoo-instellingen sinds HORECA-ZIJBALK-1 wel, maar zag een upgradekaart die hardcoded "Pro of Enterprise" (webshopplannen) noemde.
+- `products.cost_price` heette "Inkoopprijs" op het productformulier en "Kostprijs (excl. btw)" op de Kaart.
+- GANGEN-1 zette nog niet bestelde lijnen (wachtende gang) ter info op de keukenbon; volgens de GKS-eisenmatrix (PRT-05, EVT-06) volgt een productiebon uit een P/ORDER, dus horen niet-bestelde lijnen er niet op.
+- `src/kassa/README.md` zei dat `KASSA_SW_VERSION` pas met CERT-1 omhooggaat, in tegenspraak met CLAUDE.md §9 en de praktijk.
+
+**Uitgevoerd**
+- ODOO-HORECA-1: migratie `20261102080000_odoo_horeca_1.sql` (enkel `odoo_sync` = true op `horeca_big`, snapshot `ops.odoo_horeca_1_prev_plan`); upgradekaart `OdooAccountingCard` volledig i18n en spoor-bewust (`useTracks().planTrack`); drie publieke claims (2 FAQ, `core.invoices_text`) in 5 talen bijgewerkt; helpartikel `boekhoudkoppeling-odoo` (`20261102080005`); harnas `odoo-kaart`.
+- KOSTPRIJS-NAAM-1: label en hulptekst van het productformulier via i18n gelijk aan de Kaart; helpartikels `voorraadbeheer` en `teamleden-rollen` (`20261102080010`).
+- GANGEN-BON-1: `20261102080020_gangen_bon_1.sql` haalt het blok met wachtende lijnen uit `send_round` (ankermethode, marker `GANGEN-BON-1`, snapshot `ops.gangen_bon_1_prev_functions`); changelog-entry `dining_courses` en nieuwsbriefitem aangepast. De rendering van "wacht" op keukenscherm/print blijft (toont niets meer; later opruimen).
+- KASSA-README: alinea over ophogen rechtgezet. Versie blijft 0.20.0.
+- Paper trail: changelog 2026.14y (`odoo_horeca_big`, `cost_price_name`) in 5 talen, nieuwsbrief.
+
+**Security-keuzes**
+- Enkel één featurevlag van één plan; gating blijft client-side via `checkFeature('odoo_sync')` (zoals voorheen). Geen RLS, grants of policies gewijzigd.
+
+**Gedeelde-paden-waarschuwing**
+- Geen `storefront-api`, geen gedeelde storefront-tabellen. `horeca_apply_one` is enkel horeca.
+
+**Verificatie**
+- tsc exit 0; vitest 403 groen (kassa, keuken, planUsage, priceVars, tracks, productFormSections); i18n-parity, check-i18n-used-keys, check-dead-buttons exit 0; lint-baseline 1457 → 1456; harnas `odoo-kaart` 390/1280 (nl, en); PG16 lokaal: 4 migraties 2× exit 0, `test_gangen` 12/12, `test_gangen_bon` 6/6.
+
+**Bewust ongemoeid / Vervolg**
+- PRIJS-REST-RECON: elk kassatoestel draait vandaag op de account van de eigenaar (live 0 `staff`-accounts, 16 `tenant_admin`), en `add_line` leest `products.price` live: een prijs heen-en-terug omzeilt het akkoord van KASSA-RECHTEN-1. Aanbeveling: eerst PRIJS-AUDIT-1 (eigen auditlog + melding bij heen-en-terug), daarna KASSA-ACCOUNT-1 (eigen account per toestel, prijzen enkel via RPC's). Losse gaten: `product_variants`-prijs door warehouse zonder guard; `bulk_adjust_prices` zonder rolcontrole.
+- `features.peppol` in Horeca Big blijft false (aparte beslissing); helpartikel `abonnement-beheren` noemt de horeca- en eventsplannen niet.
+
 ## NACHTRUN 1-2 nov 2026 — rollenwandeling uitgewerkt
 
 Onbewaakte nachtrun op de bevindingen van de rollenwandeling (zaakvoerder, ober, keuken/bar, gast, boekhouder). Per batch staat hieronder een gecondenseerde entry; de volledige verslagen (recon, ankers, testcijfers, screenshots) staan in `docs/nachtrun/<ID>.md`, het storefront-contract in `docs/nachtrun/API-CONTRACT.md`.

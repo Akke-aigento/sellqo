@@ -2472,6 +2472,14 @@
         "kassa_z_to_odoo": {
           "title": "Your till revenue to Odoo, if you turn it on",
           "description": "Your Odoo accounting settings now include \"Till revenue to Odoo\". If you turn it on, SellQo books every closed Z report from the day you choose as one entry with the revenue per VAT rate, matching your Z report to the cent. It is off by default. Tips and payments are not booked; if Odoo differs, the entry stays a draft and you get a notification. Available in plans that include the Odoo integration."
+        },
+        "odoo_horeca_big": {
+          "title": "Odoo accounting now also in Horeca Big",
+          "description": "On Horeca Big you can now connect your own Odoo accounting: invoices and credit notes go to Odoo automatically, and if you switch it on, so do the Z reports of your POS. On Horeca Small, Accounting shows that the connection is part of Horeca Big."
+        },
+        "cost_price_name": {
+          "title": "Cost price has the same name everywhere",
+          "description": "In your product form the field is now called \"Cost price (excl. VAT)\", just like on the Menu, in the stock report and in the help articles. It is the same number as before; only the name has been aligned."
         }
       },
       "copyLink": "Copy link",

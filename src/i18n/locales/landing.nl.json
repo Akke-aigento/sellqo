@@ -2472,6 +2472,14 @@
         "kassa_z_to_odoo": {
           "title": "Je kassa-omzet naar Odoo, als je dat aanzet",
           "description": "Bij je Odoo-boekhoudinstellingen staat nu \"Kassa-omzet naar Odoo\". Zet je het aan, dan boekt SellQo elk afgesloten Z-rapport vanaf de dag die je kiest als één boeking met de omzet per btw-tarief, tot op de cent gelijk aan je Z-rapport. Het staat standaard uit. Fooien en betalingen worden niet geboekt; wijkt Odoo af, dan blijft de boeking een concept en krijg je een melding. Beschikbaar in plannen met de Odoo-koppeling."
+        },
+        "odoo_horeca_big": {
+          "title": "Odoo-boekhouding ook in Horeca Big",
+          "description": "Heb je Horeca Big, dan koppel je voortaan je eigen Odoo-boekhouding: facturen en creditnota's gaan automatisch naar Odoo, en als je dat aanzet ook de Z-rapporten van je kassa. Op Horeca Small zie je bij Boekhouding dat de koppeling in Horeca Big zit."
+        },
+        "cost_price_name": {
+          "title": "Kostprijs heet overal hetzelfde",
+          "description": "In je productformulier heet het veld nu \"Kostprijs (excl. btw)\", net als op de Kaart, in het voorraadrapport en in de helpartikels. Het is hetzelfde getal als voorheen; enkel de naam is gelijkgetrokken."
         }
       },
       "copyLink": "Kopieer link",

@@ -2472,6 +2472,14 @@
         "kassa_z_to_odoo": {
           "title": "Dein Kassenumsatz nach Odoo, wenn du es einschaltest",
           "description": "Deine Odoo-Buchhaltungseinstellungen enthalten jetzt „Kassenumsatz nach Odoo“. Schaltest du es ein, bucht SellQo jeden abgeschlossenen Z-Bericht ab dem Tag, den du wählst, als eine Buchung mit dem Umsatz je MwSt.-Satz, auf den Cent gleich deinem Z-Bericht. Standardmäßig ist es aus. Trinkgeld und Zahlungen werden nicht gebucht; weicht Odoo ab, bleibt die Buchung ein Entwurf und du bekommst eine Benachrichtigung. Verfügbar in Tarifen mit der Odoo-Anbindung."
+        },
+        "odoo_horeca_big": {
+          "title": "Odoo-Buchhaltung jetzt auch in Horeca Big",
+          "description": "Mit Horeca Big verbindest du ab jetzt deine eigene Odoo-Buchhaltung: Rechnungen und Gutschriften gehen automatisch an Odoo und, wenn du es einschaltest, auch die Z-Berichte deiner Kasse. Bei Horeca Small zeigt Buchhaltung, dass die Verbindung zu Horeca Big gehört."
+        },
+        "cost_price_name": {
+          "title": "Einkaufspreis heißt überall gleich",
+          "description": "In deinem Produktformular heißt das Feld jetzt „Einkaufspreis (ohne MwSt.)“, wie auf der Karte, im Lagerbericht und in den Hilfeartikeln. Es ist dieselbe Zahl wie vorher; nur der Name wurde vereinheitlicht."
         }
       },
       "copyLink": "Link kopieren",
