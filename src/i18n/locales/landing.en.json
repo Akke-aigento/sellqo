@@ -392,7 +392,7 @@
         },
         {
           "q": "What's in the Hospitality plan?",
-          "a": "Hospitality Small ({{horeca_price}} per month) gives you an ordering site for pickup and delivery, a QR menu to browse or order at the table, a kitchen screen, the POS, extras and allergens. Hospitality Big ({{horeca_big_price}} per month) is for busy venues, with more users and priority support. Want us to add your menu and set everything up? That is the setup package at {{setup_price}}, one-off."
+          "a": "Hospitality Small ({{horeca_price}} per month) gives you an ordering site for pickup and delivery, a QR menu to browse or order at the table, a kitchen screen, the POS, extras and allergens. Hospitality Big ({{horeca_big_price}} per month) is for busy venues, with more users, priority support and the Odoo accounting integration. Want us to add your menu and set everything up? That is the setup package at {{setup_price}}, one-off."
         },
         {
           "q": "What does SellQo cost for events?",
@@ -420,7 +420,7 @@
         },
         {
           "q": "What is Peppol and do I need it?",
-          "a": "Since 1 January 2026, e-invoicing via Peppol is mandatory between Belgian businesses. With the Odoo integration (from Pro), your B2B invoices go via Peppol. If you only sell to consumers, you don't need it."
+          "a": "Since 1 January 2026, e-invoicing via Peppol is mandatory between Belgian businesses. With the Odoo integration (from Pro, or Hospitality Big), your B2B invoices go via Peppol. If you only sell to consumers, you don't need it."
         },
         {
           "q": "What happens to my data if I stop?",
@@ -619,7 +619,7 @@
       "orders_title": "Orders and stock",
       "orders_text": "All orders in one place, from webshop, POS and bol.com. Stock follows automatically.",
       "invoices_title": "Invoices and VAT",
-      "invoices_text": "After a paid order SellQo creates the invoice right away, with VAT and OSS calculated correctly. With the Odoo integration (Pro), B2B invoices go via Peppol.",
+      "invoices_text": "After a paid order SellQo creates the invoice right away, with VAT and OSS calculated correctly. With the Odoo integration (Pro, Enterprise or Hospitality Big), B2B invoices go via Peppol.",
       "bol_title": "Selling on bol.com",
       "bol_text": "Orders from bol.com arrive in SellQo and your stock is updated on bol.com every half hour. From Pro.",
       "promos_title": "Discount codes",

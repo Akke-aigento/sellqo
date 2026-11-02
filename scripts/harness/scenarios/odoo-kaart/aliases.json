@@ -1,0 +1,6 @@
+{
+  "@/hooks/useUsageLimits": "mocks/useUsageLimits.ts",
+  "@/hooks/useOdooConnection": "mocks/useOdooConnection.ts",
+  "@/hooks/useTenantOdooSettings": "mocks/useTenantOdooSettings.ts",
+  "@/hooks/useBusinessModules": "mocks/useBusinessModules.ts"
+}

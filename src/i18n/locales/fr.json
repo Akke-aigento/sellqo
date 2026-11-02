@@ -9564,6 +9564,24 @@
       "opt_auto": "Automatique",
       "no_categories": "Pas encore de catégories sur ta carte.",
       "saved": "Services enregistrés"
+    },
+    "odooCard": {
+      "badge": "Comptabilité",
+      "connected": "Connecté",
+      "not_connected": "Non connecté",
+      "settings": "Paramètres",
+      "connect": "Connecter Odoo",
+      "description": "Envoyez automatiquement factures et notes de crédit vers votre propre Odoo Accounting. Clients (res.partner), TVA et journaux sont mappés.",
+      "sync": "Synchro",
+      "sync_on": "Activée",
+      "sync_off": "Désactivée",
+      "last_test": "Dernier test",
+      "never_tested": "Pas encore",
+      "locked_badge_webshop": "Pro / Enterprise",
+      "locked_webshop": "Disponible avec Pro ou Enterprise",
+      "locked_horeca": "Disponible avec {{plan}}",
+      "locked_description": "Synchronisation automatique des factures et notes de crédit avec votre propre Odoo Accounting. Passez à un plan supérieur pour activer cette intégration.",
+      "locked_cta": "Voir les abonnements"
     }
   },
   "billing": {

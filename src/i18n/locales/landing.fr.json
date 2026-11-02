@@ -392,7 +392,7 @@
         },
         {
           "q": "Que contient la formule Restauration ?",
-          "a": "Horeca Petit ({{horeca_price}} par mois) vous offre un site de commande pour l’emporter et la livraison, un menu QR à consulter ou pour commander à table, un écran cuisine, la caisse, les suppléments et les allergènes. Horeca Grand ({{horeca_big_price}} par mois) s’adresse aux établissements très fréquentés, avec plus d’utilisateurs et un support prioritaire. Vous souhaitez que nous mettions votre carte en ligne et préparions tout ? C’est possible avec le pack de démarrage à {{setup_price}}, une seule fois."
+          "a": "Horeca Petit ({{horeca_price}} par mois) vous offre un site de commande pour l’emporter et la livraison, un menu QR à consulter ou pour commander à table, un écran cuisine, la caisse, les suppléments et les allergènes. Horeca Grand ({{horeca_big_price}} par mois) s’adresse aux établissements très fréquentés, avec plus d’utilisateurs, un support prioritaire et l’intégration comptable Odoo. Vous souhaitez que nous mettions votre carte en ligne et préparions tout ? C’est possible avec le pack de démarrage à {{setup_price}}, une seule fois."
         },
         {
           "q": "Combien coûte SellQo pour les événements ?",
@@ -420,7 +420,7 @@
         },
         {
           "q": "Qu'est-ce que Peppol et en ai-je besoin ?",
-          "a": "Depuis le 1er janvier 2026, la facturation électronique via Peppol est obligatoire entre entreprises belges. Avec l'intégration Odoo (dès Pro), vos factures B2B passent par Peppol. Si vous ne vendez qu'à des particuliers, vous n'en avez pas besoin."
+          "a": "Depuis le 1er janvier 2026, la facturation électronique via Peppol est obligatoire entre entreprises belges. Avec l'intégration Odoo (dès Pro, ou Horeca Grand), vos factures B2B passent par Peppol. Si vous ne vendez qu'à des particuliers, vous n'en avez pas besoin."
         },
         {
           "q": "Que deviennent mes données si j'arrête ?",
@@ -619,7 +619,7 @@
       "orders_title": "Commandes et stock",
       "orders_text": "Toutes les commandes au même endroit : boutique, caisse et bol.com. Le stock suit automatiquement.",
       "invoices_title": "Factures et TVA",
-      "invoices_text": "Après une commande payée, SellQo crée aussitôt la facture, avec TVA et OSS calculées correctement. Avec l'intégration Odoo (Pro), les factures B2B passent par Peppol.",
+      "invoices_text": "Après une commande payée, SellQo crée aussitôt la facture, avec TVA et OSS calculées correctement. Avec l'intégration Odoo (Pro, Enterprise ou Horeca Grand), les factures B2B passent par Peppol.",
       "bol_title": "Vendre sur bol.com",
       "bol_text": "Les commandes bol.com arrivent dans SellQo et votre stock est mis à jour sur bol.com toutes les demi-heures. Dès Pro.",
       "promos_title": "Codes de réduction",

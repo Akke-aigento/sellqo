@@ -9564,6 +9564,24 @@
       "opt_auto": "Automatisch",
       "no_categories": "Noch keine Kategorien auf deiner Karte.",
       "saved": "Gänge gespeichert"
+    },
+    "odooCard": {
+      "badge": "Buchhaltung",
+      "connected": "Verbunden",
+      "not_connected": "Nicht verbunden",
+      "settings": "Einstellungen",
+      "connect": "Odoo verbinden",
+      "description": "Übertragen Sie Rechnungen und Gutschriften automatisch in Ihr eigenes Odoo Accounting. Kunden (res.partner), MwSt. und Journale werden zugeordnet.",
+      "sync": "Sync",
+      "sync_on": "An",
+      "sync_off": "Aus",
+      "last_test": "Letzter Test",
+      "never_tested": "Noch nicht",
+      "locked_badge_webshop": "Pro / Enterprise",
+      "locked_webshop": "Verfügbar mit Pro oder Enterprise",
+      "locked_horeca": "Verfügbar mit {{plan}}",
+      "locked_description": "Automatische Synchronisierung von Rechnungen und Gutschriften mit Ihrem eigenen Odoo Accounting. Führen Sie ein Upgrade durch, um diese Anbindung zu aktivieren.",
+      "locked_cta": "Abonnements ansehen"
     }
   },
   "billing": {

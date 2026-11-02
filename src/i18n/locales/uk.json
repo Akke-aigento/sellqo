@@ -9909,6 +9909,24 @@
       "opt_auto": "Автоматично",
       "no_categories": "У меню ще немає категорій.",
       "saved": "Подачі збережено"
+    },
+    "odooCard": {
+      "badge": "Бухгалтерія",
+      "connected": "Під'єднано",
+      "not_connected": "Не під'єднано",
+      "settings": "Налаштування",
+      "connect": "Під'єднати Odoo",
+      "description": "Автоматично надсилайте рахунки та кредит-ноти у власний Odoo Accounting. Клієнти (res.partner), ПДВ і журнали зіставляються.",
+      "sync": "Синхронізація",
+      "sync_on": "Увімк.",
+      "sync_off": "Вимк.",
+      "last_test": "Остання перевірка",
+      "never_tested": "Ще ні",
+      "locked_badge_webshop": "Pro / Enterprise",
+      "locked_webshop": "Доступно в Pro або Enterprise",
+      "locked_horeca": "Доступно в {{plan}}",
+      "locked_description": "Автоматична синхронізація рахунків і кредит-нот із вашим власним Odoo Accounting. Оновіть план, щоб увімкнути цю інтеграцію.",
+      "locked_cta": "Переглянути плани"
     }
   },
   "product_form": {

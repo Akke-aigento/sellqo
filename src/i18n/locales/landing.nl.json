@@ -392,7 +392,7 @@
         },
         {
           "q": "Wat zit er in het Horeca-plan?",
-          "a": "Horeca Small ({{horeca_price}} per maand) geeft je een bestelsite voor afhalen en leveren, een QR-menu om te bekijken of aan tafel te bestellen, een keukenscherm, de kassa, extra's en allergenen. Horeca Big ({{horeca_big_price}} per maand) is voor drukke zaken, met meer gebruikers en voorrang bij support. Wil je dat wij je kaart erin zetten en alles klaarzetten, dan kan dat met het opstartpakket van {{setup_price}} eenmalig."
+          "a": "Horeca Small ({{horeca_price}} per maand) geeft je een bestelsite voor afhalen en leveren, een QR-menu om te bekijken of aan tafel te bestellen, een keukenscherm, de kassa, extra's en allergenen. Horeca Big ({{horeca_big_price}} per maand) is voor drukke zaken, met meer gebruikers, voorrang bij support en de Odoo-boekhoudkoppeling. Wil je dat wij je kaart erin zetten en alles klaarzetten, dan kan dat met het opstartpakket van {{setup_price}} eenmalig."
         },
         {
           "q": "Wat kost SellQo voor events?",
@@ -420,7 +420,7 @@
         },
         {
           "q": "Wat is Peppol en heb ik het nodig?",
-          "a": "Sinds 1 januari 2026 is e-facturatie via Peppol verplicht tussen Belgische bedrijven. Met de Odoo-koppeling (vanaf Pro) gaan je B2B-facturen via Peppol. Verkoop je enkel aan particulieren, dan heb je het niet nodig."
+          "a": "Sinds 1 januari 2026 is e-facturatie via Peppol verplicht tussen Belgische bedrijven. Met de Odoo-koppeling (vanaf Pro, of Horeca Big) gaan je B2B-facturen via Peppol. Verkoop je enkel aan particulieren, dan heb je het niet nodig."
         },
         {
           "q": "Wat gebeurt er met mijn gegevens als ik stop?",
@@ -619,7 +619,7 @@
       "orders_title": "Bestellingen en voorraad",
       "orders_text": "Alle bestellingen op één plek, van webshop, kassa en bol.com. De voorraad volgt vanzelf.",
       "invoices_title": "Facturen en btw",
-      "invoices_text": "Na een betaalde bestelling maakt SellQo meteen de factuur, met btw en OSS correct berekend. Met de Odoo-koppeling (Pro) gaan B2B-facturen via Peppol.",
+      "invoices_text": "Na een betaalde bestelling maakt SellQo meteen de factuur, met btw en OSS correct berekend. Met de Odoo-koppeling (Pro, Enterprise of Horeca Big) gaan B2B-facturen via Peppol.",
       "bol_title": "Verkopen op bol.com",
       "bol_text": "Bestellingen van bol.com komen binnen in SellQo en je voorraad wordt elk half uur bijgewerkt op bol.com. Vanaf Pro.",
       "promos_title": "Kortingscodes",

@@ -392,7 +392,7 @@
         },
         {
           "q": "Was ist im Gastronomie-Tarif enthalten?",
-          "a": "Gastro Klein ({{horeca_price}} pro Monat) bietet Ihnen eine Bestellseite für Abholung und Lieferung, ein QR-Menü zum Ansehen oder Bestellen am Tisch, einen Küchenbildschirm, die Kasse, Extras und Allergene. Gastro Groß ({{horeca_big_price}} pro Monat) ist für viel besuchte Betriebe, mit mehr Nutzern und bevorzugtem Support. Sollen wir Ihre Karte einpflegen und alles einrichten? Das geht mit dem Startpaket für einmalig {{setup_price}}."
+          "a": "Gastro Klein ({{horeca_price}} pro Monat) bietet Ihnen eine Bestellseite für Abholung und Lieferung, ein QR-Menü zum Ansehen oder Bestellen am Tisch, einen Küchenbildschirm, die Kasse, Extras und Allergene. Gastro Groß ({{horeca_big_price}} pro Monat) ist für viel besuchte Betriebe, mit mehr Nutzern, bevorzugtem Support und der Odoo-Buchhaltungsanbindung. Sollen wir Ihre Karte einpflegen und alles einrichten? Das geht mit dem Startpaket für einmalig {{setup_price}}."
         },
         {
           "q": "Was kostet SellQo für Events?",
@@ -420,7 +420,7 @@
         },
         {
           "q": "Was ist Peppol und brauche ich das?",
-          "a": "Seit dem 1. Januar 2026 ist E-Rechnung über Peppol zwischen belgischen Unternehmen Pflicht. Mit der Odoo-Anbindung (ab Pro) laufen Ihre B2B-Rechnungen über Peppol. Verkaufen Sie nur an Privatkunden, brauchen Sie es nicht."
+          "a": "Seit dem 1. Januar 2026 ist E-Rechnung über Peppol zwischen belgischen Unternehmen Pflicht. Mit der Odoo-Anbindung (ab Pro, oder Gastro Groß) laufen Ihre B2B-Rechnungen über Peppol. Verkaufen Sie nur an Privatkunden, brauchen Sie es nicht."
         },
         {
           "q": "Was passiert mit meinen Daten, wenn ich aufhöre?",
@@ -619,7 +619,7 @@
       "orders_title": "Bestellungen und Bestand",
       "orders_text": "Alle Bestellungen an einem Ort, aus Webshop, Kasse und bol.com. Der Bestand folgt automatisch.",
       "invoices_title": "Rechnungen und MwSt.",
-      "invoices_text": "Nach einer bezahlten Bestellung erstellt SellQo sofort die Rechnung, mit korrekt berechneter MwSt. und OSS. Mit der Odoo-Anbindung (Pro) laufen B2B-Rechnungen über Peppol.",
+      "invoices_text": "Nach einer bezahlten Bestellung erstellt SellQo sofort die Rechnung, mit korrekt berechneter MwSt. und OSS. Mit der Odoo-Anbindung (Pro, Enterprise oder Gastro Groß) laufen B2B-Rechnungen über Peppol.",
       "bol_title": "Verkaufen auf bol.com",
       "bol_text": "Bestellungen von bol.com landen in SellQo und Ihr Bestand wird alle 30 Minuten auf bol.com aktualisiert. Ab Pro.",
       "promos_title": "Rabattcodes",

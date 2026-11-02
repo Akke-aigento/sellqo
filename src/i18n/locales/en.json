@@ -9895,6 +9895,24 @@
       "opt_auto": "Automatic",
       "no_categories": "No categories on your menu yet.",
       "saved": "Courses saved"
+    },
+    "odooCard": {
+      "badge": "Accounting",
+      "connected": "Connected",
+      "not_connected": "Not connected",
+      "settings": "Settings",
+      "connect": "Connect Odoo",
+      "description": "Push invoices and credit notes automatically to your own Odoo Accounting. Customers (res.partner), VAT and journals are mapped.",
+      "sync": "Sync",
+      "sync_on": "On",
+      "sync_off": "Off",
+      "last_test": "Last test",
+      "never_tested": "Not yet",
+      "locked_badge_webshop": "Pro / Enterprise",
+      "locked_webshop": "Available on Pro or Enterprise",
+      "locked_horeca": "Available on {{plan}}",
+      "locked_description": "Automatic invoice and credit note sync with your own Odoo Accounting. Upgrade to activate this integration.",
+      "locked_cta": "View plans"
     }
   },
   "product_form": {
