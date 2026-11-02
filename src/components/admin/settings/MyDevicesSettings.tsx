@@ -10,12 +10,13 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { useAuth } from '@/hooks/useAuth';
+import { pushErrorToast } from '@/lib/deviceAlerts';
 import { useToast } from '@/hooks/use-toast';
 import { useDateFnsLocale } from '@/hooks/useDateFnsLocale';
 import { useTracks } from '@/hooks/useBusinessModules';
 import { supabase } from '@/integrations/supabase/client';
 import {
-  currentWebPushEndpoint, findRecentNativeSameOs, getWebPushState, subscribeWebPush,
+  currentWebPushEndpoint, findRecentNativeSameOs, getWebPushState, subscribeWebPushDetailed,
   touchWebPushSubscription, unsubscribeWebPush, type DeviceRow, type WebPushState,
 } from '@/lib/webPush';
 
@@ -65,14 +66,16 @@ export function MyDevicesSettings() {
   const doSubscribe = async () => {
     if (!userId) return;
     setBusy(true);
-    const result = await subscribeWebPush(userId);
+    const result = await subscribeWebPushDetailed(userId);
     setBusy(false);
-    if (result === 'on') {
+    if (result.status === 'on') {
       toast({ title: t('settings.myDevices.webPush.enabledToast') });
-    } else if (result === 'denied') {
+    } else if (result.status === 'denied') {
       toast({ title: t('settings.myDevices.webPush.deniedToast'), variant: 'destructive' });
     } else {
-      toast({ title: t('settings.myDevices.webPush.errorToast'), variant: 'destructive' });
+      // KASSA-MOBIEL-1: met de reden (bv. "dit toestel stond op een andere account") en de technische melding.
+      const e = pushErrorToast(t, result, 'settings.myDevices.webPush.errorToast');
+      toast({ title: e.title, description: e.description, variant: 'destructive' });
     }
     await refresh();
   };

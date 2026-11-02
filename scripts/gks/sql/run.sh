@@ -107,4 +107,15 @@ for T in test_kassa_account.sql; do
   if echo "$out" | grep -qE '^ f$'; then echo "$out" | grep -B3 -E '^ f$'; echo "FOUT: controle faalt in $T"; fail=1; fi
   echo "$out" | tail -1
 done
+# KASSA-MOBIEL-1 (2-11-2026): pushtoken overzetten + push naar gekoppelde kassatoestellen. device_tokens,
+# horeca_notify_devices en de twee meldingsfuncties zoals live (vóór de patch), dan de migraties (2×) en de test.
+$P -d $DB -f 08_kassa_mobiel_prelude.sql >/dev/null 2>&1
+for M in ../../../supabase/migrations/20261102140000_kassa_mobiel_1_device_token_claim.sql \
+         ../../../supabase/migrations/20261102140100_kassa_mobiel_1_kassa_push_targets.sql; do
+  $P -d $DB -f $M >/dev/null 2>/tmp/kassa_mig.err || { cat /tmp/kassa_mig.err; echo "FOUT in $M"; exit 1; }
+  $P -d $DB -f $M >/dev/null 2>/tmp/kassa_mig.err || { cat /tmp/kassa_mig.err; echo "FOUT bij tweede keer $M"; exit 1; }
+done
+out=$($P -d $DB -f test_kassa_mobiel.sql 2>&1 | grep -v NOTICE) || { echo "$out" | tail -5; echo "FOUT in test_kassa_mobiel.sql"; exit 1; }
+if echo "$out" | grep -qE '^ f$'; then echo "$out" | grep -B3 -E '^ f$'; echo "FOUT: controle faalt in test_kassa_mobiel.sql"; fail=1; fi
+echo "$out" | tail -1
 exit $fail

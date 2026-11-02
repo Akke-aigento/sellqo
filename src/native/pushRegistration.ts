@@ -1,14 +1,20 @@
 import { Capacitor } from '@capacitor/core';
 import { supabase } from '@/integrations/supabase/client';
 import { getInstallId } from '@/lib/installId';
+import { isSaveFailure, saveDeviceToken, type SaveTokenFailure, type SaveTokenResult } from '@/lib/pushTokens';
+import type { Db } from '@/lib/supabaseScope';
 
 type NativePlatform = 'ios' | 'android';
 
 export type PushPermissionStatus = 'granted' | 'denied' | 'prompt' | 'unsupported';
 
 let currentUserId: string | null = null;
+// KASSA-MOBIEL-1: met welke client (en dus welke sessie) het token bewaard wordt. Beheer = de gegenereerde
+// client; de aparte Kassa-app geeft de kassa-client mee (het token hoort bij de toestelaccount).
+let currentDb: Db = supabase;
 let listenersAttached = false;
 let lastRegisteredToken: string | null = null;
+let lastRegisteredDb: Db | null = null;
 
 // Dynamic import so the Firebase plugin (which pulls firebase/messaging via
 // an optional peer dep) never lands in the web bundle. Native-only path.
@@ -22,31 +28,37 @@ async function loadMessaging() {
   return { FirebaseMessaging };
 }
 
-async function upsertToken(userId: string, token: string, platform: NativePlatform) {
-  if (lastRegisteredToken === token && currentUserId === userId) return;
-  lastRegisteredToken = token;
+/** Laatste mislukte bewaring (voor "Meldingen aanzetten": reden + technische melding in de toast). */
+let lastFailure: SaveTokenFailure | null = null;
+export function lastPushRegistrationFailure() {
+  return lastFailure;
+}
 
-  const { error } = await supabase
-    .from('device_tokens')
-    .upsert(
-      {
-        user_id: userId,
-        token,
-        platform,
-        // WEBPUSH-1: zelfde veld als bij web-abonnementen, voor de
-        // dubbele-melding-check (NativeWebPushDuplicateDialog).
-        os: platform,
-        device_name: `${platform} device`,
-        // MELDING-1: profiel per toestel (horeca_notify_devices) hangt hieraan.
-        install_id: getInstallId(),
-        last_seen_at: new Date().toISOString(),
-      } as never,
-      { onConflict: 'token' },
-    );
+async function upsertToken(userId: string, token: string, platform: NativePlatform, db: Db): Promise<SaveTokenResult> {
+  if (lastRegisteredToken === token && currentUserId === userId && lastRegisteredDb === db) return { ok: true, status: 'cached' };
 
-  if (error) {
-    console.error('[push] device_tokens upsert failed', error);
+  // KASSA-MOBIEL-1: via device_token_claim (zet een token van een vorige account op dit toestel over), en de
+  // fout verdwijnt niet meer stil: ze komt terug naar de aanroeper. Pas na een geslaagde bewaring onthouden
+  // we het token, anders sloeg een volgende poging (andere sessie, zelfde token) de bewaring over.
+  const r = await saveDeviceToken(db, userId, {
+    token,
+    platform,
+    // WEBPUSH-1: zelfde veld als bij web-abonnementen, voor de
+    // dubbele-melding-check (NativeWebPushDuplicateDialog).
+    os: platform,
+    device_name: `${platform} device`,
+    // MELDING-1: profiel per toestel (horeca_notify_devices) hangt hieraan.
+    install_id: getInstallId(),
+  });
+  if (isSaveFailure(r)) {
+    lastFailure = r;
+    console.error('[push] device_tokens save failed', r.reason, r.detail);
+  } else {
+    lastRegisteredToken = token;
+    lastRegisteredDb = db;
+    lastFailure = null;
   }
+  return r;
 }
 
 async function attachListeners() {
@@ -58,14 +70,15 @@ async function attachListeners() {
 
   FirebaseMessaging.addListener('tokenReceived', ({ token }) => {
     if (!currentUserId || !token) return;
-    void upsertToken(currentUserId, token, platform);
+    void upsertToken(currentUserId, token, platform, currentDb);
   });
 }
 
-export async function registerPushForUser(userId: string): Promise<void> {
-  if (!Capacitor.isNativePlatform()) return;
+export async function registerPushForUser(userId: string, db: Db = supabase): Promise<SaveTokenResult | null> {
+  if (!Capacitor.isNativePlatform()) return null;
 
   currentUserId = userId;
+  currentDb = db;
   await attachListeners();
 
   const { FirebaseMessaging } = await loadMessaging();
@@ -76,21 +89,23 @@ export async function registerPushForUser(userId: string): Promise<void> {
     const requested = await FirebaseMessaging.requestPermissions();
     receive = requested.receive;
   }
-  if (receive !== 'granted') return;
+  if (receive !== 'granted') return null;
 
   const { token } = await FirebaseMessaging.getToken();
-  if (token) {
-    const platform = Capacitor.getPlatform() as NativePlatform;
-    await upsertToken(userId, token, platform);
-  }
+  if (!token) return null;
+  const platform = Capacitor.getPlatform() as NativePlatform;
+  return upsertToken(userId, token, platform, db);
 }
 
 export async function unregisterPushForUser(): Promise<void> {
   if (!Capacitor.isNativePlatform()) return;
 
   const token = lastRegisteredToken;
+  const db = lastRegisteredDb ?? currentDb;
   currentUserId = null;
   lastRegisteredToken = null;
+  lastRegisteredDb = null;
+  currentDb = supabase;
 
   try {
     const { FirebaseMessaging } = await loadMessaging();
@@ -100,7 +115,7 @@ export async function unregisterPushForUser(): Promise<void> {
   }
 
   if (!token) return;
-  const { error } = await supabase.from('device_tokens').delete().eq('token', token);
+  const { error } = await db.from('device_tokens').delete().eq('token', token);
   if (error) console.warn('[push] device_tokens delete failed', error);
 }
 

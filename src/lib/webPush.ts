@@ -1,6 +1,8 @@
 import { Capacitor } from '@capacitor/core';
 import { supabase } from '@/integrations/supabase/client';
 import { getInstallId } from '@/lib/installId';
+import { errorDetail, isSaveFailure, saveDeviceToken, type PushFailReason } from '@/lib/pushTokens';
+import type { Db } from '@/lib/supabaseScope';
 
 /**
  * WEBPUSH-1 — web push voor de SellQo-webapp (beginscherm-app of browser).
@@ -19,7 +21,17 @@ import { getInstallId } from '@/lib/installId';
  *   dezelfde telefoon staan. Daarom bewaren we het besturingssysteem (`os`)
  *   en laten we de gebruiker bevestigen: hier vóór het inschrijven, en in de
  *   native app via NativeWebPushDuplicateDialog.
+ * - KASSA-MOBIEL-1: kassa en beheer hebben elk een eigen aanmelding. Een browser heeft per
+ *   service-worker-registratie één push-abonnement; de kassa schrijft zich daarom in met een eigen
+ *   registratie (scope /kassa/) en haar eigen client (`opts.db`), zodat de kassa-account en de
+ *   beheer-account niet om hetzelfde endpoint vechten. Zonder opts: beheer zoals vroeger.
  */
+
+/** KASSA-MOBIEL-1: welke client en welke service-worker-scope (leeg = beheer, scope '/'). */
+export interface WebPushOpts {
+  db?: Db;
+  scope?: string;
+}
 
 /** Publiek deel van het VAPID-sleutelpaar. Moet gelijk zijn aan supabase/functions/_shared/webpush.ts. */
 export const WEB_PUSH_PUBLIC_KEY =
@@ -102,14 +114,32 @@ function urlBase64ToUint8Array(base64: string): Uint8Array {
   return out;
 }
 
-async function existingSubscription(): Promise<PushSubscription | null> {
-  const reg = await navigator.serviceWorker.getRegistration(SW_URL);
+async function existingSubscription(scope?: string): Promise<PushSubscription | null> {
+  const reg = await navigator.serviceWorker.getRegistration(scope ?? SW_URL);
   if (!reg) return null;
+  // getRegistration geeft de best passende registratie: zonder eigen /kassa/-registratie is dat die van beheer.
+  if (scope && new URL(reg.scope).pathname !== scope) return null;
   return reg.pushManager.getSubscription();
 }
 
+/** Wacht tot de worker van déze registratie actief is (navigator.serviceWorker.ready wacht op die van de pagina,
+ *  en een pagina op /kassa valt niet onder scope /kassa/). */
+async function activeRegistration(reg: ServiceWorkerRegistration, timeoutMs = 10_000): Promise<ServiceWorkerRegistration> {
+  if (reg.active) return reg;
+  const worker = reg.installing ?? reg.waiting;
+  if (!worker) throw new Error('service worker zonder installatie');
+  await new Promise<void>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error('service worker niet actief binnen 10 s')), timeoutMs);
+    worker.addEventListener('statechange', () => {
+      if (worker.state === 'activated') { clearTimeout(timer); resolve(); }
+      if (worker.state === 'redundant') { clearTimeout(timer); reject(new Error('service worker redundant')); }
+    });
+  });
+  return reg;
+}
+
 /** Huidige stand op dit toestel. Vraagt nooit toestemming; veilig bij mount. */
-export async function getWebPushState(userId: string | null): Promise<WebPushState> {
+export async function getWebPushState(userId: string | null, opts: WebPushOpts = {}): Promise<WebPushState> {
   if (Capacitor.isNativePlatform()) return 'native-app';
   if (isInIframe()) return 'unsupported';
   if (detectOs() === 'ios' && !isStandalone()) return 'needs-install';
@@ -118,11 +148,11 @@ export async function getWebPushState(userId: string | null): Promise<WebPushSta
   if (Notification.permission !== 'granted' || !userId) return 'off';
 
   try {
-    const sub = await existingSubscription();
+    const sub = await existingSubscription(opts.scope);
     if (!sub) return 'off';
     // De rij kan elders verwijderd zijn (toestellenlijst, of de native app die
     // web-meldingen op dezelfde telefoon uitzette). Dan staat het hier uit.
-    const { data } = await supabase
+    const { data } = await (opts.db ?? supabase)
       .from('device_tokens')
       .select('id')
       .eq('token', sub.endpoint)
@@ -156,66 +186,78 @@ export async function findRecentNativeSameOs(userId: string): Promise<DeviceRow 
 
 export type SubscribeResult = 'on' | 'denied' | 'error';
 
+/** KASSA-MOBIEL-1: met reden en technische melding, zodat "Het lukte niet" uitlegt waarom. */
+export interface PushOutcome {
+  status: SubscribeResult;
+  reason?: PushFailReason;
+  detail?: string;
+}
+
 /** Zet web push aan op dit toestel. Alleen aanroepen vanuit een tik. */
-export async function subscribeWebPush(userId: string): Promise<SubscribeResult> {
-  if (Capacitor.isNativePlatform() || isInIframe() || !browserSupportsPush()) return 'error';
+export async function subscribeWebPush(userId: string, opts: WebPushOpts = {}): Promise<SubscribeResult> {
+  return (await subscribeWebPushDetailed(userId, opts)).status;
+}
+
+export async function subscribeWebPushDetailed(userId: string, opts: WebPushOpts = {}): Promise<PushOutcome> {
+  if (Capacitor.isNativePlatform() || isInIframe() || !browserSupportsPush()) return { status: 'error', reason: 'unsupported', detail: 'no web push here' };
 
   const permission = await Notification.requestPermission();
-  if (permission !== 'granted') return permission === 'denied' ? 'denied' : 'error';
-
-  try {
-    const reg = await navigator.serviceWorker.register(SW_URL, { scope: '/' });
-    await navigator.serviceWorker.ready;
-
-    let sub = await reg.pushManager.getSubscription();
-    if (!sub) {
-      sub = await reg.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(WEB_PUSH_PUBLIC_KEY) as unknown as BufferSource,
-      });
-    }
-
-    const json = sub.toJSON();
-    const p256dh = json.keys?.p256dh;
-    const auth = json.keys?.auth;
-    if (!json.endpoint || !p256dh || !auth) return 'error';
-
-    const os = detectOs();
-    const { error } = await supabase.from('device_tokens').upsert(
-      {
-        user_id: userId,
-        token: json.endpoint,
-        platform: 'web',
-        os,
-        p256dh,
-        auth,
-        device_name: describeDevice(os),
-        // MELDING-1: profiel per toestel (horeca_notify_devices) hangt hieraan.
-        install_id: getInstallId(),
-        last_seen_at: new Date().toISOString(),
-      } as never,
-      { onConflict: 'token' },
-    );
-    if (error) {
-      console.error('[webpush] device_tokens upsert failed', error);
-      return 'error';
-    }
-    return 'on';
-  } catch (e) {
-    console.error('[webpush] subscribe failed', e);
-    return 'error';
+  if (permission !== 'granted') {
+    return permission === 'denied' ? { status: 'denied' } : { status: 'error', reason: 'permission', detail: `Notification.permission=${permission}` };
   }
+
+  let sub: PushSubscription | null;
+  try {
+    const reg = await activeRegistration(await navigator.serviceWorker.register(SW_URL, { scope: opts.scope ?? '/' }));
+    try {
+      sub = await reg.pushManager.getSubscription();
+      if (!sub) {
+        sub = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(WEB_PUSH_PUBLIC_KEY) as unknown as BufferSource,
+        });
+      }
+    } catch (e) {
+      console.error('[webpush] subscribe failed', e);
+      return { status: 'error', reason: 'subscribe', detail: errorDetail(e) };
+    }
+  } catch (e) {
+    console.error('[webpush] service worker failed', e);
+    return { status: 'error', reason: 'service_worker', detail: errorDetail(e) };
+  }
+
+  const json = sub.toJSON();
+  const p256dh = json.keys?.p256dh;
+  const auth = json.keys?.auth;
+  if (!json.endpoint || !p256dh || !auth) return { status: 'error', reason: 'keys', detail: 'subscription without endpoint/keys' };
+
+  const os = detectOs();
+  const saved = await saveDeviceToken(opts.db ?? supabase, userId, {
+    token: json.endpoint,
+    platform: 'web',
+    os,
+    p256dh,
+    auth,
+    device_name: describeDevice(os),
+    // MELDING-1: profiel per toestel (horeca_notify_devices) hangt hieraan.
+    install_id: getInstallId(),
+  });
+  if (isSaveFailure(saved)) {
+    console.error('[webpush] device_tokens save failed', saved);
+    return { status: 'error', reason: saved.reason, detail: saved.detail };
+  }
+  return { status: 'on' };
 }
 
 /** Zet web push uit op dit toestel. */
-export async function unsubscribeWebPush(): Promise<void> {
+export async function unsubscribeWebPush(opts: WebPushOpts = {}): Promise<void> {
   if (Capacitor.isNativePlatform() || !browserSupportsPush()) return;
   try {
-    const sub = await existingSubscription();
+    const sub = await existingSubscription(opts.scope);
     if (!sub) return;
     const endpoint = sub.endpoint;
     await sub.unsubscribe();
-    const { error } = await supabase.from('device_tokens').delete().eq('token', endpoint);
+    const { error } = await (opts.db ?? supabase).from('device_tokens').delete().eq('token', endpoint);
     if (error) console.warn('[webpush] device_tokens delete failed', error);
   } catch (e) {
     console.warn('[webpush] unsubscribe failed', e);
