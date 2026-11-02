@@ -1,4 +1,4 @@
--- PRIJS-GATEN-2 — wat de migratie 20261102100000 live aantreft (nagetrokken 2-11-2026 via pg_proc /
+-- PRIJS-GATEN-2 — wat de migratie 20261102091000 live aantreft (nagetrokken 2-11-2026 via pg_proc /
 -- information_schema). record_stock_movement en bulk_adjust_stock verbatim live (prosrc-md5 221c8d54… / 95f3b165…),
 -- plus de live paden die erop leunen: increment_stock (authenticated), decrement_stock (service role + POS-trigger)
 -- en handle_pos_transaction_stock op pos_transactions (RLS: tenant_admin/staff schrijven).

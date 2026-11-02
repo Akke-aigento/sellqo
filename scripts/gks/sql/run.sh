@@ -65,7 +65,7 @@ done
 # 04_pos_prelude door de live versies (de kassatests hierboven leunen op de stub).
 # PRIJS-GATEN-2: live voorraad-RPC's + POS-trigger, dan de migratie (2×) en de test.
 $P -d $DB -f 07_voorraad_prelude.sql >/dev/null
-for M in ../../../supabase/migrations/20261102100000_prijs_gaten_2.sql; do
+for M in ../../../supabase/migrations/20261102091000_prijs_gaten_2.sql; do
   $P -d $DB -f $M >/dev/null 2>/tmp/kassa_mig.err || { cat /tmp/kassa_mig.err; echo "FOUT in $M"; exit 1; }
   $P -d $DB -f $M >/dev/null 2>/tmp/kassa_mig.err || { cat /tmp/kassa_mig.err; echo "FOUT bij tweede keer $M"; exit 1; }
 done

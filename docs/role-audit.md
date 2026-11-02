@@ -8,7 +8,7 @@ Vervolg op PRIJS-GATEN-1 (go via de hoofdsessie, 2-11). Branch `gaten-2`.
 - UI: het productraster had geen alleen-lezen-stand voor rollen zonder schrijfrecht op producten (naam, kanalen, tags, schakelaars bewerkbaar, RLS weigert). De bulkbewerking toonde marketing de tabs Prijzen en Voorraad en het btw-veld (DB weigert). De variantentab liet marketing de voorraad in het bewerkformulier wijzigen.
 
 **Uitgevoerd**
-- `supabase/migrations/20261102100000_prijs_gaten_2.sql`: drift-controle (prosrc-md5 2-11-2026, marker `PRIJS-GATEN-2`), snapshot `snapshots.sellqo_20261102_fn_prijs_gaten_2`.
+- `supabase/migrations/20261102091000_prijs_gaten_2.sql`: drift-controle (prosrc-md5 2-11-2026, marker `PRIJS-GATEN-2`), snapshot `snapshots.sellqo_20261102_fn_prijs_gaten_2`.
   - `record_stock_movement`: product en winkel altijd uit de eigen rijen (variant → product → winkel); `p_tenant_id` dat afwijkt → 42501; product + variant die niet samenhoren → 22023; met een gebruikers-JWT bovenop de lidmaatschapscheck `has_tenant_role(winkel, {tenant_admin, staff, warehouse})` → anders 42501. Rest (update, logboek, terugkeerwaarde) identiek.
   - `bulk_adjust_stock`: zelfde rolcheck per product.
 - `src/hooks/useProductFieldAccess.ts`: `canAdjustStock` (bestond sinds deel 3) volgt nu exact de DB-regel.
