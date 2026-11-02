@@ -8092,6 +8092,8 @@ export type Database = {
           pay_on_pickup: boolean
           prep_minutes: number
           qr_auto_accept: boolean
+          qr_call_bill: boolean
+          qr_call_waiter: boolean
           qr_flow: string
           qr_mode: string
           qr_pay_counter: boolean
@@ -8113,6 +8115,8 @@ export type Database = {
           pay_on_pickup?: boolean
           prep_minutes?: number
           qr_auto_accept?: boolean
+          qr_call_bill?: boolean
+          qr_call_waiter?: boolean
           qr_flow?: string
           qr_mode?: string
           qr_pay_counter?: boolean
@@ -8134,6 +8138,8 @@ export type Database = {
           pay_on_pickup?: boolean
           prep_minutes?: number
           qr_auto_accept?: boolean
+          qr_call_bill?: boolean
+          qr_call_waiter?: boolean
           qr_flow?: string
           qr_mode?: string
           qr_pay_counter?: boolean
