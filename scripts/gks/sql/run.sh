@@ -148,4 +148,24 @@ done
 out=$($P -d $DB -f test_uren_docs.sql 2>&1 | grep -v NOTICE) || { echo "$out" | tail -5; echo "FOUT in test_uren_docs.sql"; exit 1; }
 if echo "$out" | grep -qE '^ f$'; then echo "$out" | grep -B3 -E '^ f$'; echo "FOUT: controle faalt in test_uren_docs.sql"; fail=1; fi
 echo "$out" | tail -1
+# HORECA-NU-1/2 (4-11-2026): zone open/dicht, dagschotel, vandaag dicht en de kassa-functies van het Nu-paneel.
+# dining_areas en tenant_theme_settings zoals live + een gekoppeld toestel, dan de migratie (2×) en de test.
+$P -d $DB -f 11_horeca_nu_prelude.sql >/dev/null
+for M in ../../../supabase/migrations/20261104140000_horeca_nu_1.sql; do
+  $P -d $DB -f $M >/dev/null 2>/tmp/kassa_mig.err || { cat /tmp/kassa_mig.err; echo "FOUT in $M"; exit 1; }
+  $P -d $DB -f $M >/dev/null 2>/tmp/kassa_mig.err || { cat /tmp/kassa_mig.err; echo "FOUT bij tweede keer $M"; exit 1; }
+done
+out=$($P -d $DB -f test_horeca_nu.sql 2>&1 | grep -v NOTICE) || { echo "$out" | tail -5; echo "FOUT in test_horeca_nu.sql"; exit 1; }
+if echo "$out" | grep -qE '^ f$'; then echo "$out" | grep -B3 -E '^ f$'; echo "FOUT: controle faalt in test_horeca_nu.sql"; fail=1; fi
+echo "$out" | tail -1
+# HORECA-NU-1: de docs-migratie twee keer, md5 per artikel vergelijken.
+$P -d $DB -f 12_horeca_nu_docs_prelude.sql >/dev/null
+for RUN in 1 2; do
+  M=../../../supabase/migrations/20261104140100_horeca_nu_1_docs.sql
+  $P -d $DB -f $M >/dev/null 2>/tmp/kassa_mig.err || { cat /tmp/kassa_mig.err; echo "FOUT in $M (run $RUN)"; exit 1; }
+  $P -d $DB -c "insert into public.horeca_nu_docs_md5 select $RUN, slug, md5(content) from public.doc_articles where slug in ('nu-paneel', 'cockpit-dashboard', 'kassa-product-aanpassen', 'keukenscherm-en-tafelbestelling', 'zaalplan-en-qr-per-tafel', 'zaal-live-overzicht')" >/dev/null
+done
+out=$($P -d $DB -f test_horeca_nu_docs.sql 2>&1 | grep -v NOTICE) || { echo "$out" | tail -5; echo "FOUT in test_horeca_nu_docs.sql"; exit 1; }
+if echo "$out" | grep -qE '^ f$'; then echo "$out" | grep -B3 -E '^ f$'; echo "FOUT: controle faalt in test_horeca_nu_docs.sql"; fail=1; fi
+echo "$out" | tail -1
 exit $fail
