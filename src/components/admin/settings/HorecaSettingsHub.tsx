@@ -6,13 +6,16 @@
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { Bell, CalendarClock, ShieldAlert, ChevronRight, CreditCard, LayoutGrid, Loader2, Monitor, Printer, QrCode, Users, UtensilsCrossed } from 'lucide-react';
+import { Bell, CalendarClock, Clock, Globe, ShieldAlert, ChevronRight, CreditCard, LayoutGrid, Loader2, Monitor, Printer, QrCode, Users, UtensilsCrossed } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from '@/hooks/useTenant';
 import { FLOOR_EDIT_URL } from '@/lib/horeca/liveFloor';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { useBusinessHours } from '@/hooks/useBusinessHours';
+import { weekHasRanges } from '@/lib/businessHours';
+import { BUSINESS_HOURS_URL } from '@/components/admin/settings/hours/HoursModeChoice';
 
 interface Row { icon: LucideIcon; title: string; status: string; to: string }
 
@@ -20,6 +23,8 @@ export function HorecaSettingsHub() {
   const { t } = useTranslation();
   const { currentTenant } = useTenant();
   const tenantId = currentTenant?.id;
+  // UREN-1 — zelfde bron als Instellingen › Bedrijf.
+  const { data: hours } = useBusinessHours();
 
   const { data, isLoading } = useQuery({
     queryKey: ['horeca-settings-hub', tenantId],
@@ -66,6 +71,9 @@ export function HorecaSettingsHub() {
     {
       title: t('settings.horecaHub.group_ordering'),
       rows: [
+        // UREN-1: openingsuren (Instellingen › Bedrijf) en de website (WEBSITE-HORECA-1).
+        { icon: Clock, title: t('settings.businessHours.title'), status: weekHasRanges(hours?.week) ? t('settings.horecaHub.hours_set') : t('settings.horecaHub.hours_not_set'), to: BUSINESS_HOURS_URL },
+        { icon: Globe, title: t('navigation.items.website'), status: t('settings.horecaHub.website_status', { domain: `${currentTenant?.slug ?? ''}.sellqo.shop` }), to: '/admin/storefront' },
         // QR-MODULES-1: online afrekenen door de gast staat sinds deze batch bij QR aan tafel, niet meer bij Kassa › Betalen.
         { icon: QrCode, title: t('settings.horecaHub.qr'), status: t(`settings.horecaHub.qr_mode_${data.qrMode === 'order' ? 'order' : data.qrMode === 'off' ? 'off' : 'view'}`) + (data.qrMode === 'order' ? ` · ${t('settings.horecaHub.qr_online', { online: onOff(data.onlinePay) })}` : ''), to: '/admin/bestellen?tab=qr' },
         { icon: LayoutGrid, title: t('settings.horecaHub.floor'), status: t('settings.horecaHub.tables', { count: data.tables }), to: FLOOR_EDIT_URL },

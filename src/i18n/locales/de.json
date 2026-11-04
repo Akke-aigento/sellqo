@@ -212,7 +212,8 @@
       "platform_overview": "Plattformübersicht",
       "email_automations": "Automatisierungen",
       "floor": "Saal",
-      "pos_app": "Kassen-App"
+      "pos_app": "Kassen-App",
+      "website": "Website"
     },
     "bottom": {
       "today": "Heute",
@@ -1718,7 +1719,10 @@
       "pay_methods_one": "{{count}} Zahlungsart an der Kasse",
       "pay_methods_few": "{{count}} Zahlungsarten an der Kasse",
       "pay_methods_many": "{{count}} Zahlungsarten an der Kasse",
-      "pay_methods_other": "{{count}} Zahlungsarten an der Kasse"
+      "pay_methods_other": "{{count}} Zahlungsarten an der Kasse",
+      "hours_set": "Eingetragen",
+      "hours_not_set": "Noch nicht eingetragen",
+      "website_status": "Theme, Logo, Seiten und Startseite auf {{domain}}"
     },
     "bottomNav": {
       "title": "Meine untere Leiste auf dem Handy",
@@ -1744,6 +1748,45 @@
       "intro": "Verbinde deine eigene Odoo-Buchhaltung: SellQo bucht deine Rechnungen und Gutschriften dort automatisch.",
       "dialog_title": "Odoo-Buchhaltung",
       "dialog_desc": "Verbinde dein eigenes Odoo und richte die Synchronisierung ein."
+    },
+    "businessHours": {
+      "title": "Öffnungszeiten",
+      "intro": "Ein Ort für deine Zeiten. Deine Website zeigt sie, und Abholung, Lieferung und Online-Reservierungen übernehmen sie standardmäßig.",
+      "week_title": "Wochenplan",
+      "week_hint": "Ein bis drei Blöcke pro Tag, z. B. 11:30–14:00 und 17:30–22:00. Liegt die Endzeit vor der Startzeit, geht der Block über Mitternacht hinaus.",
+      "day_open": "{{day}} geöffnet",
+      "closed": "Geschlossen",
+      "from": "Von",
+      "to": "Bis",
+      "remove_block": "Block entfernen",
+      "add_block": "Block hinzufügen",
+      "after_midnight": "bis nach Mitternacht",
+      "range_invalid": "Start- und Endzeit dürfen nicht gleich sein",
+      "copy_monday": "Montagszeiten auf alle geöffneten Tage kopieren",
+      "closures_title": "Ausnahmsweise geschlossen",
+      "closures_hint": "Urlaub, Feiertag oder Umbau: ein Datum oder ein Zeitraum, auf Wunsch mit kurzem Grund. An diesen Tagen gibt es keine Abholung, Lieferung oder Online-Reservierung.",
+      "closures_none": "Keine Schließtage geplant.",
+      "closure_from": "Von",
+      "closure_to": "Bis einschließlich (optional)",
+      "closure_reason": "Grund (optional)",
+      "closure_reason_placeholder": "z. B. Weihnachtsferien",
+      "closure_add": "Hinzufügen",
+      "closed_on": "Geschlossen am",
+      "error_range": "Ein Block hat eine ungültige Uhrzeit, oder Start und Ende sind gleich.",
+      "error_too_many": "Höchstens drei Blöcke pro Tag.",
+      "error_closure_dates": "Ein Schließtag hat kein gültiges Datum.",
+      "error_closure_order": "Ein Schließzeitraum endet vor seinem Beginn.",
+      "error_closure_reason": "Der Grund ist zu lang (höchstens 80 Zeichen).",
+      "saved": "Öffnungszeiten gespeichert",
+      "save_failed": "Speichern fehlgeschlagen: {{reason}}",
+      "save": "Öffnungszeiten speichern",
+      "unsaved": "Nicht gespeicherte Änderungen",
+      "read_only": "Nur der Inhaber kann die Öffnungszeiten ändern.",
+      "mode_business": "Wie die Öffnungszeiten",
+      "mode_own": "Eigene Zeiten",
+      "mode_business_empty": "Du hast noch keine Öffnungszeiten eingetragen. Solange sie leer sind, gibt es hier keine Zeiten.",
+      "fill_in": "Öffnungszeiten eintragen",
+      "edit_link": "Öffnungszeiten ändern"
     }
   },
   "languages": {
@@ -7062,7 +7105,9 @@
         "qr_tables_from_floor_plan": "Sie haben einen Raumplan: Jeder Tisch hat einen eigenen, gesicherten QR-Code. Drucken Sie die Tischaufkleber im Raumplan. Einfache Tischnummern funktionieren in Ihrem Betrieb nicht mehr.",
         "qr_open_floor_plan": "Zum Raumplan",
         "allergens_none_label": "Enthält keines der 14 Allergene",
-        "allergens_none_disabled": "Nicht möglich, solange ein Allergen angekreuzt ist."
+        "allergens_none_disabled": "Nicht möglich, solange ein Allergen angekreuzt ist.",
+        "closed_moved": "Schließtage (Urlaub, Feiertage) stehen jetzt bei deinen Öffnungszeiten unter Einstellungen › Unternehmensdaten. Sie gelten für Abholung, Lieferung und Online-Reservierungen.",
+        "closed_moved_link": "Zu den Öffnungszeiten"
       },
       "schema": {
         "themeGallery": {
@@ -7342,7 +7387,14 @@
         "legal_desc": "AGB, Datenschutz, Rückgabe und Versand",
         "own_domain": "Eigene Domain",
         "own_domain_desc": "Verbinde deine eigene Domain mit deinem Webshop.",
-        "select_shop": "Wählen Sie einen Shop aus, um fortzufahren"
+        "select_shop": "Wählen Sie einen Shop aus, um fortzufahren",
+        "title_site": "Website",
+        "site_on": "Deine Website auf {{domain}}",
+        "your_site": "Deine Website",
+        "view_site": "Website ansehen",
+        "own_domain_desc_site": "Verbinde deinen eigenen Domainnamen mit deiner Website.",
+        "hours_desc": "Stehen auf deiner Seite: in der Fußzeile und oben auf deiner Karte.",
+        "customize_intro_site": "Farben, Logo, Schriften und deine Startseite passt du in einem Bildschirm an, mit deiner Website daneben."
       },
       "features": {
         "newsletter_where": "Die Anmeldung erfolgt immer mit Bestätigung. Ihre Abonnenten und Ihre Willkommens-E-Mail verwalten Sie unter Marketing:",
@@ -12300,7 +12352,7 @@
     "onlineEnabled": "Online reservieren an",
     "onlineLink": "Gäste reservieren auf",
     "hoursTitle": "Wann kann online reserviert werden?",
-    "hoursHint": "Pro Tag die erste und letzte Ankunftszeit. Tage ohne Zeiten sind online geschlossen; deine Schließtage aus Bestellen gelten auch.",
+    "hoursHint": "Pro Tag die erste und letzte Ankunftszeit. Tage ohne Zeiten sind online geschlossen; deine Schließtage aus Einstellungen › Unternehmensdaten gelten auch.",
     "closed": "geschlossen",
     "from": "Von",
     "to": "Bis",
@@ -12319,7 +12371,8 @@
     "noticeNone": "bis zum letzten Moment",
     "noticeDay": "am Vortag",
     "noHoursWarning": "Online reservieren ist an, aber es gibt noch keine Zeiten: Gäste sehen keine freien Zeiten.",
-    "onlineHow": "Ist online reservieren an, bekommt dein Webshop eine Schaltfläche „Reserveren“. Eine Anfrage erscheint hier und in der Kasse (orange). Handynummern werden nach 30 Tagen gelöscht."
+    "onlineHow": "Ist online reservieren an, bekommt dein Webshop eine Schaltfläche „Reserveren“. Eine Anfrage erscheint hier und in der Kasse (orange). Handynummern werden nach 30 Tagen gelöscht.",
+    "businessHoursHint": "Bei „Wie die Öffnungszeiten“ können Gäste ab Öffnung bis kurz vor Schließung ankommen."
   },
   "ai_images_toast": {
     "generated": "Bild erstellt!",

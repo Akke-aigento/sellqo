@@ -11,6 +11,9 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { useTenant } from '@/hooks/useTenant';
 import { DEFAULT_ONLINE_SETTINGS, fetchOnlineSettings, saveOnlineSettings, validRange, type OnlineReservationSettings } from '@/lib/horeca/reservations';
+import { HoursModeChoice } from '@/components/admin/settings/hours/HoursModeChoice';
+import { useBusinessHours } from '@/hooks/useBusinessHours';
+import { weekHasRanges } from '@/lib/businessHours';
 
 // Maandag eerst; sleutel = weekdag zoals in de databank (0 = zondag).
 const DAYS = [1, 2, 3, 4, 5, 6, 0] as const;
@@ -34,8 +37,11 @@ export function OnlineReservationsCard() {
   const dayName = (d: number) => new Intl.DateTimeFormat(i18n.language, { weekday: 'long' }).format(new Date(2026, 10, 1 + d)); // 1 nov 2026 = zondag
   const ranges = (d: number) => s.online_hours[String(d)] ?? [];
   const setRanges = (d: number, r: [string, string][]) => setS((x) => ({ ...x, online_hours: { ...x.online_hours, [String(d)]: r } }));
-  const invalid = Object.values(s.online_hours).some((r) => r.some((x) => !validRange(x)));
-  const noHours = !Object.values(s.online_hours).some((r) => r.some(validRange));
+  const { data: business } = useBusinessHours();
+  const own = s.online_hours_mode === 'own';
+  const invalid = own && Object.values(s.online_hours).some((r) => r.some((x) => !validRange(x)));
+  // UREN-1: bij "zelfde als openingsuren" tellen de openingsuren.
+  const noHours = own ? !Object.values(s.online_hours).some((r) => r.some(validRange)) : !weekHasRanges(business?.week);
   const url = currentTenant?.slug ? `https://${currentTenant.slug}.sellqo.shop/reserveren` : null;
   const num = 'h-10 w-24 rounded-md border bg-background px-2 text-sm';
   const select = 'h-10 rounded-md border bg-background px-2 text-sm';
@@ -62,6 +68,7 @@ export function OnlineReservationsCard() {
 
         <div className="space-y-2">
           <p className="text-sm font-semibold">{t('reservations.hoursTitle')}</p>
+          <HoursModeChoice id="reservations-hours" mode={s.online_hours_mode} onChange={(m) => setS((x) => ({ ...x, online_hours_mode: m }))}>
           <p className="text-xs text-muted-foreground">{t('reservations.hoursHint')}</p>
           <ul className="divide-y rounded-md border">
             {DAYS.map((d) => (
@@ -87,6 +94,8 @@ export function OnlineReservationsCard() {
             ))}
           </ul>
           {invalid ? <p role="alert" className="text-sm text-destructive">{t('reservations.rangeInvalid')}</p> : null}
+          </HoursModeChoice>
+          {own ? null : <p className="text-xs text-muted-foreground">{t('reservations.businessHoursHint')}</p>}
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2">

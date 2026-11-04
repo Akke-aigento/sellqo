@@ -1,6 +1,7 @@
 // FOOD-1 — tijdsloten voor afhalen en leveren (pizzeria, frituur, bakker, traiteur).
 // Pure functies zonder databank: de storefront-api telt de bestaande bestellingen per
 // slot en geeft die mee. Tijden worden in de tijdzone van de winkel gerekend.
+import { closureDates, localYmd, parseClosures, parseWeek, resolveHoursMode, splitOvernight, type BusinessHoursRow } from './businessHours.ts';
 
 export type ServiceType = 'pickup' | 'local_delivery';
 export interface FulfillmentSettings {
@@ -112,4 +113,29 @@ export function postalCodeAllowed(postal: string | null | undefined, list: strin
     const x = String(e || '').replace(/\s+/g, '').toUpperCase().replace(/\*$/, '');
     return !!x && pc.startsWith(x);
   });
+}
+
+/**
+ * UREN-1 — de uren die echt gelden voor afhalen en leveren, en de sluitingsdagen.
+ * - Per soort: "zelfde als openingsuren" (pickup_hours_mode / delivery_hours_mode = 'business', of NULL
+ *   zonder eigen uren) neemt het weekschema van business_hours over, inclusief blokken over middernacht.
+ *   'own' (of NULL mét eigen uren, bestaande zaken) houdt fulfillment_settings.hours.
+ * - Sluitingsdagen komen uit business_hours.closures (datum of periode) en gelden voor beide soorten,
+ *   ook bij eigen uren: een dichte zaak neemt niets aan. fulfillment_settings.closed_dates (PAUSE-1) is
+ *   overgezet naar business_hours en wordt niet meer gelezen.
+ * `bh` = null: de zaak vulde geen openingsuren in (dan geen uren voor "zelfde als" en geen sluitingsdagen).
+ */
+export function withBusinessHours<T extends FulfillmentSettings & { pickup_hours_mode?: string | null; delivery_hours_mode?: string | null }>(
+  s: T, bh: BusinessHoursRow | null, nowMs: number,
+): T {
+  const week = splitOvernight(parseWeek(bh?.week));
+  const hours: FulfillmentSettings['hours'] = { ...(s.hours || {}) };
+  const modes: [ServiceType, string | null | undefined][] = [['pickup', s.pickup_hours_mode], ['local_delivery', s.delivery_hours_mode]];
+  for (const [type, mode] of modes) {
+    if (resolveHoursMode(mode, s.hours?.[type]) === 'business') hours[type] = week;
+  }
+  const tz = s.timezone || 'Europe/Brussels';
+  // days_ahead is hoogstens 14; één dag extra voor sloten na middernacht.
+  const closed = closureDates(parseClosures(bh?.closures), localYmd(nowMs, tz), 15);
+  return { ...s, hours, closed_dates: closed };
 }

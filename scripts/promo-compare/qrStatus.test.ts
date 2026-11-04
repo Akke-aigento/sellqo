@@ -253,7 +253,7 @@ Deno.test('QR-MODULES-1: QR-menu uit → call_kinds leeg', async () => {
   } finally { fs0().qr_mode = 'view'; }
 });
 
-Deno.test('GET-stempel QR-MODULES-1', async () => {
+Deno.test('GET-stempel UREN-1', async () => {
   const r = await handler(new Request('https://f/storefront-api', { method: 'GET' }));
-  assert((await r.json()).version === 'QR-MODULES-1' && r.headers.get('X-SellQo-Api-Rev') === 'qr-modules-1', 'stempel');
+  assert((await r.json()).version === 'UREN-1' && r.headers.get('X-SellQo-Api-Rev') === 'uren-1', 'stempel');
 });

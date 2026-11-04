@@ -373,7 +373,8 @@
       "name_events_vast": "Événements Fixe",
       "name_horeca": "Horeca Petit",
       "name_horeca_big": "Horeca Grand",
-      "feat_ai_actions": "Assistant IA qui connaît vos chiffres et prépare les changements pour vous"
+      "feat_ai_actions": "Assistant IA qui connaît vos chiffres et prépare les changements pour vous",
+      "feat_site": "Votre site sur votrecommerce.sellqo.shop : thème, logo, couleurs et pages"
     },
     "faq": {
       "heading": "Questions fréquentes",
@@ -2504,6 +2505,14 @@
         "kitchen_header_mobile": {
           "title": "L'écran cuisine tient sur ton téléphone",
           "description": "Sur un écran étroit, la barre du haut de l'écran cuisine continue sur une deuxième ligne. Tous les boutons (postes, pause, impression, son, notifications et caisse) restent visibles."
+        },
+        "opening_hours": {
+          "title": "Les heures d'ouverture au même endroit, aussi sur ton site",
+          "description": "Sous Paramètres › Données de l'entreprise, tu remplis tes heures d'ouverture : un à trois créneaux par jour, même après minuit, et des fermetures exceptionnelles (une date ou une période) avec une courte raison. Ton site les affiche en pied de page et en haut de ta carte, avec « Ouvert maintenant » ou l'heure de réouverture. Le retrait, la livraison et les réservations en ligne les reprennent par défaut ; pour d'autres horaires, choisis « Horaires propres ». Si tu avais déjà tes propres horaires de retrait, de livraison ou de réservation, ils restent tels quels. Les jours de fermeture que tu avais réglés pour le retrait et la livraison se trouvent maintenant avec tes heures d'ouverture."
+        },
+        "website_horeca": {
+          "title": "Ton propre site, aussi avec une offre horeca",
+          "description": "Avec une offre horeca, le menu affiche maintenant Site web, après la Carte. Tu y choisis un thème, tu mets ton logo et tes couleurs, tu écris ton pied de page, tu crées des pages et tu composes ta page d'accueil, avec ton site à côté. Tu n'ajoutes que les sections qui fonctionnent sur ton site. L'expédition, les retours et les remises de la boutique en ligne restent avec la boutique."
         }
       },
       "copyLink": "Copier le lien",

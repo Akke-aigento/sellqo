@@ -184,7 +184,8 @@
       "platform_overview": "Platformoverzicht",
       "email_automations": "Automatiseringen",
       "floor": "Zaal",
-      "pos_app": "Kassa-app"
+      "pos_app": "Kassa-app",
+      "website": "Website"
     },
     "bottom": {
       "today": "Vandaag",
@@ -1690,7 +1691,10 @@
       "pay_methods_one": "{{count}} betaalwijze aan de kassa",
       "pay_methods_few": "{{count}} betaalwijzen aan de kassa",
       "pay_methods_many": "{{count}} betaalwijzen aan de kassa",
-      "pay_methods_other": "{{count}} betaalwijzen aan de kassa"
+      "pay_methods_other": "{{count}} betaalwijzen aan de kassa",
+      "hours_set": "Ingevuld",
+      "hours_not_set": "Nog niet ingevuld",
+      "website_status": "Thema, logo, pagina's en homepage op {{domain}}"
     },
     "bottomNav": {
       "title": "Mijn onderbalk op de gsm",
@@ -1716,6 +1720,45 @@
       "intro": "Koppel je eigen Odoo-boekhouding: SellQo boekt je facturen en creditnota's daar automatisch in.",
       "dialog_title": "Odoo-boekhouding",
       "dialog_desc": "Verbind je eigen Odoo en stel de synchronisatie in."
+    },
+    "businessHours": {
+      "title": "Openingsuren",
+      "intro": "Eén plek voor je uren. Je website toont ze, en afhalen, leveren en online reserveren nemen ze standaard over.",
+      "week_title": "Weekschema",
+      "week_hint": "Per dag één tot drie blokken, bv. 11:30–14:00 en 17:30–22:00. Ligt het einduur vóór het beginuur, dan loopt het blok door tot na middernacht.",
+      "day_open": "{{day}} open",
+      "closed": "Gesloten",
+      "from": "Van",
+      "to": "Tot",
+      "remove_block": "Blok verwijderen",
+      "add_block": "Blok toevoegen",
+      "after_midnight": "tot na middernacht",
+      "range_invalid": "Begin- en einduur mogen niet gelijk zijn",
+      "copy_monday": "Uren van maandag kopiëren naar alle open dagen",
+      "closures_title": "Uitzonderlijke sluitingsdagen",
+      "closures_hint": "Vakantie, een feestdag of een verbouwing: een datum of een periode, met een korte reden als je wil. Op die dagen kan er niet afgehaald, geleverd of online gereserveerd worden.",
+      "closures_none": "Geen sluitingsdagen gepland.",
+      "closure_from": "Van",
+      "closure_to": "Tot en met (optioneel)",
+      "closure_reason": "Reden (optioneel)",
+      "closure_reason_placeholder": "bv. Kerstvakantie",
+      "closure_add": "Toevoegen",
+      "closed_on": "Gesloten op",
+      "error_range": "Een blok heeft een ongeldig uur, of begin en einde zijn gelijk.",
+      "error_too_many": "Hoogstens drie blokken per dag.",
+      "error_closure_dates": "Een sluitingsdag heeft geen geldige datum.",
+      "error_closure_order": "Bij een sluitingsperiode ligt het einde vóór het begin.",
+      "error_closure_reason": "De reden is te lang (hoogstens 80 tekens).",
+      "saved": "Openingsuren bewaard",
+      "save_failed": "Bewaren lukte niet: {{reason}}",
+      "save": "Openingsuren opslaan",
+      "unsaved": "Niet-bewaarde wijzigingen",
+      "read_only": "Enkel de zaakvoerder kan de openingsuren aanpassen.",
+      "mode_business": "Zelfde als openingsuren",
+      "mode_own": "Eigen uren",
+      "mode_business_empty": "Je vulde nog geen openingsuren in. Zolang ze leeg zijn, zijn er hier geen tijdstippen.",
+      "fill_in": "Openingsuren invullen",
+      "edit_link": "Openingsuren aanpassen"
     }
   },
   "languages": {
@@ -6968,7 +7011,9 @@
         "qr_tables_from_floor_plan": "Je hebt een zaalplan: elke tafel heeft een eigen, beveiligde QR-code. Druk de tafelstickers af vanuit het zaalplan. Losse tafelnummers werken in jouw zaak niet meer.",
         "qr_open_floor_plan": "Naar het zaalplan",
         "allergens_none_label": "Bevat geen van de 14 allergenen",
-        "allergens_none_disabled": "Kan niet zolang er een allergeen aangevinkt staat."
+        "allergens_none_disabled": "Kan niet zolang er een allergeen aangevinkt staat.",
+        "closed_moved": "Sluitingsdagen (vakantie, feestdag) staan nu bij je openingsuren in Instellingen › Bedrijfsgegevens. Ze gelden voor afhalen, leveren en online reserveren.",
+        "closed_moved_link": "Naar openingsuren"
       },
       "shopOpenCard": {
         "klanten_kunnen_afrekenen_uit_je_winkel": "Klanten kunnen afrekenen. Uit = je winkel toont je producten, zonder winkelmandje.",
@@ -7248,7 +7293,14 @@
         "legal_desc": "Voorwaarden, privacy, retour en verzending",
         "own_domain": "Eigen domein",
         "own_domain_desc": "Koppel je eigen domeinnaam aan je webshop.",
-        "select_shop": "Selecteer een winkel om door te gaan"
+        "select_shop": "Selecteer een winkel om door te gaan",
+        "title_site": "Website",
+        "site_on": "Je website op {{domain}}",
+        "your_site": "Je website",
+        "view_site": "Bekijk website",
+        "own_domain_desc_site": "Koppel je eigen domeinnaam aan je website.",
+        "hours_desc": "Staan op je site: in de voettekst en bovenaan je menukaart.",
+        "customize_intro_site": "Kleuren, logo, lettertypes en je homepage pas je aan in één scherm, met je website ernaast."
       },
       "features": {
         "newsletter_where": "Inschrijven gebeurt altijd met bevestiging. Je abonnees en je welkomstmail beheer je in Marketing:",
@@ -12302,7 +12354,7 @@
     "onlineEnabled": "Online reserveren aan",
     "onlineLink": "Gasten reserveren op",
     "hoursTitle": "Wanneer kan er online gereserveerd worden?",
-    "hoursHint": "Per dag het eerste en het laatste aankomstuur. Dagen zonder uren zijn online dicht; je sluitingsdagen uit Bestellen gelden ook.",
+    "hoursHint": "Per dag het eerste en het laatste aankomstuur. Dagen zonder uren zijn online dicht; je sluitingsdagen uit Instellingen › Bedrijfsgegevens gelden ook.",
     "closed": "dicht",
     "from": "Van",
     "to": "Tot",
@@ -12321,7 +12373,8 @@
     "noticeNone": "tot het laatste moment",
     "noticeDay": "de dag voordien",
     "noHoursWarning": "Online reserveren staat aan, maar er zijn nog geen uren: gasten zien nog geen vrije uren.",
-    "onlineHow": "Staat online reserveren aan, dan krijgt je webshop een knop \"Reserveren\". Een aanvraag verschijnt hier en in de kassa (oranje). Gsm-nummers worden na 30 dagen gewist."
+    "onlineHow": "Staat online reserveren aan, dan krijgt je webshop een knop \"Reserveren\". Een aanvraag verschijnt hier en in de kassa (oranje). Gsm-nummers worden na 30 dagen gewist.",
+    "businessHoursHint": "Bij \"Zelfde als openingsuren\" kunnen gasten aankomen vanaf het openingsuur tot vóór het sluitingsuur."
   },
   "ai_images_toast": {
     "generated": "Afbeelding gegenereerd!",

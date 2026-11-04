@@ -39,7 +39,10 @@ export function planLines(plan: PricingPlan, t: TFunction, lng: string): { lines
       ...(plan.limit_marketing_emails_monthly === undefined
         ? []
         : [limit(plan.limit_marketing_emails_monthly, 'lim_mails', 'lim_mails', 'lim_mails_unlimited')]),
-      ...FEATURE_LINES.filter((l) => f[l.key]).map((l) => k(l.label)),
+      // WEBSITE-HORECA-1: in een horecaplan is webshop_builder de website van de zaak (thema, logo, kleuren,
+      // pagina's, homepage); de webshop zelf (verzending, retouren) is de add-on. Bron: /admin/storefront staat
+      // sinds deze batch open voor het horecaspoor (sidebarConfig 'storefront', tracks webshop + horeca).
+      ...FEATURE_LINES.filter((l) => f[l.key]).map((l) => k(l.key === 'webshop_builder' && plan.track === 'horeca' ? 'feat_site' : l.label)),
       ...(aiCredits > 0 ? [k('feat_ai', { n: aiCredits.toLocaleString(lng) })] : []),
     ],
     note: null,

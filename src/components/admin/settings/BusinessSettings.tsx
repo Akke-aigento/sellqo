@@ -16,6 +16,7 @@ import { EmailLogoPreview } from '@/components/admin/settings/EmailLogoPreview';
 import { EmailLogoFromCurrentButton } from '@/components/admin/settings/EmailLogoFromCurrentButton';
 import { useInvoiceCompliance, validateIBAN, formatIBAN } from '@/hooks/useInvoiceCompliance';
 import { supabase } from '@/integrations/supabase/client';
+import { BusinessHoursCard } from '@/components/admin/settings/hours/BusinessHoursCard';
 
 // Verhuisd uit StoreSettings (WEBSHOP-4b).
 const CURRENCIES = [
@@ -188,7 +189,9 @@ export function BusinessSettings() {
     }
   };
 
+  // UREN-1 — openingsuren staan hier, bij adres en contact (eigen tabel, eigen bewaarknop).
   return (
+    <div className="space-y-6">
     <Card>
       <CardHeader>
         <div className="flex items-center gap-3">
@@ -449,5 +452,7 @@ export function BusinessSettings() {
         </Button>
       </CardContent>
     </Card>
+    <BusinessHoursCard />
+    </div>
   );
 }

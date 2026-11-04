@@ -35,16 +35,21 @@ const SHORT_LABEL: Record<string, string> = {
 /** Label in de balk. Een horecazaak noemt het dashboard "Vandaag". */
 export function bottomNavLabelKey(item: Pick<NavItem, 'id' | 'titleKey'>, c: BottomNavContext): string {
   if (item.id === 'dashboard' && c.horeca) return 'navigation.bottom.today';
+  // WEBSITE-HORECA-1: zonder webshop heet het site-uiterlijk "Website".
+  if (item.id === 'storefront' && c.horeca && !c.webshop) return 'navigation.items.website';
   return SHORT_LABEL[item.id] ?? item.titleKey;
 }
 
 /**
  * HORECA-ZIJBALK-1 — label in de zijbalk. Een horecazaak noemt het dashboard "Vandaag" (zoals de
- * onderbalk); zonder webshop opent Kassa de kassa-app zelf en heet het "Kassa-app".
+ * onderbalk); zonder webshop opent Kassa de kassa-app zelf en heet het "Kassa-app", en heet Webshop "Website"
+ * (WEBSITE-HORECA-1).
  */
 export function sidebarLabelKey(item: Pick<NavItem, 'id' | 'titleKey'>, c: BottomNavContext): string {
   if (item.id === 'dashboard' && c.horeca) return 'navigation.bottom.today';
   if (item.id === 'pos' && c.horeca && !c.webshop) return 'navigation.items.pos_app';
+  // WEBSITE-HORECA-1: zonder webshop is het geen webshop maar de website van de zaak.
+  if (item.id === 'storefront' && c.horeca && !c.webshop) return 'navigation.items.website';
   return item.titleKey;
 }
 

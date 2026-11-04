@@ -1,5 +1,5 @@
 import { Navigate, Link, useSearchParams } from 'react-router-dom';
-import { Globe, Home, FileText, Scale, Wand2, ExternalLink, Info, ChevronRight, Link2, SlidersHorizontal } from 'lucide-react';
+import { Clock, Globe, Home, FileText, Scale, Wand2, ExternalLink, Info, ChevronRight, Link2, SlidersHorizontal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { ScrollHint } from '@/components/ui/scroll-hint';
@@ -11,6 +11,9 @@ import { LegalPagesManager } from '@/components/admin/storefront/LegalPagesManag
 import { StorefrontFeaturesSettings } from '@/components/admin/storefront/studio/StorefrontFeaturesSettings';
 import { ShopOpenCard } from '@/components/admin/storefront/ShopOpenCard';
 import { useTranslation } from 'react-i18next';
+import { useTracks } from '@/hooks/useBusinessModules';
+import { isHorecaOnly } from '@/lib/siteSections';
+import { BUSINESS_HOURS_URL } from '@/components/admin/settings/hours/HoursModeChoice';
 
 // WEBSHOP-PAGE-1 (13-10-2026): de Webshop-pagina draait rond de standaardshop op
 // <slug>.sellqo.shop en de "Aanpassen"-editor. Design en Homepage zitten in de editor;
@@ -28,7 +31,9 @@ const baseNav = [
 const featuresNav = { id: 'features', labelKey: 'admin.storefront.page.nav_features', icon: SlidersHorizontal };
 const TO_EDITOR = ['design', 'homepage'];
 
-function ShopOverview({ slug, onNavigate }: { slug: string; onNavigate: (s: string) => void }) {
+// WEBSITE-HORECA-1 — een horecazaak zonder webshop heeft een website, geen webshop: andere woorden,
+// zelfde scherm. Verzending, retouren en webshopkortingen staan hier niet (die horen bij het webshopspoor).
+function ShopOverview({ slug, onNavigate, site }: { slug: string; onNavigate: (s: string) => void; site: boolean }) {
   const { t } = useTranslation();
   const { isCustomFrontend, customFrontendUrl } = useFrontendMode();
   const shopUrl = `https://${slug}.sellqo.shop`;
@@ -60,12 +65,12 @@ function ShopOverview({ slug, onNavigate }: { slug: string; onNavigate: (s: stri
           </div>
           <CardContent className="flex flex-col justify-center gap-4 p-6">
             <div className="space-y-1">
-              <p className="text-sm text-muted-foreground">{t('admin.storefront.page.your_shop')}</p>
+              <p className="text-sm text-muted-foreground">{site ? t('admin.storefront.page.your_site') : t('admin.storefront.page.your_shop')}</p>
               <a href={shopUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-lg font-semibold hover:underline">
                 {slug}.sellqo.shop <ExternalLink className="h-4 w-4" />
               </a>
               <p className="text-sm text-muted-foreground">
-                {t('admin.storefront.page.customize_intro')}
+                {site ? t('admin.storefront.page.customize_intro_site') : t('admin.storefront.page.customize_intro')}
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -76,7 +81,7 @@ function ShopOverview({ slug, onNavigate }: { slug: string; onNavigate: (s: stri
                 <Link to="/admin/storefront/aanpassen?panel=themes">{t('admin.storefront.page.choose_theme')}</Link>
               </Button>
               <Button asChild variant="ghost">
-                <a href={shopUrl} target="_blank" rel="noreferrer">{t('admin.storefront.page.view_shop')}</a>
+                <a href={shopUrl} target="_blank" rel="noreferrer">{site ? t('admin.storefront.page.view_site') : t('admin.storefront.page.view_shop')}</a>
               </Button>
             </div>
           </CardContent>
@@ -85,7 +90,7 @@ function ShopOverview({ slug, onNavigate }: { slug: string; onNavigate: (s: stri
 
       <ShopOpenCard />
 
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {[
           { id: 'pages', icon: FileText, title: t('admin.storefront.page.nav_pages'), text: t('admin.storefront.page.pages_desc') },
           { id: 'legal', icon: Scale, title: t('admin.storefront.page.nav_legal'), text: t('admin.storefront.page.legal_desc') },
@@ -106,7 +111,17 @@ function ShopOverview({ slug, onNavigate }: { slug: string; onNavigate: (s: stri
           <Link2 className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground" />
           <span className="min-w-0 flex-1">
             <span className="block font-medium">{t('admin.storefront.page.own_domain')}</span>
-            <span className="block text-sm text-muted-foreground">{t('admin.storefront.page.own_domain_desc')}</span>
+            <span className="block text-sm text-muted-foreground">{site ? t('admin.storefront.page.own_domain_desc_site') : t('admin.storefront.page.own_domain_desc')}</span>
+          </span>
+          <ChevronRight className="mt-0.5 h-4 w-4 text-muted-foreground" />
+        </Link>
+        {/* UREN-1: de openingsuren staan op je site (voettekst, menu); invullen doe je in Instellingen › Bedrijf. */}
+        <Link to={BUSINESS_HOURS_URL}
+          className="flex items-start gap-3 rounded-lg border bg-card p-4 text-left transition-colors hover:bg-muted/50">
+          <Clock className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground" />
+          <span className="min-w-0 flex-1">
+            <span className="block font-medium">{t('settings.businessHours.title')}</span>
+            <span className="block text-sm text-muted-foreground">{t('admin.storefront.page.hours_desc')}</span>
           </span>
           <ChevronRight className="mt-0.5 h-4 w-4 text-muted-foreground" />
         </Link>
@@ -119,6 +134,8 @@ export default function StorefrontPage() {
   const { t } = useTranslation();
   const { currentTenant } = useTenant();
   const { isCustomFrontend } = useFrontendMode();
+  const { hasTrack } = useTracks();
+  const site = isHorecaOnly(hasTrack);
   const navItems = isCustomFrontend ? [...baseNav, featuresNav] : baseNav;
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -163,7 +180,7 @@ export default function StorefrontPage() {
       case 'features':
         return <StorefrontFeaturesSettings />;
       default:
-        return <ShopOverview slug={currentTenant.slug} onNavigate={goToSection} />;
+        return <ShopOverview slug={currentTenant.slug} onNavigate={goToSection} site={site} />;
     }
   };
 
@@ -173,9 +190,9 @@ export default function StorefrontPage() {
         <div>
           <h1 className="flex items-center gap-3 text-3xl font-bold">
             <Globe className="h-8 w-8 text-primary" />
-            {t('admin.storefront.page.title')}
+            {site ? t('admin.storefront.page.title_site') : t('admin.storefront.page.title')}
           </h1>
-          <p className="mt-1 text-muted-foreground">{t('admin.storefront.page.shop_on', { domain: `${currentTenant.slug}.sellqo.shop` })}</p>
+          <p className="mt-1 text-muted-foreground">{t(site ? 'admin.storefront.page.site_on' : 'admin.storefront.page.shop_on', { domain: `${currentTenant.slug}.sellqo.shop` })}</p>
         </div>
         <Button asChild>
           <Link to="/admin/storefront/aanpassen">

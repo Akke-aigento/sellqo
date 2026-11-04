@@ -11,7 +11,8 @@ import { parseOptionFilter, productMatches, buildOptionFacets, buildTagFacets, t
 import { resolveTableInput, tenantHasFloorPlan } from "../_shared/diningTables.ts";
 import { refundReasonText, settleTableCheckPayment, type RefundClient, type SettleRpcClient } from "../_shared/tableCheckPay.ts";
 import { AddonError, addonsLabel, applicableGroups, resolveAddonSelection, type AddonGroup } from "../_shared/productAddons.ts";
-import { computeSlots, orderingBlocked, postalCodeAllowed, type FulfillmentSettings, type ServiceType } from "../_shared/fulfillmentSlots.ts";
+import { computeSlots, orderingBlocked, postalCodeAllowed, withBusinessHours, type FulfillmentSettings, type ServiceType } from "../_shared/fulfillmentSlots.ts";
+import { publicBusinessHours, type BusinessHoursRow } from "../_shared/businessHours.ts";
 import { CART_RESTORE_SESSION_PREFIX, verifyCartRestore } from "../_shared/cartRestoreToken.ts";
 import { amountMismatchNote, discountRoundingToleranceCents, stripeAmountMismatch } from "../_shared/stripeAmountCheck.ts";
 import { buildSizeChart, publicSizeChart, sellSizesFromVariants } from "../_shared/sizeChart.ts";
@@ -20,7 +21,7 @@ import { cachedShopStatus } from "../_shared/shopStatus.ts";
 
 const corsHeaders = {
   // PLANS-2 — versiestempel: bewijst een deploy zonder neveneffect (lees de header).
-  "X-SellQo-Api-Rev": "qr-modules-1",
+  "X-SellQo-Api-Rev": "uren-1",
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
@@ -324,6 +325,7 @@ async function getTenant(supabase: any, tenantId: string, params: Record<string,
 async function getConfig(supabase: any, tenantId: string, params: Record<string, unknown> = {}) {
   const locale = params.locale as string | undefined;
 
+  const businessHoursP = loadBusinessHours(supabase, tenantId);
   const [
     { data: tenant },
     { data: themeSettings },
@@ -337,6 +339,8 @@ async function getConfig(supabase: any, tenantId: string, params: Record<string,
   ]);
 
   if (!tenant) throw new Error('Tenant not found');
+  // UREN-1 — openingsuren (aparte lees, al gestart naast de andere; foutbestendig: zonder tabel of rij null).
+  const businessHours = await businessHoursP;
 
   let storeName = tenant.store_name || tenant.name;
   let storeDescription = tenant.store_description;
@@ -413,6 +417,9 @@ async function getConfig(supabase: any, tenantId: string, params: Record<string,
       nav_style: storefrontConfig?.nav_style || 'simple',
       cookie_banner: storefrontConfig?.cookie_banner_enabled ?? true,
     },
+    // UREN-1 — additief: { timezone, week: { "1": [["11:30","14:00"]], ... } (0 = zondag), closures: [{ from, to, reason }] }
+    // met enkel de komende sluitingen; null als de zaak geen openingsuren invulde.
+    business_hours: publicBusinessHours(businessHours, Date.now()),
   };
 }
 
@@ -868,6 +875,26 @@ async function loadFulfillmentSettings(supabase: SupabaseLike, tenantId: string)
   return (data as ShopFulfillment | null) || null;
 }
 
+// UREN-1 — openingsuren van de zaak. Foutbestendig: een fout (bv. tabel nog niet gemigreerd) = undefined,
+// zodat de aanroeper het oude gedrag kan houden; geen rij = null.
+async function loadBusinessHours(supabase: SupabaseLike, tenantId: string): Promise<BusinessHoursRow | null | undefined> {
+  const { data, error } = await supabase.from('business_hours').select('week, closures, timezone').eq('tenant_id', tenantId).maybeSingle();
+  if (error) return undefined;
+  return (data as BusinessHoursRow | null) || null;
+}
+
+// UREN-1 — afhaal- en leveruren zoals ze echt gelden ("zelfde als openingsuren" of eigen uren) en de
+// sluitingsdagen uit business_hours. Aparte lees van de modes, zodat loadFulfillmentSettings (gedeeld met
+// QR, betalen aan tafel, oproepen) byte-gelijk blijft. Lukt een van beide niet, dan het oude gedrag.
+async function effectiveFulfillment(supabase: SupabaseLike, tenantId: string, settings: ShopFulfillment, nowMs: number): Promise<ShopFulfillment> {
+  const [{ data: modes, error }, bh] = await Promise.all([
+    supabase.from('fulfillment_settings').select('pickup_hours_mode, delivery_hours_mode').eq('tenant_id', tenantId).maybeSingle(),
+    loadBusinessHours(supabase, tenantId),
+  ]);
+  if (error || bh === undefined) return settings;
+  return withBusinessHours({ ...settings, ...((modes || {}) as Record<string, unknown>) } as ShopFulfillment & { pickup_hours_mode?: string | null; delivery_hours_mode?: string | null }, bh, nowMs);
+}
+
 // FOOD-2 — "betalen bij afhalen/levering": alleen als de winkel het aanzette én de klant
 // afhaalt of laat leveren. Zit niet in getAvailablePaymentMethods, zodat eigen frontends
 // zonder afhalen/leveren niets nieuws zien.
@@ -902,7 +929,9 @@ async function slotCounts(supabase: SupabaseLike, tenantId: string, fromIso: str
 }
 
 async function fulfillmentSlotsFor(supabase: SupabaseLike, tenantId: string, type: ServiceType, nowMs = Date.now()) {
-  const settings = await loadFulfillmentSettings(supabase, tenantId);
+  const raw = await loadFulfillmentSettings(supabase, tenantId);
+  // UREN-1 — openingsuren en sluitingsdagen erin verwerkt (zie effectiveFulfillment).
+  const settings = raw ? await effectiveFulfillment(supabase, tenantId, raw, nowMs) : null;
   // PAUSE-1 — additief: alleen aanwezig als de zaak gepauzeerd of vandaag dicht is.
   const blocked = orderingBlocked(settings, nowMs);
   const pause = blocked ? { blocked } : {};
@@ -6355,7 +6384,7 @@ const CLOSED_SHOP_BLOCKED_ACTIONS: ReadonlySet<string> = new Set([
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
   // Versiestempel voor deploy-verificatie (neveneffectvrij); bij elke batch ophogen.
-  if (req.method === 'GET') return new Response(JSON.stringify({ ok: true, version: 'QR-MODULES-1' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  if (req.method === 'GET') return new Response(JSON.stringify({ ok: true, version: 'UREN-1' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
   try {
     const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);

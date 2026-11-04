@@ -4,6 +4,15 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.15d — Openingsuren op één plek, ook op je website (feature, 04-11-2026)
+Onder Instellingen › Bedrijfsgegevens vul je je openingsuren in, met blokken per dag (ook tot na middernacht) en uitzonderlijke sluitingsdagen met een korte reden. Je website toont ze in de voettekst en bovenaan je menukaart, met "Nu open" of wanneer je weer opengaat. Afhalen, leveren en online reserveren nemen ze standaard over; wil je daar andere uren, kies dan "Eigen uren". Bestaande eigen uren blijven staan.
+i18n: `public.changelog.changes.opening_hours`
+
+### 2026.15d — Je eigen website, ook met een horecapakket (feature, 04-11-2026)
+Met een horecapakket staat er in het menu nu Website: thema, logo en kleuren, voettekst, pagina's en je homepage, met je site ernaast. Verzending, retouren en webshopkortingen blijven bij de webshop.
+Beschikbaar vanaf: Horeca Small en Horeca Big.
+i18n: `public.changelog.changes.website_horeca`
+
 ### 2026.15c — Kassa en beheer naast elkaar op hetzelfde toestel (improvement, 02-11-2026)
 De kassa heeft voortaan een eigen aanmelding. Ben je in beheer aangemeld, dan blijf je dat als je de kassa opent, en een gekoppelde kassa blijft gekoppeld als je naar beheer gaat. Ben je op dit toestel als zaakvoerder in beheer aangemeld, dan koppel je het met één tik: kies de kassa en tik op "Dit toestel nu koppelen". Bovenaan het koppelscherm staat een knop terug naar beheer. Toestellen die al gekoppeld waren, blijven gekoppeld.
 i18n: `public.changelog.changes.kassa_next_to_admin`

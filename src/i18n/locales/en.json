@@ -184,7 +184,8 @@
       "platform_overview": "Platform overview",
       "email_automations": "Automations",
       "floor": "Floor",
-      "pos_app": "POS app"
+      "pos_app": "POS app",
+      "website": "Website"
     },
     "bottom": {
       "today": "Today",
@@ -1690,7 +1691,10 @@
       "pay_methods_one": "{{count}} payment method at the till",
       "pay_methods_few": "{{count}} payment methods at the till",
       "pay_methods_many": "{{count}} payment methods at the till",
-      "pay_methods_other": "{{count}} payment methods at the till"
+      "pay_methods_other": "{{count}} payment methods at the till",
+      "hours_set": "Filled in",
+      "hours_not_set": "Not filled in yet",
+      "website_status": "Theme, logo, pages and homepage on {{domain}}"
     },
     "bottomNav": {
       "title": "My bottom bar on the phone",
@@ -1716,6 +1720,45 @@
       "intro": "Connect your own Odoo accounting: SellQo books your invoices and credit notes there automatically.",
       "dialog_title": "Odoo accounting",
       "dialog_desc": "Connect your own Odoo and set up the sync."
+    },
+    "businessHours": {
+      "title": "Opening hours",
+      "intro": "One place for your hours. Your website shows them, and pickup, delivery and online reservations use them by default.",
+      "week_title": "Weekly schedule",
+      "week_hint": "One to three blocks per day, e.g. 11:30–14:00 and 17:30–22:00. If the end time is before the start time, the block runs past midnight.",
+      "day_open": "{{day}} open",
+      "closed": "Closed",
+      "from": "From",
+      "to": "To",
+      "remove_block": "Remove block",
+      "add_block": "Add block",
+      "after_midnight": "past midnight",
+      "range_invalid": "Start and end time cannot be the same",
+      "copy_monday": "Copy Monday's hours to all open days",
+      "closures_title": "Exceptional closing days",
+      "closures_hint": "Holidays, a public holiday or renovation work: a date or a period, with a short reason if you like. On those days nobody can order pickup or delivery or book online.",
+      "closures_none": "No closing days planned.",
+      "closure_from": "From",
+      "closure_to": "Until (optional)",
+      "closure_reason": "Reason (optional)",
+      "closure_reason_placeholder": "e.g. Christmas holidays",
+      "closure_add": "Add",
+      "closed_on": "Closed on",
+      "error_range": "A block has an invalid time, or start and end are the same.",
+      "error_too_many": "At most three blocks per day.",
+      "error_closure_dates": "A closing day has no valid date.",
+      "error_closure_order": "A closing period ends before it starts.",
+      "error_closure_reason": "The reason is too long (80 characters at most).",
+      "saved": "Opening hours saved",
+      "save_failed": "Saving failed: {{reason}}",
+      "save": "Save opening hours",
+      "unsaved": "Unsaved changes",
+      "read_only": "Only the owner can change the opening hours.",
+      "mode_business": "Same as opening hours",
+      "mode_own": "Own hours",
+      "mode_business_empty": "You haven't filled in opening hours yet. As long as they are empty, there are no times here.",
+      "fill_in": "Fill in opening hours",
+      "edit_link": "Change opening hours"
     }
   },
   "languages": {
@@ -7393,7 +7436,9 @@
         "qr_tables_from_floor_plan": "You have a floor plan: every table has its own secure QR code. Print the table stickers from the floor plan. Plain table numbers no longer work in your venue.",
         "qr_open_floor_plan": "Go to floor plan",
         "allergens_none_label": "Contains none of the 14 allergens",
-        "allergens_none_disabled": "Not available while an allergen is checked."
+        "allergens_none_disabled": "Not available while an allergen is checked.",
+        "closed_moved": "Closing days (holidays, public holidays) are now with your opening hours in Settings › Company details. They apply to pickup, delivery and online reservations.",
+        "closed_moved_link": "Go to opening hours"
       },
       "schema": {
         "themeGallery": {
@@ -7673,7 +7718,14 @@
         "legal_desc": "Terms, privacy, returns and shipping",
         "own_domain": "Own domain",
         "own_domain_desc": "Connect your own domain name to your webshop.",
-        "select_shop": "Select a store to continue"
+        "select_shop": "Select a store to continue",
+        "title_site": "Website",
+        "site_on": "Your website on {{domain}}",
+        "your_site": "Your website",
+        "view_site": "View website",
+        "own_domain_desc_site": "Connect your own domain name to your website.",
+        "hours_desc": "Shown on your site: in the footer and at the top of your menu.",
+        "customize_intro_site": "Adjust colours, logo, fonts and your homepage in one screen, with your website next to it."
       },
       "features": {
         "newsletter_where": "Subscribing always requires confirmation. You manage your subscribers and your welcome email in Marketing:",
@@ -12300,7 +12352,7 @@
     "onlineEnabled": "Online reservations on",
     "onlineLink": "Guests reserve at",
     "hoursTitle": "When can guests reserve online?",
-    "hoursHint": "Per day the first and last arrival time. Days without hours are closed online; your closing days from Ordering apply too.",
+    "hoursHint": "The first and last arrival time per day. Days without hours are closed online; your closing days from Settings › Company details also apply.",
     "closed": "closed",
     "from": "From",
     "to": "To",
@@ -12319,7 +12371,8 @@
     "noticeNone": "until the last moment",
     "noticeDay": "the day before",
     "noHoursWarning": "Online reservations are on, but there are no hours yet: guests won’t see any free times.",
-    "onlineHow": "With online reservations on, your webshop gets a \"Reserveren\" button. A request shows up here and on the till (orange). Mobile numbers are deleted after 30 days."
+    "onlineHow": "With online reservations on, your webshop gets a \"Reserveren\" button. A request shows up here and on the till (orange). Mobile numbers are deleted after 30 days.",
+    "businessHoursHint": "With \"Same as opening hours\", guests can arrive from opening time until just before closing time."
   },
   "ai_images_toast": {
     "generated": "Image generated!",

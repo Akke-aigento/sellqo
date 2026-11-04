@@ -43,6 +43,8 @@ import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import { schemaText } from '@/components/admin/storefront/schema/schemaText';
 import { assertRowsWritten, isNoRowsWrittenError } from '@/lib/supabaseWriteGuard';
+import { useTracks } from '@/hooks/useBusinessModules';
+import { canAddSection } from '@/lib/siteSections';
 
 // Thema-velden die de standaardshop echt gebruikt. Andere instellingen staan hier
 // bewust niet: een knop die niets doet, is erger dan geen knop.
@@ -223,6 +225,7 @@ function SchemaSectionFields({ section, def, icons, onChange }: {
 
 export default function StorefrontCustomizePage() {
   const { t } = useTranslation();
+  const { hasTrack } = useTracks();
   const { currentTenant } = useTenant();
   const { themeSettings, sections: serverSections, pages, settingsLoading, sectionsLoading } = useStorefront();
   const { categories } = useCategories();
@@ -579,7 +582,9 @@ export default function StorefrontCustomizePage() {
                         </PopoverTrigger>
                         <PopoverContent align="start" className="w-[340px] p-1.5">
                           {[...ADDABLE.map((a) => ({ ...a, label: t(`admin.storefrontCustomize.sec_${a.type}`), hint: t(`admin.storefrontCustomize.hint_${a.type}`) })),
-                            ...Object.entries(schema?.sections || {}).map(([type, d]) => ({ type, label: schemaText(t, d.label), hint: schemaText(t, d.hint), icon: SCHEMA_ICONS[type] || LayoutList }))].map((a) => (
+                            ...Object.entries(schema?.sections || {}).map(([type, d]) => ({ type, label: schemaText(t, d.label), hint: schemaText(t, d.hint), icon: SCHEMA_ICONS[type] || LayoutList }))]
+                            // WEBSITE-HORECA-1: horeca zonder webshop/events krijgt enkel secties die op haar site werken.
+                            .filter((a) => canAddSection(a.type, hasTrack)).map((a) => (
                             <button key={a.type} type="button" onClick={() => addSection(a.type)}
                               className="flex w-full items-start gap-2.5 rounded-md px-2.5 py-2 text-left hover:bg-muted">
                               <a.icon className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />

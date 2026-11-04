@@ -202,7 +202,10 @@ const salesItems: NavItem[] = [
       { id: 'ticket-checkin', titleKey: 'navigation.items.ticket_checkin', url: '/admin/checkin', allowedRoles: ['platform_admin', 'tenant_admin', 'staff'] },
     ],
   },
-  { id: 'storefront', tracks: ['webshop'], titleKey: 'navigation.items.storefront', url: '/admin/storefront', icon: Globe, featureKey: 'webshop_builder', excludeRoles: ['marketing'], requireRead: 'themes' },
+  // WEBSITE-HORECA-1 (4 nov): ook horeca krijgt het site-uiterlijk (thema, logo, kleuren, voettekst, pagina's,
+  // homepage, domein). In de horeca-zijbalk heet het "Website" (sidebarLabelKey); verzending, retouren,
+  // webshopkortingen en producten-als-webshop blijven bij het webshopspoor of de add-on.
+  { id: 'storefront', tracks: ['webshop', 'horeca'], titleKey: 'navigation.items.storefront', url: '/admin/storefront', icon: Globe, featureKey: 'webshop_builder', excludeRoles: ['marketing'], requireRead: 'themes' },
   { id: 'payments', titleKey: 'navigation.items.payments', url: '/admin/payments', icon: Banknote, excludeRoles: ['marketing'], requireRead: 'payments' },
   {
     id: 'promotions',
@@ -321,7 +324,8 @@ export const sidebarGroups: NavGroup[] = [
  */
 const HORECA_ONLY_LAYOUT: { id: string; titleKey: string; ids: string[] }[] = [
   { id: 'daily', titleKey: 'navigation.groups.daily', ids: ['dashboard', 'pos', 'ordering', 'kitchen', 'orders'] },
-  { id: 'management', titleKey: 'navigation.groups.management', ids: ['horeca-menu', 'payments', 'reports', 'purchasing'] },
+  // WEBSITE-HORECA-1: "Website" ('storefront') na de Kaart.
+  { id: 'management', titleKey: 'navigation.groups.management', ids: ['horeca-menu', 'storefront', 'payments', 'reports', 'purchasing'] },
   { id: 'system', titleKey: 'navigation.groups.system', ids: ['settings', 'help'] },
 ];
 /** Bij horeca + webshop/events: de horeca-items samen in één groep, na Dagelijks. */

@@ -71,9 +71,10 @@ describe('werkplek per spoor', () => {
   const visibleTop = (has: (t: Track) => boolean) =>
     sidebarGroups.flatMap((g) => g.items).filter((i) => tracksAllow(i.tracks, has)).map((i) => i.id);
 
+  // WEBSITE-HORECA-1 (4 nov): 'storefront' (site-uiterlijk, in de horeca-zijbalk "Website") hoort er nu bij.
   it('horeca-only: geen webshop-, marketing- of klantenpagina’s', () => {
     expect(visibleTop((t) => t === 'horeca')).toEqual([
-      'dashboard', 'orders', 'pos', 'ordering', 'horeca-menu', 'kitchen', 'payments',
+      'dashboard', 'orders', 'pos', 'ordering', 'horeca-menu', 'kitchen', 'storefront', 'payments',
       'purchasing', 'reports', 'billing', 'settings', 'help',
     ]);
   });
@@ -84,6 +85,10 @@ describe('werkplek per spoor', () => {
         expect(ids, `${t}:${id}`).toContain(id);
       }
     }
+  });
+  it('WEBSITE-HORECA-1: de website-pagina staat open voor webshop en horeca', () => {
+    expect(tracksFor('/admin/storefront')).toEqual(['webshop', 'horeca']);
+    expect(tracksFor('/admin/storefront/aanpassen')).toEqual(['webshop', 'horeca']);
   });
   it('bewaakt de pagina’s die horeca-only niet ziet', () => {
     expect(tracksFor('/admin/customers/abc')).toEqual(['webshop', 'events']);

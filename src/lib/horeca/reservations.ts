@@ -6,6 +6,7 @@
 // "geannuleerd" zet altijd een mens.
 import { supabase } from '@/integrations/supabase/client';
 import type { Db } from '@/lib/supabaseScope';
+import { resolveHoursMode } from '@/lib/businessHours';
 
 /** RESERVATIE-2: 'requested' = online aangevraagd, nog niet bevestigd; 'declined' = geweigerd. */
 export type ReservationStatus = 'requested' | 'booked' | 'seated' | 'cancelled' | 'no_show' | 'declined';
@@ -35,9 +36,12 @@ export interface OnlineReservationSettings {
   max_party: number;
   days_ahead: number;
   min_notice_minutes: number;
+  /** UREN-1: 'business' = zelfde als de openingsuren, 'own' = online_hours. NULL in de databank = afgeleid. */
+  online_hours_mode: 'business' | 'own';
 }
 export const DEFAULT_ONLINE_SETTINGS: OnlineReservationSettings = {
   online_enabled: false, online_hours: {}, slot_minutes: 15, max_guests_per_slot: 20, max_party: 8, days_ahead: 30, min_notice_minutes: 120,
+  online_hours_mode: 'business',
 };
 
 /** Geldig uurbereik "HH:MM"–"HH:MM" (van ≤ tot). */
@@ -138,10 +142,13 @@ export async function fetchReservationSettings(tenantId: string, db: Db = supaba
 
 export async function fetchOnlineSettings(tenantId: string): Promise<OnlineReservationSettings> {
   const { data, error } = await supabase.from('reservation_settings' as never)
-    .select('online_enabled, online_hours, slot_minutes, max_guests_per_slot, max_party, days_ahead, min_notice_minutes')
+    .select('online_enabled, online_hours, slot_minutes, max_guests_per_slot, max_party, days_ahead, min_notice_minutes, online_hours_mode')
     .eq('tenant_id' as never, tenantId as never).maybeSingle();
   if (error) throw error;
-  return { ...DEFAULT_ONLINE_SETTINGS, ...((data as Partial<OnlineReservationSettings> | null) ?? {}) };
+  const row = (data as (Partial<Omit<OnlineReservationSettings, 'online_hours_mode'>> & { online_hours_mode?: string | null }) | null) ?? {};
+  const merged = { ...DEFAULT_ONLINE_SETTINGS, ...row } as OnlineReservationSettings;
+  // UREN-1: zelfde afleiding als reservation_slots — eigen uren ingevuld en geen keuze → eigen uren.
+  return { ...merged, online_hours_mode: resolveHoursMode(row.online_hours_mode, merged.online_hours) };
 }
 
 export async function saveOnlineSettings(tenantId: string, s: OnlineReservationSettings): Promise<void> {

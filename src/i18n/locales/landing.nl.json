@@ -373,7 +373,8 @@
       "name_events_vast": "Events Vast",
       "name_horeca": "Horeca Small",
       "name_horeca_big": "Horeca Big",
-      "feat_ai_actions": "AI-assistent die je cijfers kent en wijzigingen voor je klaarzet"
+      "feat_ai_actions": "AI-assistent die je cijfers kent en wijzigingen voor je klaarzet",
+      "feat_site": "Eigen website op jouwzaak.sellqo.shop: thema, logo, kleuren en pagina's"
     },
     "faq": {
       "heading": "Veelgestelde vragen",
@@ -2504,6 +2505,14 @@
         "kitchen_header_mobile": {
           "title": "Keukenscherm past op je gsm",
           "description": "Op een smal scherm loopt de bovenbalk van het keukenscherm door op een tweede rij. Alle knoppen (posten, pauze, afdrukken, geluid, meldingen en kassa) blijven zichtbaar."
+        },
+        "opening_hours": {
+          "title": "Openingsuren op één plek, ook op je website",
+          "description": "Onder Instellingen › Bedrijfsgegevens vul je je openingsuren in: per dag één tot drie blokken, ook tot na middernacht, en uitzonderlijke sluitingsdagen (een datum of een periode) met een korte reden. Je website toont ze in de voettekst en bovenaan je menukaart, met \"Nu open\" of wanneer je weer opengaat. Afhalen, leveren en online reserveren nemen ze standaard over; wil je daar andere uren, kies dan \"Eigen uren\". Had je al eigen afhaal-, lever- of reservatie-uren, dan blijven die gewoon staan. Sluitingsdagen die je bij afhalen en leveren had ingesteld, staan nu bij je openingsuren."
+        },
+        "website_horeca": {
+          "title": "Je eigen website, ook met een horecapakket",
+          "description": "Met een horecapakket staat er in het menu nu Website, na de Kaart. Daar kies je een thema, zet je je logo en kleuren, schrijf je je voettekst, maak je pagina's en stel je je homepage samen, met je site ernaast. Je voegt enkel secties toe die op je site werken. Verzending, retouren en webshopkortingen horen bij de webshop en blijven daar."
         }
       },
       "copyLink": "Kopieer link",

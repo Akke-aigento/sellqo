@@ -212,7 +212,8 @@
       "platform_overview": "Aperçu de la plateforme",
       "email_automations": "Automatisations",
       "floor": "Salle",
-      "pos_app": "Appli caisse"
+      "pos_app": "Appli caisse",
+      "website": "Site web"
     },
     "bottom": {
       "today": "Aujourd'hui",
@@ -1718,7 +1719,10 @@
       "pay_methods_one": "{{count}} moyen de paiement à la caisse",
       "pay_methods_few": "{{count}} moyens de paiement à la caisse",
       "pay_methods_many": "{{count}} moyens de paiement à la caisse",
-      "pay_methods_other": "{{count}} moyens de paiement à la caisse"
+      "pay_methods_other": "{{count}} moyens de paiement à la caisse",
+      "hours_set": "Remplies",
+      "hours_not_set": "Pas encore remplies",
+      "website_status": "Thème, logo, pages et page d'accueil sur {{domain}}"
     },
     "bottomNav": {
       "title": "Ma barre du bas sur le téléphone",
@@ -1744,6 +1748,45 @@
       "intro": "Connecte ta propre comptabilité Odoo : SellQo y enregistre automatiquement tes factures et notes de crédit.",
       "dialog_title": "Comptabilité Odoo",
       "dialog_desc": "Connecte ton propre Odoo et configure la synchronisation."
+    },
+    "businessHours": {
+      "title": "Heures d'ouverture",
+      "intro": "Un seul endroit pour vos horaires. Votre site les affiche, et le retrait, la livraison et les réservations en ligne les reprennent par défaut.",
+      "week_title": "Horaire de la semaine",
+      "week_hint": "Un à trois créneaux par jour, p. ex. 11:30–14:00 et 17:30–22:00. Si l'heure de fin précède l'heure de début, le créneau se prolonge après minuit.",
+      "day_open": "{{day}} ouvert",
+      "closed": "Fermé",
+      "from": "De",
+      "to": "À",
+      "remove_block": "Supprimer le créneau",
+      "add_block": "Ajouter un créneau",
+      "after_midnight": "après minuit",
+      "range_invalid": "L'heure de début et de fin ne peuvent pas être identiques",
+      "copy_monday": "Copier les horaires du lundi vers tous les jours ouverts",
+      "closures_title": "Fermetures exceptionnelles",
+      "closures_hint": "Vacances, jour férié ou travaux : une date ou une période, avec une courte raison si vous le souhaitez. Ces jours-là, pas de retrait, de livraison ni de réservation en ligne.",
+      "closures_none": "Aucune fermeture prévue.",
+      "closure_from": "Du",
+      "closure_to": "Jusqu'au (facultatif)",
+      "closure_reason": "Raison (facultatif)",
+      "closure_reason_placeholder": "p. ex. Vacances de Noël",
+      "closure_add": "Ajouter",
+      "closed_on": "Fermé le",
+      "error_range": "Un créneau a une heure invalide, ou le début et la fin sont identiques.",
+      "error_too_many": "Trois créneaux par jour au maximum.",
+      "error_closure_dates": "Une fermeture n'a pas de date valide.",
+      "error_closure_order": "Une période de fermeture se termine avant de commencer.",
+      "error_closure_reason": "La raison est trop longue (80 caractères maximum).",
+      "saved": "Heures d'ouverture enregistrées",
+      "save_failed": "L'enregistrement a échoué : {{reason}}",
+      "save": "Enregistrer les heures d'ouverture",
+      "unsaved": "Modifications non enregistrées",
+      "read_only": "Seul le gérant peut modifier les heures d'ouverture.",
+      "mode_business": "Comme les heures d'ouverture",
+      "mode_own": "Horaires propres",
+      "mode_business_empty": "Vous n'avez pas encore rempli vos heures d'ouverture. Tant qu'elles sont vides, il n'y a pas de créneaux ici.",
+      "fill_in": "Remplir les heures d'ouverture",
+      "edit_link": "Modifier les heures d'ouverture"
     }
   },
   "languages": {
@@ -7062,7 +7105,9 @@
         "qr_tables_from_floor_plan": "Vous avez un plan de salle : chaque table a son propre code QR sécurisé. Imprimez les autocollants de table depuis le plan de salle. Les simples numéros de table ne fonctionnent plus dans votre établissement.",
         "qr_open_floor_plan": "Aller au plan de salle",
         "allergens_none_label": "Ne contient aucun des 14 allergènes",
-        "allergens_none_disabled": "Indisponible tant qu’un allergène est coché."
+        "allergens_none_disabled": "Indisponible tant qu’un allergène est coché.",
+        "closed_moved": "Les jours de fermeture (vacances, jours fériés) se trouvent désormais avec vos heures d'ouverture dans Paramètres › Données de l'entreprise. Ils valent pour le retrait, la livraison et les réservations en ligne.",
+        "closed_moved_link": "Vers les heures d'ouverture"
       },
       "schema": {
         "themeGallery": {
@@ -7342,7 +7387,14 @@
         "legal_desc": "Conditions, confidentialité, retours et livraison",
         "own_domain": "Domaine personnalisé",
         "own_domain_desc": "Associez votre propre nom de domaine à votre boutique en ligne.",
-        "select_shop": "Sélectionnez une boutique pour continuer"
+        "select_shop": "Sélectionnez une boutique pour continuer",
+        "title_site": "Site web",
+        "site_on": "Votre site sur {{domain}}",
+        "your_site": "Votre site",
+        "view_site": "Voir le site",
+        "own_domain_desc_site": "Associez votre propre nom de domaine à votre site.",
+        "hours_desc": "Affichées sur votre site : en pied de page et en haut de votre carte.",
+        "customize_intro_site": "Ajustez couleurs, logo, polices et votre page d'accueil dans un seul écran, avec votre site à côté."
       },
       "features": {
         "newsletter_where": "L’inscription se fait toujours avec confirmation. Vous gérez vos abonnés et votre e-mail de bienvenue dans Marketing :",
@@ -12300,7 +12352,7 @@
     "onlineEnabled": "Réservation en ligne activée",
     "onlineLink": "Les clients réservent sur",
     "hoursTitle": "Quand peut-on réserver en ligne ?",
-    "hoursHint": "Par jour, la première et la dernière heure d’arrivée. Les jours sans heures sont fermés en ligne ; vos jours de fermeture de Commandes s’appliquent aussi.",
+    "hoursHint": "Par jour, la première et la dernière heure d'arrivée. Les jours sans horaires sont fermés en ligne ; vos jours de fermeture de Paramètres › Données de l'entreprise s'appliquent aussi.",
     "closed": "fermé",
     "from": "De",
     "to": "À",
@@ -12319,7 +12371,8 @@
     "noticeNone": "jusqu’au dernier moment",
     "noticeDay": "la veille",
     "noHoursWarning": "La réservation en ligne est activée, mais aucune heure n’est encore définie : les clients ne voient aucune heure libre.",
-    "onlineHow": "Avec la réservation en ligne, votre boutique affiche un bouton « Reserveren ». Une demande apparaît ici et sur la caisse (orange). Les numéros de GSM sont supprimés après 30 jours."
+    "onlineHow": "Avec la réservation en ligne, votre boutique affiche un bouton « Reserveren ». Une demande apparaît ici et sur la caisse (orange). Les numéros de GSM sont supprimés après 30 jours.",
+    "businessHoursHint": "Avec « Comme les heures d'ouverture », les clients peuvent arriver de l'ouverture jusqu'à juste avant la fermeture."
   },
   "ai_images_toast": {
     "generated": "Image générée !",

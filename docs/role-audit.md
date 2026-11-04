@@ -1,3 +1,72 @@
+## UREN-1 + WEBSITE-HORECA-1 — openingsuren van de zaak op één plek, en het site-uiterlijk voor horeca (2026.15d) — 4 november 2026
+
+Branch `uren-1` vanaf `origin/main` 4cf0e6b; storefront: branch `uren-1` in `Akke-aigento/sellqo-storefront` vanaf cab4e66. Plan-scope (vastgelegd): openingsuren in elk spoor en elk plan, geen nieuwe feature-sleutel (`webshop_builder` staat live op true in alle 8 plannen), geen grandfathering.
+
+**Root cause**
+- **Geen algemene openingsuren.** Drie losse sets: `fulfillment_settings.hours` (afhalen/leveren, FOOD-1, `src/components/admin/storefront/food/FulfillmentSettings.tsx`), `reservation_settings.online_hours` (RESERVATIE-2, `reservation_slots` in `20261030220000_reservatie_2.sql`) en de sluitingsdagen `fulfillment_settings.closed_dates` (PAUSE-1). De publieke site had enkel vrije tekst in de sectie `contact_hours` (live in 5 demowinkels), geen "nu open", geen structured data.
+- **Horeca zag het site-uiterlijk niet.** `sidebarConfig.ts:205` `storefront` had `tracks: ['webshop']`, `Settings.tsx:127` `domain` `['webshop','events']`. De route `/admin/storefront` had geen spoorbewaking (Bestellen › Overzicht linkte er al naartoe), dus het was bereikbaar maar onvindbaar. Prijzenpagina: de horecakolom toonde "Webshop op jouwzaak.sellqo.shop" (`planLines.ts`, `feat_webshop`) zonder dat horeca de webshop-editor in het menu had.
+- Live nagemeten (4-11, read-only): 3 zaken met `fulfillment_settings`, alle drie met eigen afhaaluren, 2 met eigen leveruren; 0 rijen `reservation_settings`; 0 rijen met `closed_dates`; `business_hours` bestond niet; `reservation_slots` live = repo.
+
+**Uitgevoerd**
+- Databank `supabase/migrations/20261104120000_uren_1.sql`:
+  - nieuwe tabel `business_hours` (één rij per zaak): `week` jsonb (zelfde vorm als `fulfillment_settings.hours` per soort, 0 = zondag, max. 3 blokken per dag, "tot" vóór "van" = tot na middernacht), `closures` jsonb (`[{from,to,reason}]`, periode ≤ 366 dagen, reden ≤ 80), `timezone` (standaard Europe/Brussels). CHECK-constraints via `business_hours_week_valid` / `business_closures_valid` (immutable, `search_path ''`). Trigger `updated_at`.
+  - additief: `fulfillment_settings.pickup_hours_mode`, `delivery_hours_mode`, `reservation_settings.online_hours_mode` (`'business'|'own'`, NULL toegelaten). NULL = afgeleid: eigen uren ingevuld → `own`, anders `business`. Geen enkele bestaande rij overschreven; de drie live zaken blijven dus op hun eigen afhaaluren.
+  - `reservation_slots` (zelfde signatuur, `create or replace`): volgt de keuze; bij `business` aankomen vanaf openingsuur tot vóór sluitingsuur, blokken over middernacht (staart op de volgende kalenderdag); sluitingsdagen uit `business_hours.closures`.
+  - kopie van komende `closed_dates` naar `business_hours.closures` (enkel ontbrekende datums, herhaalbaar; live vandaag leeg).
+- `supabase/functions/_shared/businessHours.ts` (nieuw): `parseWeek`, `parseClosures`, `resolveHoursMode`, `splitOvernight`, `closureDates`, `publicBusinessHours`. `_shared/fulfillmentSlots.ts`: `withBusinessHours()` (uren per soort + sluitingsdagen; `closed_dates` niet meer gelezen).
+- `supabase/functions/storefront-api/index.ts`: `get_config` (en dus `get_storefront_bundle`) krijgt achteraan `business_hours: { timezone, week, closures } | null` (enkel komende sluitingen, max. 10); `loadBusinessHours` (foutbestendig) en `effectiveFulfillment` in `fulfillmentSlotsFor` (get_fulfillment_slots, checkout_service, validateCartFulfillment). `loadFulfillmentSettings` zelf byte-gelijk. Stempel `QR-MODULES-1` → `UREN-1`, header `uren-1` (vier tests in `scripts/promo-compare` mee).
+- Beheer:
+  - `src/lib/businessHours.ts`, `src/hooks/useBusinessHours.ts`, `src/components/admin/settings/hours/{BusinessHoursCard,WeekHoursEditor,BusinessHoursSummary,HoursModeChoice,dayNames}` (nieuw). Kaart "Openingsuren" (`#openingsuren`) onder de bedrijfsgegevens in `BusinessSettings.tsx`, eigen bewaarknop, alleen-lezen zonder `settings_general`-schrijfrecht.
+  - `FulfillmentSettings.tsx`: per soort (tab Uren afhalen / Uren levering) "Zelfde als openingsuren" of "Eigen uren"; de oude kaart Sluitingsdagen is een link naar de openingsuren; `closed_dates` wordt niet meer geschreven.
+  - `OnlineReservationsCard.tsx` + `src/lib/horeca/reservations.ts`: zelfde keuze (`online_hours_mode`), waarschuwing "geen uren" volgt de keuze.
+  - `HorecaSettingsHub.tsx`: regels Openingsuren en Website (enkel links).
+  - WEBSITE-HORECA-1: `sidebarConfig.ts` `storefront` tracks `['webshop','horeca']`, in de horeca-zijbalk na Kaart; `bottomNav.ts` label "Website" zonder webshop (zijbalk en onderbalk); `Settings.tsx` `domain` ook horeca; `Storefront.tsx` woorden "Website" voor horeca zonder webshop/events + link Openingsuren voor iedereen; `StorefrontCustomize.tsx` + `src/lib/siteSections.ts`: horeca-only kan geen eventagenda, nieuwsbrief of winkelreviews toevoegen (bestaande blijven beheerbaar).
+  - `planLines.ts`: horecaplannen tonen `feat_site` ("Eigen website op jouwzaak.sellqo.shop: thema, logo, kleuren en pagina's") in plaats van `feat_webshop`.
+- i18n nl/en/fr/de/uk: `settings.businessHours.*`, `settings.horecaHub.hours_set|hours_not_set|website_status`, `navigation.items.website`, `admin.storefront.page.{title_site,site_on,your_site,view_site,own_domain_desc_site,hours_desc,customize_intro_site}`, `admin.storefront.food.closed_moved(_link)`, `reservations.businessHoursHint`, `reservations.hoursHint` herschreven; landing: `landing.pricing.feat_site`, changelog `opening_hours`, `website_horeca`.
+- Storefront (`sellqo-storefront`): voettekstblok, badge op `/menu` en bij afhalen/leveren in `/afrekenen`, `LocalBusiness` + `openingHoursSpecification` op de homepage, sectie `contact_hours` met `hours_source`; zie de role-audit daar.
+
+**Samenhang**
+
+| Plek | Doet nu | Wat verandert | Voorstel / stand |
+|---|---|---|---|
+| Instellingen › Bedrijfsgegevens | adres, contact, logo (`tenants.logo_url`, e-maillogo) | + kaart Openingsuren | de enige bewerkplek voor uren en sluitingsdagen |
+| Kaart › Instellen › Webshop: afhalen & leveren | eigen uren per soort + kaart Sluitingsdagen | keuze Zelfde als / Eigen uren; Sluitingsdagen = link | gedaan |
+| Kaart › Reservaties › Online reserveren | eigen aankomsturen | keuze Zelfde als / Eigen uren | gedaan |
+| Instellingen › Horeca | overzicht met links | + Openingsuren, + Website (links) | gedaan |
+| Homepage-sectie "Openingsuren en contact" | vrije tekst per dag | toont de openingsuren, tenzij "Eigen tekst" of nog niets ingevuld | gedaan (geen sleutel hernoemd; nieuwe sleutel `hours_source`) |
+| Kassa-dagafsluiting (Z om 06:00), PERSONEEL-uren | eigen begrippen | ongemoeid | geen dubbel |
+| Website / Webshop-pagina | enkel webshopspoor in het menu | horeca: "Website" na Kaart | gedaan |
+| Instellingen › Domeinen | webshop + events | + horeca | gedaan; de claim "eigen domein (binnenkort)" blijft (DOMAIN-1) |
+| Logo: Bedrijfsgegevens (`tenants.logo_url`) / Branding (`tenant_theme_settings.logo_url, favicon, brand_color, primary_color`) / Aanpassen › Thema (zelfde themavelden) | Branding en Aanpassen bewerken dezelfde velden | niets | bestaand dubbel; voorstel: Branding wordt een link naar Aanpassen › Thema. Raakt ook eigen frontends (Branding is hun enige plek) → aparte go, zie Vervolg |
+| Prijzenpagina horecakolom | "Webshop op …" | "Eigen website op …: thema, logo, kleuren en pagina's" | gedaan (bron: menu-item + route) |
+
+**Security-keuzes**
+- `business_hours`: RLS aan; `business_hours_select` (authenticated, lid van de zaak of platformadmin), `business_hours_write` (FOR ALL, `tenant_admin` van de zaak of platformadmin; zoals `fulfillment_settings` en de UPDATE-policy op `tenants`). `revoke all … from anon`. Geen anon-policy: de site leest via `storefront-api` (service role). Geen gevoelige gegevens in het publieke veld.
+- `reservation_slots`: blijft SECURITY DEFINER, `search_path ''`, execute enkel `service_role` (opnieuw gezet na `create or replace`).
+- Geen kolom op `tenant_theme_settings` of een andere gedeelde storefronttabel.
+
+**Gedeelde-paden-waarschuwing**
+- `storefront-api` bedient alle eigen frontends. Enkel additief: een nieuwe sleutel `business_hours` achteraan in `get_config`/bundle (bestaande sleutels en volgorde gelijk, test `businessHours.test.ts`); `resolve_domain` ongewijzigd (rooktest sleutels groen). Afhaal-/leversloten: voor zaken met eigen uren en zonder keuze ongewijzigd; zonder eigen uren nemen ze de openingsuren over (zonder openingsuren: geen sloten, zoals voorheen). Faalt de lees van `business_hours` (bv. deploy vóór migratie), dan het oude gedrag.
+- `_shared/fulfillmentSlots.ts` wordt enkel door `storefront-api` geïmporteerd (grep) → deploylijst: enkel `storefront-api`.
+- `loadFulfillmentSettings` (ook QR, betalen aan tafel, oproepen) ongewijzigd.
+
+**Verificatie**
+- `npx tsc --noEmit -p tsconfig.app.json` exit 0 (logbestand). `npm run build` exit 0 (sitemap teruggezet).
+- `node scripts/verify-lint-baseline.mjs`: "Gelijk aan de baseline" (1457).
+- `i18n-parity.mjs` groen (5 talen, 11359 keys), `check-i18n-used-keys.mjs` groen; mail, customer_messages, meldingsbronnen, dode knoppen, edge-pins, capacitor, skills-sync: exit 0.
+- Vitest CI-stap (met nieuw `src/lib/businessHours.test.ts`): 38 bestanden, 440 groen. `horecaMenu.test.ts` en `tracks.test.ts` aangepast aan de nieuwe afgesproken lijst.
+- Deno: `_shared/businessHours.test.ts` (14) + `fulfillmentSlots.test.ts` groen; de _shared-lijst uit CI 244 groen (3 bestanden met deno.land-imports kunnen hier niet laden, ook niet op HEAD). `scripts/promo-compare` CI-lijst incl. nieuw `businessHours.test.ts` (8): 215 groen. Rooktest `smoke.ts` met import map (esm.sh-supabase → npm) groen. `deno check` storefront-api met npm-supabase: dezelfde 7 stub-fouten als HEAD, 0 nieuwe.
+- `scripts/gks/sql/run.sh` (PG16): alle blokken groen, nieuw blok UREN-1 (`09_uren_prelude.sql`, `test_uren.sql`, 31 controles: kopie één keer en enkel komend, constraints, RLS anon/staff/andere zaak/beheerder-upsert, reservation_slots nieuw/bestaand/keuze/sluitingsperiode/oude closed_dates genegeerd/over middernacht/zonder uren); migratie 2×. Docs-migratie 2× op een wegwerpdatabank: zelfde md5.
+- Harnas `uren` (390/1280): zie screenshots `/home/claude/uren-shots/admin/`. Zijbalk horeca: "… Kaart · Website · Betalingen …"; horeca+webshop: "Webshop" onder Verkoop. Bewaren schrijft één upsert op `business_hours` met de nieuwe dag en sluitingsdag; lezer: 0 bewaarknoppen, 7 schakelaars uit. Afhalen: bestaande eigen uren = "Eigen uren", levering zonder uren = "Zelfde als" met samenvatting. Geen horizontale overloop.
+
+**Bewust ongemoeid / Vervolg**
+- `src/kassa/` ongewijzigd. `fulfillment_settings.closed_dates` blijft staan (dood na deze batch, niet droppen).
+- Juridische pagina's (retour/verzending) blijven voor horeca zichtbaar: met afhalen/leveren verkoopt de zaak op afstand. `LegalPagesManager` is nog hardcoded Nederlands (bestaand).
+- `ShopOpenCard` spreekt nog van "winkel"; de standaardhome zonder secties en de voettekstkolom "Shop · Alle producten" zijn webshopwoorden voor een horecasite (storefront weet niet of het horeca is). Voorstel: kleine vervolgbatch met een additief veld in `resolve_domain`.
+- Dubbele bewerkplek Branding / Aanpassen › Thema (zie Samenhang): aparte go.
+- "Zo snel mogelijk" bestellen buiten de openingsuren wordt (zoals vroeger) niet geweigerd; enkel sluitingsdagen en pauze blokkeren. Voorstel apart.
+- Live: zie de uitrolvolgorde in het rapport (migratie → deploy storefront-api → push storefront → publish sellqo.app → docs-migratie → kopie-blok 5 nog eens draaien).
+
 ## KASSA-MOBIEL-1 — kassa naast beheer op één toestel (eigen kassa-aanmelding, één-tik-koppelen), keukenkop op gsm, "Meldingen aanzetten" faalde (2026.15c, kassa 0.22.0) — 2 november 2026
 
 Branch `kassa-mobiel-1` vanaf `origin/main` 30bbf68. Aanleiding: test van Akke op zijn iPhone (Safari en beginscherm-app, web).

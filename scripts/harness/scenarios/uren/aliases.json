@@ -1,0 +1,22 @@
+{
+  "@/integrations/supabase/client": "mocks/supabase.ts",
+  "@/hooks/useTenant": "mocks/tenant.ts",
+  "@/hooks/useBusinessModules": "mocks/tracks.ts",
+  "@/hooks/useCan": "mocks/can.ts",
+  "@/hooks/useAuth": "mocks/auth.ts",
+  "@/hooks/useSidebarPreferences": "mocks/sidebarHooks.ts",
+  "@/hooks/useTenantPageOverrides": "mocks/sidebarHooks.ts",
+  "@/hooks/usePlatformViewMode": "mocks/sidebarHooks.ts",
+  "/^\\./SidebarCustomizeDialog$/": "mocks/sidebarHooks.ts",
+  "/^\\./sidebar/InboxBadge$/": "mocks/sidebarHooks.ts",
+  "/^\\./sidebar/AdsAiBadge$/": "mocks/sidebarHooks.ts",
+  "/^\\./sidebar/useNavItemVisibility$/": "mocks/visibility.ts",
+  "@/components/admin/sidebar/useNavItemVisibility": "mocks/visibility.ts",
+  "/^\\./useTenant$/": "mocks/tenant.ts",
+  "/^\\./useAuth$/": "mocks/auth.ts",
+  "@/hooks/useUsageLimits": "mocks/usage.ts",
+  "@/hooks/useLogoUpload": "mocks/logo.ts",
+  "@/hooks/useInvoiceCompliance": "mocks/compliance.ts",
+  "@/hooks/useFrontendMode": "mocks/storefront.ts",
+  "@/hooks/useStorefront": "mocks/storefront.ts"
+}

@@ -11,9 +11,10 @@ const more = (tracks: Track[]) => moreNavItems((t) => tracks.includes(t)).map((i
 describe('menu per spoor', () => {
   // HORECA-ZIJBALK-1 (Akke, 1 nov): Vandaag, Kassa-app, Zaal, Keuken, Bestellingen, Kaart, Betalingen,
   // Rapporten, Inkoop, Instellingen, Help — in die volgorde.
+  // WEBSITE-HORECA-1 (Akke, 4 nov): "Website" ('storefront') erbij, na de Kaart.
   it('horeca: de afgesproken lijst, in die volgorde — niets meer', () => {
     const ids = visibleNavIds(['horeca']);
-    expect(ids).toEqual(['dashboard', 'pos', 'ordering', 'kitchen', 'orders', 'orders-all', 'horeca-menu', 'payments', 'reports', 'reports-overview', 'purchasing', 'settings', 'help']);
+    expect(ids).toEqual(['dashboard', 'pos', 'ordering', 'kitchen', 'orders', 'orders-all', 'horeca-menu', 'storefront', 'payments', 'reports', 'reports-overview', 'purchasing', 'settings', 'help']);
   });
 
   it('horeca: de korte lijst laat geen zichtbaar item vallen (zelfde set als de gewone groepen)', () => {
@@ -35,6 +36,16 @@ describe('menu per spoor', () => {
     expect(sidebarLabelKey({ id: 'pos', titleKey: 'navigation.items.pos' }, only)).toBe('navigation.items.pos_app');
     expect(sidebarLabelKey({ id: 'pos', titleKey: 'navigation.items.pos' }, { ...only, webshop: true })).toBe('navigation.items.pos');
     expect(sidebarLabelKey({ id: 'dashboard', titleKey: 'navigation.dashboard' }, { horeca: false, webshop: true, events: false })).toBe('navigation.dashboard');
+    // WEBSITE-HORECA-1: Website zonder webshop, Webshop met.
+    expect(sidebarLabelKey({ id: 'storefront', titleKey: 'navigation.items.storefront' }, only)).toBe('navigation.items.website');
+    expect(sidebarLabelKey({ id: 'storefront', titleKey: 'navigation.items.storefront' }, { ...only, webshop: true })).toBe('navigation.items.storefront');
+    expect(sidebarLabelKey({ id: 'storefront', titleKey: 'navigation.items.storefront' }, { horeca: false, webshop: false, events: true })).toBe('navigation.items.storefront');
+  });
+
+  it('horeca: Website staat in de zijbalk, niet onder Meer onderdelen; events ziet hem niet', () => {
+    expect(visibleNavIds(['horeca'])).toContain('storefront');
+    expect(more(['horeca'])).not.toContain('storefront');
+    expect(visibleNavIds(['events'])).not.toContain('storefront');
   });
 
   it('combinatie: horeca-items samen in een groep Horeca na Dagelijks', () => {

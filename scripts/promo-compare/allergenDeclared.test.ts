@@ -48,7 +48,7 @@ Deno.test('get_product: zelfde regel', async () => {
   assert(no.success === true && !('allergens_declared' in no.data), JSON.stringify(no).slice(0, 400));
 });
 
-Deno.test('GET-stempel QR-MODULES-1', async () => {
+Deno.test('GET-stempel UREN-1', async () => {
   const r = await handler(new Request('https://f/storefront-api', { method: 'GET' }));
-  assert((await r.json()).version === 'QR-MODULES-1' && r.headers.get('X-SellQo-Api-Rev') === 'qr-modules-1', 'stempel');
+  assert((await r.json()).version === 'UREN-1' && r.headers.get('X-SellQo-Api-Rev') === 'uren-1', 'stempel');
 });
