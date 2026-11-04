@@ -5973,6 +5973,7 @@ export type Database = {
           grid_w: number
           id: string
           is_active: boolean
+          is_open: boolean
           name: string
           sort: number
           tenant_id: string
@@ -5984,6 +5985,7 @@ export type Database = {
           grid_w?: number
           id?: string
           is_active?: boolean
+          is_open?: boolean
           name: string
           sort?: number
           tenant_id: string
@@ -5995,6 +5997,7 @@ export type Database = {
           grid_w?: number
           id?: string
           is_active?: boolean
+          is_open?: boolean
           name?: string
           sort?: number
           tenant_id?: string
@@ -15489,6 +15492,7 @@ export type Database = {
           compare_at_price: number | null
           cost_price: number | null
           created_at: string | null
+          daily_special_until: string | null
           description: string | null
           dietary: string[]
           digital_delivery_type:
@@ -15629,6 +15633,7 @@ export type Database = {
           compare_at_price?: number | null
           cost_price?: number | null
           created_at?: string | null
+          daily_special_until?: string | null
           description?: string | null
           dietary?: string[]
           digital_delivery_type?:
@@ -15769,6 +15774,7 @@ export type Database = {
           compare_at_price?: number | null
           cost_price?: number | null
           created_at?: string | null
+          daily_special_until?: string | null
           description?: string | null
           dietary?: string[]
           digital_delivery_type?:
@@ -25147,6 +25153,10 @@ export type Database = {
         Returns: number
       }
       business_closures_valid: { Args: { p: Json }; Returns: boolean }
+      business_hours_close_today: {
+        Args: { p_closed: boolean; p_reason?: string; p_tenant_id: string }
+        Returns: Json
+      }
       business_hours_week_valid: { Args: { p: Json }; Returns: boolean }
       calculate_session_expected_cash: {
         Args: { p_session_id: string }
@@ -25271,6 +25281,7 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      clear_daily_specials: { Args: { p_tenant_id: string }; Returns: number }
       complete_sync_activity: {
         Args: {
           p_activity_id: string
@@ -25780,6 +25791,11 @@ export type Database = {
         Args: { p_staff_id: string; p_tenant_id: string }
         Returns: Json
       }
+      kassa_now_apply: {
+        Args: { p: Json; p_device_id: string; p_tenant_id: string }
+        Returns: Json
+      }
+      kassa_now_state: { Args: { p_tenant_id: string }; Returns: Json }
       kassa_open_session: {
         Args: {
           p_note: string
@@ -26228,6 +26244,10 @@ export type Database = {
           p_seat_ids: string[]
         }
         Returns: Json
+      }
+      set_product_daily_special: {
+        Args: { p_on: boolean; p_product_id: string }
+        Returns: string
       }
       set_product_sold_out_today: {
         Args: { p_product_id: string; p_sold_out: boolean }
