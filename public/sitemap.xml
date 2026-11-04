@@ -185,7 +185,7 @@
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://sellqo.app/blog/shop-health-score</loc>
+    <loc>https://sellqo.app/blog/meerdere-fotos-per-variant</loc>
     <lastmod>2026-10-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
@@ -203,19 +203,7 @@
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://sellqo.app/blog/meerdere-fotos-per-variant</loc>
-    <lastmod>2026-10-16</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
     <loc>https://sellqo.app/blog/verzendlanden-per-verzendmethode</loc>
-    <lastmod>2026-10-16</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://sellqo.app/blog/verkoopkanalen-zichtbaar-in-je-boekhouding</loc>
     <lastmod>2026-10-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
@@ -228,6 +216,18 @@
   </url>
   <url>
     <loc>https://sellqo.app/blog/btw-in-de-checkout-klopt-met-je-factuur</loc>
+    <lastmod>2026-10-16</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://sellqo.app/blog/shop-health-score</loc>
+    <lastmod>2026-10-16</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://sellqo.app/blog/verkoopkanalen-zichtbaar-in-je-boekhouding</loc>
     <lastmod>2026-10-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
