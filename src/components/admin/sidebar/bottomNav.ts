@@ -37,6 +37,11 @@ export function bottomNavLabelKey(item: Pick<NavItem, 'id' | 'titleKey'>, c: Bot
   if (item.id === 'dashboard' && c.horeca) return 'navigation.bottom.today';
   // WEBSITE-HORECA-1: zonder webshop heet het site-uiterlijk "Website".
   if (item.id === 'storefront' && c.horeca && !c.webshop) return 'navigation.items.website';
+  // HORECA-INSTELLINGEN-1: zelfde namen als in de zijbalk.
+  if (c.horeca && !c.webshop && !c.events) {
+    if (item.id === 'settings') return 'navigation.items.my_business';
+    if (item.id === 'payments') return 'navigation.items.transactions';
+  }
   return SHORT_LABEL[item.id] ?? item.titleKey;
 }
 
@@ -50,6 +55,11 @@ export function sidebarLabelKey(item: Pick<NavItem, 'id' | 'titleKey'>, c: Botto
   if (item.id === 'pos' && c.horeca && !c.webshop) return 'navigation.items.pos_app';
   // WEBSITE-HORECA-1: zonder webshop is het geen webshop maar de website van de zaak.
   if (item.id === 'storefront' && c.horeca && !c.webshop) return 'navigation.items.website';
+  // HORECA-INSTELLINGEN-1: horeca-only — Instellingen heet "Mijn zaak", Betalingen "Transacties" (onder Rapporten).
+  if (c.horeca && !c.webshop && !c.events) {
+    if (item.id === 'settings') return 'navigation.items.my_business';
+    if (item.id === 'payments') return 'navigation.items.transactions';
+  }
   return item.titleKey;
 }
 

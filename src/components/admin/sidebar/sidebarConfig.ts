@@ -20,6 +20,8 @@ import {
   ChefHat,
   UtensilsCrossed,
   CalendarDays,
+  CalendarClock,
+  UserRound,
   Globe,
   Search,
   Gift,
@@ -88,6 +90,11 @@ export interface NavItem {
    * bv. Leveranciersdocumenten onder Inkoop.
    */
   activeAlso?: string[];
+  /**
+   * HORECA-INSTELLINGEN-1 — bestaat enkel in de horeca-only-indeling (horeca zonder webshop/events):
+   * staat in geen enkele andere zijbalk, onderbalk-kiezer of Meer onderdelen. De pagina zelf volgt `tracks`.
+   */
+  horecaOnly?: boolean;
 }
 
 export interface NavGroup {
@@ -310,6 +317,16 @@ const platformItems: NavItem[] = [
   { id: 'platform-docs', titleKey: 'navigation.items.platform_docs', url: '/admin/platform/docs', icon: Library },
 ];
 
+// HORECA-INSTELLINGEN-1 — items die enkel de horeca-only-zijbalk kent. Niet in sidebarGroups, zodat
+// geen andere zaak (webshop, events, combinaties) ze ooit ziet; wel in findNavItems/findTrackRule.
+const horecaOnlyItems: NavItem[] = [
+  // Reservaties stond onder Kaart (/admin/bestellen?tab=reservaties); die link stuurt hierheen door.
+  { id: 'reservations', horecaOnly: true, tracks: ['horeca'], titleKey: 'navigation.items.reservations', url: '/admin/reservaties', icon: CalendarClock, excludeRoles: ['marketing', 'accountant', 'warehouse'], requireRead: 'orders' },
+  // Personeel: kassa-PIN, uren en beheerders op één plek (was Kassa › Personeel en Instellingen › Teamleden).
+  { id: 'staff', horecaOnly: true, tracks: ['horeca'], titleKey: 'navigation.items.staff', url: '/admin/personeel', icon: UserRound, excludeRoles: ['marketing', 'accountant', 'warehouse'], requireRead: 'pos' },
+];
+const horecaOnlyGroup: NavGroup = { id: 'horeca-only', titleKey: 'navigation.groups.horeca', items: horecaOnlyItems };
+
 export const sidebarGroups: NavGroup[] = [
   { id: 'daily', titleKey: 'navigation.groups.daily', items: dailyItems },
   { id: 'sales', titleKey: 'navigation.groups.sales', items: salesItems },
@@ -323,11 +340,26 @@ export const sidebarGroups: NavGroup[] = [
  * de items zelf (titel, rechten, sporen) blijven op één plek hierboven gedefinieerd.
  */
 const HORECA_ONLY_LAYOUT: { id: string; titleKey: string; ids: string[] }[] = [
-  { id: 'daily', titleKey: 'navigation.groups.daily', ids: ['dashboard', 'pos', 'ordering', 'kitchen', 'orders'] },
-  // WEBSITE-HORECA-1: "Website" ('storefront') na de Kaart.
-  { id: 'management', titleKey: 'navigation.groups.management', ids: ['horeca-menu', 'storefront', 'payments', 'reports', 'purchasing'] },
+  // HORECA-INSTELLINGEN-1: Reservaties als eigen item (stond onder Kaart).
+  { id: 'daily', titleKey: 'navigation.groups.daily', ids: ['dashboard', 'pos', 'ordering', 'kitchen', 'orders', 'reservations'] },
+  // WEBSITE-HORECA-1: "Website" ('storefront') na de Kaart. HORECA-INSTELLINGEN-1: Personeel na de Kaart;
+  // Betalingen ('payments') staat als "Transacties" onder Rapporten (zie REPORTS_WITH_TRANSACTIONS).
+  { id: 'management', titleKey: 'navigation.groups.management', ids: ['horeca-menu', 'staff', 'storefront', 'reports', 'purchasing'] },
+  // "Instellingen" heet hier "Mijn zaak" (sidebarLabelKey).
   { id: 'system', titleKey: 'navigation.groups.system', ids: ['settings', 'help'] },
 ];
+
+/**
+ * HORECA-INSTELLINGEN-1 — Rapporten in de horeca-only-zijbalk: met Transacties (het item 'payments',
+ * zelfde pagina /admin/payments en zelfde rechten) als kind. De definitie van beide items blijft één.
+ */
+function horecaOnlyItemsFor(ids: string[]): NavItem[] {
+  return findNavItems(ids).map((item) => {
+    if (item.id !== 'reports') return item;
+    const payments = findNavItems(['payments'])[0];
+    return payments ? { ...item, children: [...(item.children ?? []), { ...payments, icon: undefined }] } : item;
+  });
+}
 /** Bij horeca + webshop/events: de horeca-items samen in één groep, na Dagelijks. */
 const HORECA_GROUP_IDS = ['pos', 'ordering', 'kitchen', 'horeca-menu'];
 
@@ -341,7 +373,7 @@ const HORECA_GROUP_IDS = ['pos', 'ordering', 'kitchen', 'horeca-menu'];
 export function sidebarLayout(has: (t: Track) => boolean): NavGroup[] {
   if (!has('horeca')) return sidebarGroups;
   if (!has('webshop') && !has('events')) {
-    return HORECA_ONLY_LAYOUT.map((g) => ({ id: g.id, titleKey: g.titleKey, items: findNavItems(g.ids) }));
+    return HORECA_ONLY_LAYOUT.map((g) => ({ id: g.id, titleKey: g.titleKey, items: horecaOnlyItemsFor(g.ids) }));
   }
   const out: NavGroup[] = [];
   for (const group of sidebarGroups) {
@@ -364,7 +396,7 @@ export const platformGroup: NavGroup = { id: 'platform', titleKey: 'navigation.p
  */
 export function findNavItems(ids: string[]): NavItem[] {
   const byId = new Map<string, NavItem>();
-  for (const group of sidebarGroups) {
+  for (const group of [...sidebarGroups, horecaOnlyGroup]) {
     for (const item of group.items) {
       byId.set(item.id, item);
       for (const child of item.children ?? []) byId.set(child.id, child);
@@ -393,7 +425,7 @@ export function findTrackRule(pathname: string): { item: NavItem; tracks: Track[
     }
     best = { item, tracks: tracks ?? [], len: item.url.length };
   };
-  for (const group of sidebarGroups) {
+  for (const group of [...sidebarGroups, horecaOnlyGroup]) {
     for (const item of group.items) {
       consider(item, item.tracks);
       for (const child of item.children ?? []) consider(child, child.tracks ?? item.tracks);
@@ -407,7 +439,9 @@ export function findTrackRule(pathname: string): { item: NavItem; tracks: Track[
 export function getAllMenuItems(): { id: string; titleKey: string; groupKey: string }[] {
   const items: { id: string; titleKey: string; groupKey: string }[] = [];
 
-  for (const group of sidebarGroups) {
+  // HORECA-INSTELLINGEN-1: ook de horeca-only-items (de onderbalk-kiezer filtert ze via isItemBlocked weg
+  // voor elke andere zaak).
+  for (const group of [...sidebarGroups, horecaOnlyGroup]) {
     for (const item of group.items) {
       items.push({ id: item.id, titleKey: item.titleKey, groupKey: group.titleKey });
       if (item.children) {
@@ -427,6 +461,11 @@ export function getAllMenuItems(): { id: string; titleKey: string; groupKey: str
  * abonnement en voorkeuren komen daar nog bovenop). Kern-items zonder spoor blijven overal.
  * Gebruikt door de test die elk spoor vastlegt, zodat een nieuwe tag nooit stil een spoor verandert.
  */
+/** Alle url's die in een zijbalk kunnen oplichten (ook de horeca-only-items). */
+export function allNavGroups(): NavGroup[] {
+  return [...sidebarGroups, horecaOnlyGroup];
+}
+
 export function visibleNavIds(tracks: readonly Track[]): string[] {
   const has = (t: Track) => tracks.includes(t);
   const out: string[] = [];

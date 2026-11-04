@@ -3,7 +3,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Track } from '@/lib/tracks';
 import { bottomNavUrl, sidebarLabelKey } from './bottomNav';
-import { inSidebar, moreNavItems, sidebarGroups, sidebarLayout, visibleNavIds } from './sidebarConfig';
+import { findNavItems, findTrackRule, inSidebar, moreNavItems, sidebarGroups, sidebarLayout, visibleNavIds } from './sidebarConfig';
 
 const KERN = ['dashboard', 'settings', 'help', 'billing'];
 const more = (tracks: Track[]) => moreNavItems((t) => tracks.includes(t)).map((i) => i.id);
@@ -12,16 +12,46 @@ describe('menu per spoor', () => {
   // HORECA-ZIJBALK-1 (Akke, 1 nov): Vandaag, Kassa-app, Zaal, Keuken, Bestellingen, Kaart, Betalingen,
   // Rapporten, Inkoop, Instellingen, Help — in die volgorde.
   // WEBSITE-HORECA-1 (Akke, 4 nov): "Website" ('storefront') erbij, na de Kaart.
+  // HORECA-INSTELLINGEN-1 (Akke, 4 nov): Reservaties in Dagelijks, Personeel na de Kaart, Betalingen als
+  // "Transacties" onder Rapporten, Instellingen heet "Mijn zaak".
   it('horeca: de afgesproken lijst, in die volgorde — niets meer', () => {
     const ids = visibleNavIds(['horeca']);
-    expect(ids).toEqual(['dashboard', 'pos', 'ordering', 'kitchen', 'orders', 'orders-all', 'horeca-menu', 'storefront', 'payments', 'reports', 'reports-overview', 'purchasing', 'settings', 'help']);
+    expect(ids).toEqual(['dashboard', 'pos', 'ordering', 'kitchen', 'orders', 'orders-all', 'reservations', 'horeca-menu', 'staff', 'storefront', 'reports', 'reports-overview', 'payments', 'purchasing', 'settings', 'help']);
+    const groups = sidebarLayout((t) => t === 'horeca');
+    expect(groups.map((g) => g.items.map((i) => i.id))).toEqual([
+      ['dashboard', 'pos', 'ordering', 'kitchen', 'orders', 'reservations'],
+      ['horeca-menu', 'staff', 'storefront', 'reports', 'purchasing'],
+      ['settings', 'help'],
+    ]);
   });
 
-  it('horeca: de korte lijst laat geen zichtbaar item vallen (zelfde set als de gewone groepen)', () => {
+  it('horeca: de korte lijst laat geen zichtbaar item vallen (Betalingen staat als kind onder Rapporten)', () => {
     const has = (t: Track) => t === 'horeca';
     const flat = sidebarGroups.flatMap((g) => g.items).filter((i) => inSidebar(i, has)).map((i) => i.id).sort();
-    const layout = sidebarLayout(has).flatMap((g) => g.items).filter((i) => inSidebar(i, has)).map((i) => i.id).sort();
-    expect(layout).toEqual(flat);
+    const layout = sidebarLayout(has).flatMap((g) => g.items.flatMap((i) => [i, ...(i.children ?? [])])).filter((i) => inSidebar(i, has)).map((i) => i.id);
+    for (const id of flat) expect(layout).toContain(id);
+  });
+
+  it('horeca-only-items (Reservaties, Personeel) staan in geen andere zijbalk, maar hun pagina is horeca', () => {
+    for (const tracks of [['webshop'], ['events'], ['horeca', 'webshop'], ['horeca', 'events']] as Track[][]) {
+      const ids = visibleNavIds(tracks);
+      expect(ids).not.toContain('reservations');
+      expect(ids).not.toContain('staff');
+    }
+    expect(findTrackRule('/admin/personeel')?.tracks).toEqual(['horeca']);
+    expect(findTrackRule('/admin/reservaties')?.tracks).toEqual(['horeca']);
+    expect(findNavItems(['reservations', 'staff']).every((i) => i.horecaOnly)).toBe(true);
+    expect(more(['horeca'])).not.toContain('payments');
+  });
+
+  it('labels horeca-only: Mijn zaak en Transacties; elders ongewijzigd', () => {
+    const only = { horeca: true, webshop: false, events: false };
+    expect(sidebarLabelKey({ id: 'settings', titleKey: 'navigation.settings' }, only)).toBe('navigation.items.my_business');
+    expect(sidebarLabelKey({ id: 'payments', titleKey: 'navigation.items.payments' }, only)).toBe('navigation.items.transactions');
+    for (const c of [{ ...only, webshop: true }, { ...only, events: true }, { horeca: false, webshop: true, events: false }]) {
+      expect(sidebarLabelKey({ id: 'settings', titleKey: 'navigation.settings' }, c)).toBe('navigation.settings');
+      expect(sidebarLabelKey({ id: 'payments', titleKey: 'navigation.items.payments' }, c)).toBe('navigation.items.payments');
+    }
   });
 
   it('horeca: SellQo-plan, Facturen en Voorraad blijven bereikbaar via Meer onderdelen', () => {

@@ -34,4 +34,12 @@ describe('onderbalk', () => {
     expect(bottomNavLabelKey({ id: 'ordering', titleKey: 'navigation.items.floor' }, horecaOnly)).toBe('navigation.bottom.floor');
     expect(bottomNavLabelKey({ id: 'horeca-menu', titleKey: 'admin.orderingHub.tab_menu' }, horecaOnly)).toBe('navigation.bottom.menu');
   });
+
+  // HORECA-INSTELLINGEN-1: zelfde namen als de zijbalk; de standaardbalk blijft Vandaag · Kassa · Keuken · Kaart.
+  it('horeca-only: Mijn zaak en Transacties; standaard ongewijzigd', () => {
+    expect(bottomNavLabelKey({ id: 'settings', titleKey: 'navigation.settings' }, horecaOnly)).toBe('navigation.items.my_business');
+    expect(bottomNavLabelKey({ id: 'payments', titleKey: 'navigation.items.payments' }, horecaOnly)).toBe('navigation.items.transactions');
+    expect(bottomNavLabelKey({ id: 'settings', titleKey: 'navigation.settings' }, mixed)).toBe('navigation.settings');
+    expect(defaultBottomNavIds(horecaOnly)).toEqual(['dashboard', 'pos', 'kitchen', 'horeca-menu']);
+  });
 });

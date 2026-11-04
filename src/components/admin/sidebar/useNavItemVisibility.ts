@@ -7,7 +7,7 @@ import { useTenantSubscription } from '@/hooks/useTenantSubscription';
 import { usePlatformViewMode } from '@/hooks/usePlatformViewMode';
 import { canWithRoles, type Resource } from '@/hooks/useCan';
 import { useTracks } from '@/hooks/useBusinessModules';
-import { tracksAllow } from '@/lib/tracks';
+import { isHorecaOnly, tracksAllow } from '@/lib/tracks';
 import { WAREHOUSE_ALLOWED_ITEMS, type NavItem } from './sidebarConfig';
 
 /**
@@ -127,6 +127,8 @@ export function useNavItemVisibility() {
       isResourceHidden(item.requireRead) ||
       // TRACKS-1 — buiten de sporen van de winkel (platformadmin in beheerweergave ziet alles).
       !tracksAllow(item.tracks, hasTrack) ||
+      // HORECA-INSTELLINGEN-1 — Reservaties en Personeel bestaan als menu-item enkel voor horeca-only.
+      (item.horecaOnly === true && !isHorecaOnly(hasTrack)) ||
       isItemRoleHidden(item) ||
       isItemFeatureHidden(item) ||
       isItemPageOverridden(item),

@@ -10,7 +10,9 @@ import { useTenantPageOverrides } from '@/hooks/useTenantPageOverrides';
 import { usePlatformViewMode } from '@/hooks/usePlatformViewMode';
 import { SellqoLogo } from '@/components/SellqoLogo';
 import { SidebarCustomizeDialog } from './SidebarCustomizeDialog';
-import { sidebarGroups, sidebarLayout, platformGroup, getAllMenuItems, inSidebar, type NavItem, type NavGroup } from './sidebar/sidebarConfig';
+import { allNavGroups, sidebarLayout, platformGroup, getAllMenuItems, inSidebar, type NavItem, type NavGroup } from './sidebar/sidebarConfig';
+import { isHorecaOnly } from '@/lib/tracks';
+import { mijnZaakUrl } from '@/lib/mijnZaak';
 import { useNavItemVisibility } from './sidebar/useNavItemVisibility';
 import { bottomNavUrl, sidebarLabelKey } from './sidebar/bottomNav';
 import { useTracks } from '@/hooks/useBusinessModules';
@@ -74,6 +76,7 @@ export function AdminSidebar() {
   // HORECA-ZIJBALK-1: "Vandaag" en "Kassa-app" bij horeca; volgorde en groepen per spoor.
   const label = (item: NavItem) => t(sidebarLabelKey(item, navCtx));
   const groups = sidebarLayout(hasTrack);
+  const horecaOnly = isHorecaOnly(hasTrack);
   // TRACKS-3: een item kan bereikbaar zijn maar niet in de zijbalk staan (Instellingen › Meer onderdelen).
   const hideInSidebar = (item: NavItem) => shouldHideItem(item) || !inSidebar(item, hasTrack);
 
@@ -88,7 +91,7 @@ export function AdminSidebar() {
       urls.push({ match: item.url, url: item.url });
       for (const m of item.activeAlso ?? []) urls.push({ match: m, url: item.url });
     };
-    for (const group of [...sidebarGroups, platformGroup]) {
+    for (const group of [...allNavGroups(), platformGroup]) {
       for (const item of group.items) {
         add(item);
         for (const child of item.children ?? []) add(child);
@@ -116,13 +119,15 @@ export function AdminSidebar() {
 
   useEffect(() => {
     if (!activeUrl) return;
-    for (const group of [...sidebarGroups, platformGroup]) {
+    // HORECA-INSTELLINGEN-1: de getoonde groepen (horeca-only zet Transacties onder Rapporten).
+    for (const group of [...groups, platformGroup]) {
       for (const item of group.items) {
         if (item.children?.some((c) => c.url === activeUrl) || (item.children && item.url === activeUrl)) {
           setOpenItems((prev) => (prev[item.id] ? prev : { ...prev, [item.id]: true }));
         }
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- groups volgt uit de sporen; enkel bij een andere route opnieuw
   }, [activeUrl]);
 
   useEffect(() => {
@@ -239,7 +244,7 @@ export function AdminSidebar() {
                     ) : (
                       <SidebarMenuSubButton asChild isActive={isActive(child.url)} className={cn(showAdminToggles && isPageHidden(child.id) && 'opacity-40')}>
                         <NavLink to={child.url} className="flex items-center justify-between w-full">
-                          <span>{t(child.titleKey)}</span>
+                          <span>{label(child)}</span>
                           {child.badge && child.id === 'ads-ai' && <AdsAiBadge />}
                           {renderPageToggle(child.id, child)}
                         </NavLink>
@@ -438,9 +443,10 @@ export function AdminSidebar() {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start" className="w-56">
                   <DropdownMenuItem asChild>
-                    <NavLink to="/admin/settings">
+                    {/* HORECA-INSTELLINGEN-1: horeca-only — je eigen account (Mijn zaak › Jij). */}
+                    <NavLink to={horecaOnly ? mijnZaakUrl('jij') : '/admin/settings'}>
                       <SettingsIcon className="mr-2 h-4 w-4" />
-                      {t('navigation.settings')}
+                      {horecaOnly ? t('mijnZaak.my_account') : t('navigation.settings')}
                     </NavLink>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
