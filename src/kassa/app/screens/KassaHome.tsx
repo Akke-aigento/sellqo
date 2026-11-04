@@ -10,7 +10,7 @@
 // KASSA-UX-6: in modus Bar een knop Toogverkoop (zonder eerst naar Zaal), en "Mijn dienst" in het ⋯-menu.
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, Banknote, Bell, BellOff, Check as CheckIcon, ChefHat, Clock, ExternalLink, FileBarChart, HandCoins, LayoutGrid, Loader2, LogOut, MoreHorizontal, Languages, Plus, ShoppingBag, Users, Wifi, WifiOff, Wine } from 'lucide-react';
+import { ArrowLeft, Banknote, Bell, BellOff, Check as CheckIcon, ChefHat, Clock, ExternalLink, FileBarChart, HandCoins, LayoutGrid, Loader2, LogOut, MoreHorizontal, Languages, Plus, ShoppingBag, Users, Wifi, WifiOff, Wine, Zap } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { SUPPORTED_LANGUAGES } from '@/i18n/languages';
@@ -29,6 +29,8 @@ import { CheckScreen } from './CheckScreen';
 import { CashScreen } from './CashScreen';
 import { ReportsScreen } from './ReportsScreen';
 import { MyShiftScreen } from './MyShiftScreen';
+// HORECA-NU-1: ⋯ › Nu (uitverkocht, keuken pauzeren, terras, dagschotel).
+import { NowScreen } from './NowScreen';
 import { lastService } from '../horeca/counter';
 import { useAutoAccept } from '../horeca/requests';
 import { RequestInboxButton } from './RequestInbox';
@@ -50,7 +52,7 @@ import { ReservationDialog } from '@/components/horeca/ReservationDialog';
 import { ReservationList } from '@/components/horeca/ReservationList';
 import { saveReservation, setReservationStatus } from '../horeca/reservationActions';
 
-type View = 'tables' | 'cash' | 'reports' | 'shift';
+type View = 'tables' | 'cash' | 'reports' | 'shift' | 'now';
 type Mode = 'zaal' | 'bar' | 'keuken';
 const MODE_KEY = 'sq_kassa_mode';
 const readMode = (): Mode => { try { const v = localStorage.getItem(MODE_KEY); return v === 'bar' || v === 'keuken' ? v : 'zaal'; } catch { return 'zaal'; } };
@@ -250,6 +252,7 @@ export function KassaHome({ runtime, store, alerts, terminalName, onForgetDevice
                 <button type="button" aria-label={t('kassa.home.menu')} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md border"><MoreHorizontal className="h-5 w-5" /></button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-64">
+                <DropdownMenuItem className="h-11" onClick={() => setView('now')}><Zap className="mr-2 h-4 w-4" />{t('kassa.home.tab.now')}</DropdownMenuItem>
                 <DropdownMenuItem className="h-11" onClick={() => setView('cash')}><Banknote className="mr-2 h-4 w-4" />{t('kassa.home.tab.cash')}</DropdownMenuItem>
                 <DropdownMenuItem className="h-11" onClick={() => setView('reports')}><FileBarChart className="mr-2 h-4 w-4" />{t('kassa.home.tab.reports')}</DropdownMenuItem>
                 <DropdownMenuItem className="h-11" onClick={() => setView('shift')}><HandCoins className="mr-2 h-4 w-4" />{t('kassa.home.tab.shift')}</DropdownMenuItem>
@@ -307,9 +310,9 @@ export function KassaHome({ runtime, store, alerts, terminalName, onForgetDevice
               <p className="text-lg font-bold">{t(`kassa.home.tab.${view}`)}</p>
             </div>
           )}
-          {view === 'cash' || view === 'reports' || view === 'shift' ? (
+          {view === 'cash' || view === 'reports' || view === 'shift' || view === 'now' ? (
             <div className="flex min-h-0 flex-1 flex-col overflow-y-auto" style={{ paddingBottom: 'var(--safe-bottom)' }}>
-              {view === 'cash' ? <CashScreen ctx={ctx} /> : view === 'shift' ? <MyShiftScreen ctx={ctx} /> : <ReportsScreen ctx={ctx} staffRole={staff.role} />}
+              {view === 'cash' ? <CashScreen ctx={ctx} /> : view === 'shift' ? <MyShiftScreen ctx={ctx} /> : view === 'now' ? <NowScreen ctx={ctx} /> : <ReportsScreen ctx={ctx} staffRole={staff.role} />}
             </div>
           ) : mode === 'keuken' ? (
             <div className="flex min-h-0 flex-1 flex-col bg-muted/40" style={{ paddingBottom: 'var(--safe-bottom)' }}>

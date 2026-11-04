@@ -234,8 +234,12 @@ export function TablesScreen({ store, staffId, tableLabel, onOpen, onCounter, on
             const tables = plan.tables.filter((x) => x.area_id === a.id).sort((x, y) => x.label.localeCompare(y.label, undefined, { numeric: true }));
             if (!tables.length) return null;
             return (
-              <section key={a.id}>
-                <h2 className="mb-2 text-sm font-bold uppercase tracking-wide text-muted-foreground">{a.name}</h2>
+              <section key={a.id} className={cn(a.is_open === false && 'opacity-60')}>
+                <h2 className="mb-2 text-sm font-bold uppercase tracking-wide text-muted-foreground">
+                  {a.name}
+                  {/* HORECA-NU-2a — zone dicht voor gasten; het personeel kan er gewoon op werken. */}
+                  {a.is_open === false ? <span className="ml-2 rounded bg-muted px-1.5 py-0.5 text-[11px]">{t('admin.floorPlan.zone_closed')}</span> : null}
+                </h2>
                 <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-6">
                   {tables.map((tb) => {
                     const c = byTable.get(tb.id);

@@ -15,6 +15,8 @@ export interface CatalogProduct {
   vat_label_takeaway: CheckLine['vat_label'];
   category_id: string | null;
   sold_out: boolean;
+  /** HORECA-NU-2b: vandaag dagschotel (products.daily_special_until in de toekomst). Gewone prijs. */
+  daily_special: boolean;
   addonGroups: CatalogAddonGroup[];
 }
 export interface Catalog { products: CatalogProduct[]; categories: { id: string; name: string }[] }
@@ -50,7 +52,7 @@ export function useCatalog(tenantId: string | null) {
     staleTime: 60_000,
     refetchInterval: 5 * 60_000,
     queryFn: async (): Promise<Catalog> => {
-      const [prod, cats, rates, groups, options, pcats] = await Promise.all([
+      const [prod, cats, rates, groups, options, pcats, specials] = await Promise.all([
         supabase.from('products').select('id, name, price, category_id, vat_rate_id, takeaway_vat_rate_id, channels, sold_out_until, menu_position').eq('tenant_id', tenantId!).eq('is_active', true).order('name'),
         supabase.from('categories').select('id, name, sort_order').eq('tenant_id', tenantId!).eq('is_active', true).order('sort_order').order('name'),
         // KASSA-0.6: de tarieven staan live globaal (tenant_id null); zoals de server
@@ -60,7 +62,10 @@ export function useCatalog(tenantId: string | null) {
         supabase.from('product_addon_groups').select('id, name, min_select, max_select, category_ids, product_ids, sort_order').eq('tenant_id', tenantId!).eq('is_active', true),
         supabase.from('product_addon_options').select('id, group_id, name, price, sort_order').eq('tenant_id', tenantId!).eq('is_active', true),
         supabase.from('product_categories').select('product_id, category_id'),
+        // HORECA-NU-2b — apart gelezen: vóór de migratie (kolom bestaat niet) gewoon geen dagschotel.
+        supabase.from('products').select('id, daily_special_until' as 'id').eq('tenant_id', tenantId!).gt('daily_special_until' as 'id', new Date().toISOString()),
       ]);
+      const specialIds = new Set(specials.error ? [] : ((specials.data ?? []) as unknown as { id: string }[]).map((r) => r.id));
       for (const r of [prod, cats, rates, groups, options]) if (r.error) throw r.error;
       const rateById = new Map((rates.data ?? []).map((r) => [r.id, Number(r.rate)]));
       // Zelfde terugval als de server: standaard van de zaak zelf, anders 21 %.
@@ -80,6 +85,7 @@ export function useCatalog(tenantId: string | null) {
           return {
             id: p.id, name: p.name, price_cents: Math.round(Number(p.price) * 100), vat_label: LABEL[rate] ?? 'A', vat_label_takeaway: LABEL[away] ?? 'A', category_id: p.category_id,
             sold_out: !!p.sold_out_until && new Date(p.sold_out_until).getTime() > now,
+            daily_special: specialIds.has(p.id),
             addonGroups: groupsFor(p, extra.get(p.id) ?? [], (groups.data ?? []) as never, (options.data ?? []) as never),
           };
         });

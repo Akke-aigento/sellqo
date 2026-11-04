@@ -13,7 +13,7 @@
 // gekozen gang bovenaan); latere gangen wachten als ontwerp tot "Gang … vrijgeven" (zie horeca/courses.ts).
 import { useMemo, useRef, useState, type PointerEvent as RPointerEvent, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, ChefHat, ChevronDown, ChevronUp, Flame, Loader2, Minus, MoreHorizontal, Plus, Search, Send, Receipt, ShieldCheck, Trash2, Wallet, X } from 'lucide-react';
+import { ArrowLeft, ChefHat, ChevronDown, ChevronUp, Flame, Loader2, Minus, MoreHorizontal, Plus, Search, Send, Receipt, Soup, ShieldCheck, Trash2, Wallet, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -94,6 +94,7 @@ export function CheckScreen({ ctx, checkId, onBack, onOpen, onPaid, initialPay =
   // Standaard: Populair als er genoeg verkoopgegevens zijn, anders de eerste categorie.
   const activeCat = cat ?? (popular.length ? POPULAR : catalog?.categories[0]?.id ?? ALL);
   const catIndex = useMemo(() => new Map((catalog?.categories ?? []).map((c, i) => [c.id, i])), [catalog]);
+  const specials = useMemo(() => (catalog?.products ?? []).filter((p) => p.daily_special), [catalog]);
   const products = useMemo(() => {
     const all = catalog?.products ?? [];
     const term = q.trim().toLowerCase();
@@ -346,6 +347,23 @@ export function CheckScreen({ ctx, checkId, onBack, onOpen, onPaid, initialPay =
           {chip(ALL, t('kassa.checks.allCategories'))}
         </div>
       )}
+      {/* HORECA-NU-2b — de dagschotel(s) van vandaag bovenaan, met één tik aan te slaan (gewone prijs). */}
+      {!searching && specials.length > 0 ? (
+        <div className="flex min-w-0 gap-1.5 overflow-x-auto [scrollbar-width:none]" data-testid="kassa-specials">
+          {specials.map((p) => (
+            <button key={p.id} type="button" onClick={() => tapProduct(p)} disabled={p.sold_out}
+              className="flex h-14 shrink-0 items-center gap-2 rounded-lg border-2 border-amber-500 bg-amber-50 px-3 text-left text-amber-950 active:scale-[0.98] disabled:opacity-50 dark:bg-amber-950 dark:text-amber-50">
+              <Soup className="h-5 w-5 shrink-0" aria-hidden />
+              <span className="flex min-w-0 flex-col leading-tight">
+                <span className="text-[11px] font-bold uppercase tracking-wide">{t('kassa.now.special.badge')}</span>
+                <span className="max-w-[12rem] truncate font-semibold">{p.name}</span>
+              </span>
+              <span className="text-sm font-bold tabular-nums">{p.sold_out ? t('kassa.checks.soldOut') : euro(p.price_cents)}</span>
+              {(counts.get(p.id) ?? 0) > 0 ? <span className="rounded-full bg-amber-600 px-1.5 text-xs font-bold text-white">{counts.get(p.id)}</span> : null}
+            </button>
+          ))}
+        </div>
+      ) : null}
       <div className="grid min-h-0 flex-1 auto-rows-min grid-cols-3 gap-1.5 overflow-y-auto sm:grid-cols-4 sm:gap-2 md:grid-cols-5 xl:grid-cols-6">
         {!catalog ? <Loader2 className="h-5 w-5 animate-spin" aria-label={t('kassa.common.loading')} /> : products.map((p) => (
           <ProductTile key={p.id} p={p} count={counts.get(p.id) ?? 0} flash={flash === p.id} tone={categoryTone(p.category_id ? catIndex.get(p.category_id) ?? -1 : -1)}
