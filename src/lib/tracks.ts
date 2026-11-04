@@ -34,3 +34,10 @@ export function tenantTracks({ planTrack, addons, granted }: TrackSources): Trac
 export function tracksAllow(itemTracks: readonly Track[] | undefined, has: (t: Track) => boolean): boolean {
   return !itemTracks || itemTracks.length === 0 || itemTracks.some(has);
 }
+
+/**
+ * Horeca als enige spoor: horeca zonder webshop- of events-add-on. Zo'n zaak krijgt de korte
+ * horeca-zijbalk, Mijn zaak en Personeel (HORECA-ZIJBALK-1, HORECA-INSTELLINGEN-1). Elke combinatie
+ * blijft het gewone menu houden.
+ */
+export const isHorecaOnly = (has: (t: Track) => boolean): boolean => has('horeca') && !has('webshop') && !has('events');
