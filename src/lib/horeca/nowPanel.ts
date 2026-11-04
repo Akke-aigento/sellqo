@@ -43,10 +43,25 @@ export function zoneTiles<T extends { is_active: boolean }>(areas: T[] | null | 
 }
 
 /**
- * Pauzeren heeft enkel zin als er online besteld kan worden (afhalen/leveren via de webshop): de pauze geldt
- * niet voor bestellen aan tafel (PAUSE-1, storefront-api). Een lopende pauze blijft altijd te hervatten.
+ * Pauzeren heeft zin als er online besteld kan worden (afhalen/leveren via de webshop) of, sinds
+ * HORECA-STAAT-1, via de QR aan tafel (dan liggen de keukengerechten stil). Een lopende pauze blijft altijd te
+ * hervatten. `tableOrdering` is optioneel: de kassa (src/kassa, fiscale kern) geeft het (nog) niet mee en
+ * houdt zo haar oude gedrag.
  */
-export const pauseTileVisible = (s: { onlineOrdering: boolean; paused: boolean }) => s.onlineOrdering || s.paused;
+export const pauseTileVisible = (s: { onlineOrdering: boolean; tableOrdering?: boolean; paused: boolean }) =>
+  s.onlineOrdering || !!s.tableOrdering || s.paused;
+
+/**
+ * HORECA-STAAT-1 — wat ligt stil tijdens een keukenpauze? Zelfde regel als storefront-api
+ * (_shared/orderingState.ts): online alles; aan tafel enkel de keukengerechten als de zaak bereidingsposten
+ * heeft, anders alles. Geeft de i18n-sleutel (admin.now.pause.effect_*).
+ */
+export function pauseEffectKey(s: { online: boolean; table: boolean; kitchenSplit: boolean }):
+  'effect_online_kitchen' | 'effect_online_table' | 'effect_online' | 'effect_kitchen' | 'effect_table' {
+  if (s.online && s.table) return s.kitchenSplit ? 'effect_online_kitchen' : 'effect_online_table';
+  if (s.table) return s.kitchenSplit ? 'effect_kitchen' : 'effect_table';
+  return 'effect_online';
+}
 
 /** Minimale vorm van de supabase-querybuilder die fetchActiveDailySpecials gebruikt (testbaar zonder client). */
 interface SpecialsQuery extends PromiseLike<{ data: unknown; error: { code?: string; message: string } | null }> {

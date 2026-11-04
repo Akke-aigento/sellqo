@@ -1,0 +1,7 @@
+{
+  "@/hooks/useSidebarPreferences": "mocks/prefs.ts",
+  "@/hooks/useBusinessModules": "mocks/tracks.ts",
+  "@/hooks/useUnreadMessagesCount": "mocks/unread.ts",
+  "/^\\./sidebar/useNavItemVisibility$/": "mocks/visibility.ts",
+  "@/components/admin/sidebar/useNavItemVisibility": "mocks/visibility.ts"
+}

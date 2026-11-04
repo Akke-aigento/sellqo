@@ -6,7 +6,7 @@
 //   - zonder tabel business_hours (fout van de databank): het oude gedrag;
 //   - UREN-1b: "buiten de openingsuren niet toestaan" voor afhalen/leveren zonder tijdsloten (outside_hours,
 //     OUTSIDE_HOURS) en voor QR aan tafel (checkout_table, table_request_place); standaard toegestaan;
-//   - GET-stempel HORECA-NU-1.
+//   - GET-stempel HORECA-STAAT-1.
 // Run (vanuit de repo-root, netwerkloos):
 //   DENO_NO_PACKAGE_JSON=1 deno test --allow-env --no-lock --node-modules-dir=none \
 //     --import-map=scripts/promo-compare/import_map.resolve.json scripts/promo-compare/businessHours.test.ts
@@ -45,9 +45,9 @@ Deno.test('get_config: business_hours met week, tijdzone en enkel komende sluiti
   assert(d.business_hours?.timezone === 'Europe/Brussels', JSON.stringify(d.business_hours));
   assert(JSON.stringify(d.business_hours.week['1']) === '[["00:00","23:00"]]', 'week');
   assert(JSON.stringify(d.business_hours.closures) === '[{"from":"2999-12-24","to":"2999-12-26","reason":"Kerst"}]', JSON.stringify(d.business_hours.closures));
-  // Eerste wet: de bestaande sleutels blijven, het nieuwe veld staat achteraan.
+  // Eerste wet: de bestaande sleutels blijven, de nieuwe velden staan achteraan (HORECA-STAAT-1: ordering_state).
   const keys = Object.keys(d);
-  assert(JSON.stringify(keys) === JSON.stringify(['store', 'contact', 'social', 'languages', 'canonical_domain', 'features', 'payments', 'appearance', 'business_hours']), JSON.stringify(keys));
+  assert(JSON.stringify(keys) === JSON.stringify(['store', 'contact', 'social', 'languages', 'canonical_domain', 'features', 'payments', 'appearance', 'business_hours', 'ordering_state']), JSON.stringify(keys));
 });
 
 Deno.test('get_config: zonder openingsuren → business_hours null', async () => {
@@ -141,9 +141,9 @@ Deno.test('UREN-1b QR aan tafel: standaard toegestaan, met de schakelaar OUTSIDE
   } finally { bh0().week = saved; delete fs0().qr_block_outside_hours; delete fs0().qr_mode; }
 });
 
-Deno.test('GET-stempel HORECA-NU-1', async () => {
+Deno.test('GET-stempel HORECA-STAAT-1', async () => {
   const r = await handler(new Request('https://f/storefront-api', { method: 'GET' }));
-  assert((await r.json()).version === 'HORECA-NU-1' && r.headers.get('X-SellQo-Api-Rev') === 'horeca-nu-1', 'stempel');
+  assert((await r.json()).version === 'HORECA-STAAT-1' && r.headers.get('X-SellQo-Api-Rev') === 'horeca-staat-1', 'stempel');
 });
 
 // --- UREN-1c: sluitingsdag rond middernacht — een blok hoort bij zijn startdag ------------------------

@@ -6934,13 +6934,13 @@
       "geluid_uit": "Sound off",
       "auto_print_aan": "Print here on",
       "auto_print_uit": "Print here off",
-      "pause_online": "Pause online orders",
-      "pause_hint": "Pickup and delivery via the webshop stop taking new orders for a while. Ordering at the table keeps working.",
+      "pause_online": "Pause the kitchen",
+      "pause_hint": "Online orders (pickup and delivery) and kitchen dishes via the table QR are on hold for a while. Drinks at the table can still be ordered.",
       "pause_minutes": "{{count}} minutes",
       "pause_today": "Rest of today",
       "paused_until": "Paused until {{time}} · resume",
-      "paused_toast": "Online orders paused until {{time}}",
-      "resumed_toast": "Online orders are open again",
+      "paused_toast": "Kitchen paused until {{time}}",
+      "resumed_toast": "The kitchen is taking orders again",
       "source_table": "Table",
       "cancelled_item": "Cancel",
       "station": "Station",
@@ -6957,7 +6957,8 @@
       "print_health_stuck": "waiting for the printer: {{count}}",
       "print_health_offline": "no connection with {{names}}",
       "print_health_hint": "Check the printer (power, paper, network) and pass the tickets on verbally in the meantime.",
-      "print_health_seen": "Got it"
+      "print_health_seen": "Got it",
+      "pause_hint_all": "Online orders (pickup and delivery) and ordering via the table QR are on hold for a while. Set up preparation stations to keep drinks orderable."
     },
     "pos": {
       "pOSKitchenPanel": {
@@ -10065,9 +10066,15 @@
       "pause": {
         "title": "Pause kitchen",
         "paused": "PAUSED",
-        "until": "until {{time}} · tap to resume",
         "running": "Running",
-        "tap": "Tap to pause online orders"
+        "tap": "Tap to pause the kitchen for a while",
+        "resume_hint": "tap to resume",
+        "effect_online_kitchen": "Online and kitchen dishes at the table are on hold until {{time}}",
+        "effect_online_table": "Online and ordering at the table are on hold until {{time}}",
+        "effect_online": "Online orders are on hold until {{time}}",
+        "effect_kitchen": "Kitchen dishes at the table are on hold until {{time}}",
+        "effect_table": "Ordering at the table is on hold until {{time}}",
+        "resume": "Resume"
       },
       "soldout": {
         "title": "Sold out today",
@@ -10082,12 +10089,15 @@
         "period": "Today falls within a closing period.",
         "period_toast": "Today falls within a closing period. Change it in your opening hours.",
         "confirm_title": "Closed today?",
-        "confirm_desc": "Your website shows \"closed\" today; online booking for today is no longer possible, and neither is pickup or delivery today. Tomorrow you are open again according to your opening hours. Ordering via the table QR is still possible; to stop that too, also turn off \"Ordering via table QR\".",
+        "confirm_desc": "Your website, your menu and the table QR show \"closed\" today. Online ordering, pickup, delivery and ordering at the table are not possible today, and neither is online booking for today. Guests with an open bill can still pay. Tomorrow you are open again according to your opening hours.",
         "reason": "Reason (optional)",
         "reason_placeholder": "E.g. staff ill",
         "confirm": "Close today",
         "closed_toast": "Your business is closed today",
-        "open_toast": "Your business is open again today"
+        "open_toast": "Your business is open again today",
+        "banner": "Your venue is closed today",
+        "banner_desc": "Guests cannot order today (online or at the table) and cannot book for today.",
+        "reopen": "Open after all today"
       },
       "zone": {
         "open": "OPEN",
@@ -12310,8 +12320,8 @@
         "until": "until {{time}} · tap to resume",
         "running": "Running",
         "minutes": "{{count}} min",
-        "pausedToast": "Online orders paused for {{count}} minutes",
-        "resumed": "Online orders are running again"
+        "pausedToast": "Kitchen paused for {{count}} minutes",
+        "resumed": "The kitchen is taking orders again"
       },
       "zone": {
         "open": "OPEN",

@@ -18,10 +18,11 @@ import { amountMismatchNote, discountRoundingToleranceCents, stripeAmountMismatc
 import { buildSizeChart, publicSizeChart, sellSizesFromVariants } from "../_shared/sizeChart.ts";
 import { statusForStorefrontError } from "../_shared/storefrontErrorStatus.ts";
 import { cachedShopStatus } from "../_shared/shopStatus.ts";
+import { computeOrderingState, hasKitchenSplit, kitchenPausedMessage, pausedAtKitchen, type OrderingState, type RouteRow, type StationRow } from "../_shared/orderingState.ts";
 
 const corsHeaders = {
   // PLANS-2 — versiestempel: bewijst een deploy zonder neveneffect (lees de header).
-  "X-SellQo-Api-Rev": "horeca-nu-1",
+  "X-SellQo-Api-Rev": "horeca-staat-1",
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
@@ -328,6 +329,8 @@ async function getConfig(supabase: any, tenantId: string, params: Record<string,
   const businessHoursP = loadBusinessHours(supabase, tenantId);
   // UREN-1b — QR aan tafel buiten de openingsuren (aparte, foutbestendige lees; ontbreekt de kolom: toegestaan).
   const tableBlockP = loadTableBlock(supabase, tenantId);
+  // HORECA-STAAT-1 — kan er nu besteld worden (online / aan tafel)? Foutbestendig: null bij een leesfout.
+  const orderingStateP = loadOrderingState(supabase, tenantId);
   const [
     { data: tenant },
     { data: themeSettings },
@@ -423,6 +426,9 @@ async function getConfig(supabase: any, tenantId: string, params: Record<string,
     // UREN-1 — additief: { timezone, week: { "1": [["11:30","14:00"]], ... } (0 = zondag), closures: [{ from, to, reason }] }
     // met enkel de komende sluitingen; null als de zaak geen openingsuren invulde.
     business_hours: publicBusinessHours(businessHours, Date.now(), tableBlock.block, tableBlock.timezone),
+    // HORECA-STAAT-1 — additief: { online, table, closed_today } (zie _shared/orderingState.ts). null als het
+    // niet te bepalen was (leesfout); een site houdt dan haar oude gedrag.
+    ordering_state: await orderingStateP,
   };
 }
 
@@ -779,6 +785,8 @@ async function getProduct(supabase: any, tenantId: string, params: Record<string
   if (product.token_amount) eventData = { ...eventData, token_amount: Number(product.token_amount) };
 
   const addonGroups = await loadProductAddonGroups(supabase, tenantId, product.id, product.category_id);
+  // HORECA-STAAT-1 — keukenpauze: ligt dit gerecht aan tafel stil? (enkel tijdens een pauze een extra sleutel)
+  const kitchenPause = await kitchenPausedProducts(supabase, tenantId, [{ id: String(product.id), category_id: product.category_id ?? null }]).catch(() => null);
 
   return {
     id: product.id,
@@ -835,6 +843,8 @@ async function getProduct(supabase: any, tenantId: string, params: Record<string
     ...(addonGroups.length ? { addon_groups: addonGroups } : {}),
     // ALLERGEN-1 — additief: alleen als de winkel allergenen of dieetlabels invulde.
     ...foodInfo(product),
+    // HORECA-STAAT-1 — additief, enkel tijdens een keukenpauze voor een keukengerecht.
+    ...(kitchenPause?.ids.has(String(product.id)) ? { kitchen_paused_until: kitchenPause.until } : {}),
   };
 }
 
@@ -907,18 +917,112 @@ async function loadTableBlock(supabase: SupabaseLike, tenantId: string): Promise
   return { block: data?.qr_block_outside_hours === true, timezone: (data?.timezone as string | null | undefined) ?? null };
 }
 
-// UREN-1b — bestellen aan tafel geweigerd omdat de zaak volgens haar openingsuren dicht is (enkel als ze dat
-// zo instelde en uren invulde). null = mag.
-async function tableClosedError(supabase: SupabaseLike, tenantId: string, nowMs = Date.now()): Promise<{ code: string; message: string; opens_at: string | null } | null> {
-  const table = await loadTableBlock(supabase, tenantId);
-  if (!table.block) return null;
+// HORECA-STAAT-1 — één bron voor "kan hier nu besteld worden?" (_shared/orderingState.ts). Leest de rijen
+// apart en foutbestendig: een leesfout geeft null (de aanroeper houdt dan het oude gedrag, nooit een weigering
+// door een fout). Eigen frontends: shop_live/shop_ordering horen bij de standaardshop en tellen voor hen niet.
+async function loadOrderingState(supabase: SupabaseLike, tenantId: string, nowMs = Date.now(), zone?: { name: string; is_open: boolean } | null): Promise<OrderingState | null> {
+  try {
+    const [tsR, fsR, bh, smR] = await Promise.all([
+      supabase.from('tenant_theme_settings').select('use_custom_frontend, shop_live, shop_ordering').eq('tenant_id', tenantId).maybeSingle(),
+      supabase.from('fulfillment_settings').select('*').eq('tenant_id', tenantId).maybeSingle(),
+      loadBusinessHours(supabase, tenantId),
+      supabase.from('shipping_methods').select('fulfillment_type').eq('tenant_id', tenantId).eq('is_active', true),
+    ]);
+    const ts = tsR.error ? null : (tsR.data as DbRow | null);
+    const fs = fsR.error ? null : (fsR.data as DbRow | null);
+    const bhRow = bh === undefined ? null : bh;
+    const custom = ts?.use_custom_frontend === true;
+    const eff = fs ? withBusinessHours({ ...(fs as unknown as FulfillmentSettings), hours: (fs.hours as FulfillmentSettings['hours']) || {} } as FulfillmentSettings, bhRow, nowMs) : null;
+    const pausedMs = fs?.paused_until ? new Date(String(fs.paused_until)).getTime() : NaN;
+    const stations = Number.isFinite(pausedMs) && pausedMs > nowMs ? (await loadPrepRouting(supabase, tenantId)).stations : [];
+    return computeOrderingState({
+      nowMs,
+      shopLive: custom || !ts ? null : ts.shop_live === true,
+      shopOrdering: custom || !ts ? null : ts.shop_ordering === true,
+      qrMode: (fs?.qr_mode as string | null | undefined) ?? null,
+      businessHours: bhRow,
+      fulfillmentTz: (fs?.timezone as string | null | undefined) ?? null,
+      pausedUntil: (fs?.paused_until as string | null | undefined) ?? null,
+      qrBlockOutsideHours: fs?.qr_block_outside_hours === true,
+      onlineBlockOutsideHours: fs?.online_block_outside_hours === true,
+      slotsEnabled: fs?.slots_enabled === true,
+      methods: smR.error ? null : ((smR.data || []) as DbRow[]).map((m) => String(m.fulfillment_type || 'shipping')),
+      serviceHours: eff ? { pickup: eff.hours?.pickup, local_delivery: eff.hours?.local_delivery } : null,
+      zone: zone ?? null,
+      kitchenSplit: hasKitchenSplit(stations),
+    });
+  } catch (e) {
+    console.warn('[HORECA-STAAT-1] ordering_state niet te bepalen:', errMsg(e));
+    return null;
+  }
+}
+
+// HORECA-STAAT-1 — bereidingsposten en hun routes (keuken of bar). Foutbestendig: leeg bij een leesfout of
+// vóór de horeca-migraties; dan is er geen onderscheid en ligt tijdens een pauze alles aan tafel stil.
+async function loadPrepRouting(supabase: SupabaseLike, tenantId: string): Promise<{ stations: StationRow[]; routes: RouteRow[] }> {
+  const [st, rt] = await Promise.all([
+    supabase.from('prep_stations').select('id, kind, is_active, is_default').eq('tenant_id', tenantId).eq('is_active', true),
+    supabase.from('prep_station_routes').select('station_id, category_id, product_id').eq('tenant_id', tenantId),
+  ]);
+  if (st.error) return { stations: [], routes: [] };
+  return { stations: (st.data || []) as StationRow[], routes: rt.error ? [] : (rt.data || []) as RouteRow[] };
+}
+
+/**
+ * HORECA-STAAT-1 — welke van deze producten liggen stil door een lopende keukenpauze (aan tafel)? Lege set als
+ * er geen pauze loopt. Eén lees van paused_until; de posten enkel tijdens een pauze.
+ */
+async function kitchenPausedProducts(supabase: SupabaseLike, tenantId: string, products: { id: string; category_id?: string | null }[], nowMs = Date.now()): Promise<{ until: string; tz: string; ids: Set<string> } | null> {
+  if (!products.length) return null;
+  const { data, error } = await supabase.from('fulfillment_settings').select('paused_until, timezone').eq('tenant_id', tenantId).maybeSingle();
+  if (error || !data?.paused_until) return null;
+  const ms = new Date(String(data.paused_until)).getTime();
+  if (!Number.isFinite(ms) || ms <= nowMs) return null;
+  const { stations, routes } = await loadPrepRouting(supabase, tenantId);
+  const ids = new Set(products.filter((p) => pausedAtKitchen(p, stations, routes)).map((p) => String(p.id)));
   const bh = await loadBusinessHours(supabase, tenantId);
-  if (!bh) return null;
-  const tz = hoursTimezone(bh.timezone, table.timezone);
-  // UREN-1c: ongesplitst weekschema en sluitingen vanaf gisteren: een blok hoort bij zijn startdag (zoals de site).
-  const st = openState(parseWeek(bh.week), closureDates(parseClosures(bh.closures), addDaysYmd(localYmd(nowMs, tz), -1), 10), tz, nowMs);
-  if (!st || st.open) return null;
-  return { code: 'OUTSIDE_HOURS', message: closedMessage(st.opens_at, tz, nowMs), opens_at: st.opens_at };
+  return { until: new Date(ms).toISOString(), tz: hoursTimezone(bh?.timezone, data.timezone), ids };
+}
+
+/** HORECA-STAAT-1 — producten in een mandje (id, naam, categorie) voor de keukenpauze; twee eenvoudige leesacties. */
+async function cartBlockProducts(supabase: SupabaseLike, tenantId: string, cartId: string): Promise<{ id: string; category_id?: string | null; name?: string | null }[]> {
+  const { data: items } = await supabase.from('storefront_cart_items').select('product_id').eq('cart_id', cartId);
+  const ids = [...new Set(((items || []) as DbRow[]).map((i) => String(i.product_id)).filter(Boolean))];
+  if (!ids.length) return [];
+  const { data: prods } = await supabase.from('products').select('id, name, category_id').eq('tenant_id', tenantId).in('id', ids);
+  return ((prods || []) as DbRow[]).map((p) => ({ id: String(p.id), name: (p.name as string | null) ?? null, category_id: (p.category_id as string | null) ?? null }));
+}
+
+type OrderingBlock = { code: string; message: string; until?: string; opens_at?: string | null };
+
+/**
+ * HORECA-STAAT-1 — weigeren vóór een bestelling. Dwingt enkel de tijdsgebonden redenen af (vandaag dicht,
+ * keukenpauze, buiten de uren aan tafel); shop_live/shop_ordering blijven bij de site (preview-cookie) en
+ * BILLING-LOCK-2. Een leesfout weigert nooit (null).
+ *  - online: CLOSED_TODAY of ORDERING_PAUSED;
+ *  - tafel: CLOSED_TODAY, OUTSIDE_HOURS, of KITCHEN_PAUSED (alles bij scope 'all', anders enkel de
+ *    keukengerechten in `products`).
+ */
+type BlockProduct = { id: string; category_id?: string | null; name?: string | null };
+async function orderingBlockError(supabase: SupabaseLike, tenantId: string, ctx: 'online' | 'table', productsIn: BlockProduct[] | (() => Promise<BlockProduct[]>) = [], nowMs = Date.now()): Promise<OrderingBlock | null> {
+  const state = await loadOrderingState(supabase, tenantId, nowMs);
+  if (!state) return null;
+  const s = state[ctx];
+  if (s.reason === 'closed_today') return { code: 'CLOSED_TODAY', message: s.message, ...(s.until ? { until: s.until } : {}) };
+  if (ctx === 'online') {
+    if (s.reason === 'paused') return { code: 'ORDERING_PAUSED', message: s.message, ...(s.until ? { until: s.until } : {}) };
+    return null;
+  }
+  if (s.reason === 'outside_hours') return { code: 'OUTSIDE_HOURS', message: s.message, opens_at: s.reopens_at ?? null };
+  if (s.reason === 'paused' && s.until) {
+    if (s.scope !== 'kitchen') return { code: 'KITCHEN_PAUSED', message: s.message, until: s.until };
+    // Enkel nu de producten ophalen (tafelaanvraag): buiten een pauze kost dit niets.
+    const products = typeof productsIn === 'function' ? await productsIn() : productsIn;
+    const hit = await kitchenPausedProducts(supabase, tenantId, products, nowMs);
+    const first = hit ? products.find((p) => hit.ids.has(String(p.id))) : null;
+    if (hit && first) return { code: 'KITCHEN_PAUSED', message: kitchenPausedMessage(first.name ?? null, hit.until, hit.tz), until: hit.until };
+  }
+  return null;
 }
 
 // FOOD-2 — "betalen bij afhalen/levering": alleen als de winkel het aanzette én de klant
@@ -967,6 +1071,8 @@ async function fulfillmentSlotsFor(supabase: SupabaseLike, tenantId: string, typ
     ? openState(settings.hours?.[type], settings.closed_dates, settings.timezone || 'Europe/Brussels', nowMs) : null;
   const outside = st && !st.open ? { outside_hours: { opens_at: st.opens_at, message: closedMessage(st.opens_at, settings!.timezone || 'Europe/Brussels', nowMs) } } : {};
   if (!settings || !settings.slots_enabled) return { enabled: false, type, slot_minutes: settings?.slot_minutes ?? null, slots: [] as ReturnType<typeof computeSlots>, ...pause, ...outside };
+  // HORECA-STAAT-1 — vandaag dicht of gepauzeerd: online dicht, dus ook geen later tijdslot (vroeger: wel).
+  if (blocked) return { enabled: true, type, slot_minutes: settings.slot_minutes, slots: [] as ReturnType<typeof computeSlots>, ...pause };
   const horizon = new Date(nowMs + (Number(settings.days_ahead) + 2) * 86400000).toISOString();
   const counts = settings.max_orders_per_slot ? await slotCounts(supabase, tenantId, new Date(nowMs).toISOString(), horizon) : {};
   return { enabled: true, type, slot_minutes: settings.slot_minutes, slots: computeSlots(settings, type, nowMs, counts), ...pause };
@@ -1021,7 +1127,9 @@ async function checkoutTable(supabase: SupabaseLike, tenantId: string, params: R
   const zoneT = zoneClosedError(resolved.table);
   if (zoneT) return { success: false, error: zoneT };
   // UREN-1b — buiten de openingsuren, als de zaak dat niet toestaat.
-  const closedT = await tableClosedError(supabase, tenantId);
+  // HORECA-STAAT-1 — via de ene bron: ook vandaag dicht (CLOSED_TODAY) en een keukenpauze zonder posten.
+  // Keukengerechten tijdens een pauze met posten worden bij het doorgeven/afrekenen gecontroleerd.
+  const closedT = await orderingBlockError(supabase, tenantId, 'table');
   if (closedT) return { success: false, error: closedT };
   const c = (params.customer || {}) as Record<string, unknown>;
   const str = (v: unknown, n: number) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, n) : null);
@@ -1065,7 +1173,8 @@ async function tableRequestPlace(supabase: SupabaseLike, tenantId: string, param
   const zoneR = zoneClosedError(resolved.table);
   if (zoneR) return { success: false, error: zoneR };
   // UREN-1b — buiten de openingsuren, als de zaak dat niet toestaat.
-  const closedR = await tableClosedError(supabase, tenantId);
+  // HORECA-STAAT-1 — ook vandaag dicht en de keukenpauze (keukengerechten in het mandje: KITCHEN_PAUSED).
+  const closedR = await orderingBlockError(supabase, tenantId, 'table', () => cartBlockProducts(supabase, tenantId, cartId));
   if (closedR) return { success: false, error: closedR };
   const { data, error } = await supabase.rpc('table_request_place', {
     p_tenant_id: tenantId, p_request_id: requestId, p_cart_id: cartId,
@@ -1527,7 +1636,9 @@ async function tableCheckPayCancel(supabase: SupabaseLike, tenantId: string, par
 async function resolveTable(supabase: SupabaseLike, tenantId: string, params: Record<string, unknown>) {
   const resolved = await resolveTableInput(supabase, tenantId, { table: params.table, table_token: params.token ?? params.table_token });
   if (!resolved.ok) return { success: false, error: { code: resolved.code, message: resolved.message } };
-  return resolved.table;
+  // HORECA-STAAT-1 — additief: de stand aan deze tafel (met de zone). null als het niet te bepalen was.
+  const state = await loadOrderingState(supabase, tenantId, Date.now(), resolved.table.area ? { name: resolved.table.area.name, is_open: resolved.table.area.is_open } : null);
+  return { ...resolved.table, ordering_state: state };
 }
 
 // Controle vlak vóór de bestelling: leverzone, minimumbedrag en tijdslot. Geeft null als
@@ -1884,6 +1995,9 @@ async function getProducts(supabase: any, tenantId: string, params: Record<strin
     }
   }
 
+  // HORECA-STAAT-1 — tijdens een keukenpauze: welke producten liggen aan tafel stil (keukengerechten)?
+  // Buiten een pauze één lichte lees en geen extra sleutel, zodat de respons byte-gelijk blijft.
+  const kitchenPause = await kitchenPausedProducts(supabase, tenantId, filtered.map((p: DbRow) => ({ id: String(p.id), category_id: (p.category_id as string | null) ?? null }))).catch(() => null);
   return {
     products: filtered.map((product: any) => {
       const t = tMap[product.id] || {};
@@ -1922,6 +2036,8 @@ async function getProducts(supabase: any, tenantId: string, params: Record<strin
           ? { next_event_date: nextEventDateMap[product.id] ?? null }
           : {}),
         ...foodInfo(product),
+        // HORECA-STAAT-1 — additief, enkel tijdens een keukenpauze: tot wanneer dit gerecht aan tafel niet kan.
+        ...(kitchenPause?.ids.has(String(product.id)) ? { kitchen_paused_until: kitchenPause.until } : {}),
       };
     }),
     pagination: {
@@ -3301,7 +3417,7 @@ async function cartAddItem(supabase: any, tenantId: string, params: Record<strin
 
   // Verify product exists and get price
   const { data: product } = await supabase
-    .from('products').select('id, price, track_inventory, stock, is_active, category_id, channels, sold_out_until')
+    .from('products').select('id, name, price, track_inventory, stock, is_active, category_id, channels, sold_out_until')
     .eq('id', productId).eq('tenant_id', tenantId).single();
   if (!product || !product.is_active) throw new Error('Product not found or inactive');
   // HORECA-CHANNELS-1 — op voor vandaag, of niet te bestellen op dit kanaal (tafel of online).
@@ -3312,6 +3428,10 @@ async function cartAddItem(supabase: any, tenantId: string, params: Record<strin
       ? { code: 'NOT_AVAILABLE_AT_TABLE', message: 'Dit kan je niet aan tafel bestellen' }
       : { code: 'NOT_AVAILABLE_ONLINE', message: 'Dit kan je niet online bestellen' }));
   }
+  // HORECA-STAAT-1 — vandaag dicht, keuken gepauzeerd (online alles, aan tafel de keukengerechten) of buiten
+  // de uren aan tafel: zelfde regel en code als bij het afrekenen, zodat een oude knop niets omzeilt.
+  const addBlock = await orderingBlockError(supabase, tenantId, addAtTable ? 'table' : 'online', [{ id: String(product.id), category_id: product.category_id ?? null, name: product.name ?? null }]);
+  if (addBlock) throw new Error(JSON.stringify(addBlock));
 
   let unitPrice = product.price;
   let stockSource = product;
@@ -5004,7 +5124,10 @@ async function checkoutComplete(supabase: any, tenantId: string, params: Record<
     const fsT = await loadFulfillmentSettings(supabase, tenantId);
     if (fsT?.qr_mode !== 'order' || !cart.table_label) return { success: false, error: { code: 'TABLE_ORDERING_OFF', message: 'Bestellen aan tafel staat uit in deze zaak' } };
     // UREN-1b — buiten de openingsuren, als de zaak dat niet toestaat.
-    const closedC = await tableClosedError(supabase, tenantId);
+    // HORECA-STAAT-1 — via de ene bron: ook vandaag dicht en keukengerechten tijdens een keukenpauze.
+    const closedC = await orderingBlockError(supabase, tenantId, 'table', (cart.cartItems as DbRow[]).map((i) => ({
+      id: String(i.product_id), name: (i.product as DbRow | null)?.name as string | null ?? null, category_id: (i.product as DbRow | null)?.category_id as string | null ?? null,
+    })));
     if (closedC) return { success: false, error: closedC };
     // HORECA-NU-1b — de zone van de tafel op het mandje opnieuw nakijken: checkout_table kan gebeurd zijn
     // vóór de zaak het terras dichtzette. Zelfde code en melding als bij checkout_table.
@@ -5013,6 +5136,13 @@ async function checkoutComplete(supabase: any, tenantId: string, params: Record<
     // ZAAL-H1 — zaak met zaalplan: enkel een tafel die via een geldige QR-token gekozen is.
     if (!cart.dining_table_id && await tenantHasFloorPlan(supabase, tenantId)) return { success: false, error: { code: 'TABLE_TOKEN_REQUIRED', message: 'Scan de QR-code op je tafel opnieuw' } };
     if (paymentMethodId !== 'pay_on_pickup' && !fsT.qr_pay_online) return { success: false, error: { code: 'PAYMENT_METHOD_NOT_AVAILABLE', message: 'Online betalen kan niet aan tafel; betaal aan de toog' } };
+  }
+
+  // HORECA-STAAT-1 — online (afhalen, leveren, verzenden): vandaag dicht of de keuken gepauzeerd = niet
+  // bestellen, ook niet voor een later tijdslot. Zaken zonder openingsuren of pauze merken niets.
+  if (cart.service_type !== 'eat_in' && !cart.table_label) {
+    const onlineBlock = await orderingBlockError(supabase, tenantId, 'online');
+    if (onlineBlock) return { success: false, error: onlineBlock };
   }
 
   // FOOD-1 — afhalen/leveren: leverzone, minimumbedrag en tijdslot nog eens controleren.
@@ -6445,7 +6575,7 @@ const CLOSED_SHOP_BLOCKED_ACTIONS: ReadonlySet<string> = new Set([
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
   // Versiestempel voor deploy-verificatie (neveneffectvrij); bij elke batch ophogen.
-  if (req.method === 'GET') return new Response(JSON.stringify({ ok: true, version: 'HORECA-NU-1' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  if (req.method === 'GET') return new Response(JSON.stringify({ ok: true, version: 'HORECA-STAAT-1' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
   try {
     const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);

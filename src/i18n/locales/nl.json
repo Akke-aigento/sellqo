@@ -7935,13 +7935,13 @@
       "notify_failed": "Klant verwittigen lukte niet",
       "notified_ready": "Klant gemaild: bestelling klaar",
       "notified_on_the_way": "Klant gemaild: bestelling onderweg",
-      "pause_online": "Online pauzeren",
-      "pause_hint": "Afhalen en leveren via de webshop nemen even geen nieuwe bestellingen aan. Bestellen aan tafel blijft werken.",
+      "pause_online": "Keuken pauzeren",
+      "pause_hint": "Online bestellingen (afhalen en leveren) en keukengerechten via de QR aan tafel liggen even stil. Dranken aan tafel blijven bestelbaar.",
       "pause_minutes": "{{count}} minuten",
       "pause_today": "Rest van vandaag",
       "paused_until": "Gepauzeerd tot {{time}} · hervatten",
-      "paused_toast": "Online bestellingen gepauzeerd tot {{time}}",
-      "resumed_toast": "Online bestellingen staan weer open",
+      "paused_toast": "Keuken gepauzeerd tot {{time}}",
+      "resumed_toast": "De keuken neemt weer bestellingen aan",
       "source_table": "Tafel",
       "cancelled_item": "Annuleer",
       "station": "Post",
@@ -7958,7 +7958,8 @@
       "print_health_stuck": "wachten op de printer: {{count}}",
       "print_health_offline": "geen verbinding met {{names}}",
       "print_health_hint": "Kijk de printer na (aan, papier, netwerk) en geef de bonnen intussen mondeling door.",
-      "print_health_seen": "Gezien"
+      "print_health_seen": "Gezien",
+      "pause_hint_all": "Online bestellingen (afhalen en leveren) en bestellen via de QR aan tafel liggen even stil. Stel bereidingsposten in om dranken bestelbaar te houden."
     },
     "allergens": {
       "gluten": "Gluten (granen)",
@@ -10079,9 +10080,15 @@
       "pause": {
         "title": "Keuken pauzeren",
         "paused": "GEPAUZEERD",
-        "until": "tot {{time}} · tik om te hervatten",
         "running": "Loopt",
-        "tap": "Tik om online bestellingen te pauzeren"
+        "tap": "Tik om de keuken even te pauzeren",
+        "resume_hint": "tik om te hervatten",
+        "effect_online_kitchen": "Online en keukengerechten aan tafel staan stil tot {{time}}",
+        "effect_online_table": "Online en bestellen aan tafel staan stil tot {{time}}",
+        "effect_online": "Online bestellingen staan stil tot {{time}}",
+        "effect_kitchen": "Keukengerechten aan tafel staan stil tot {{time}}",
+        "effect_table": "Bestellen aan tafel staat stil tot {{time}}",
+        "resume": "Hervatten"
       },
       "soldout": {
         "title": "Uitverkocht vandaag",
@@ -10096,12 +10103,15 @@
         "period": "Vandaag valt in een sluitingsperiode.",
         "period_toast": "Vandaag valt in een sluitingsperiode. Pas die aan bij je openingsuren.",
         "confirm_title": "Vandaag uitzonderlijk dicht?",
-        "confirm_desc": "Je website toont vandaag \"gesloten\", online reserveren voor vandaag kan niet meer en afhalen of leveren vandaag ook niet. Morgen ben je weer open volgens je openingsuren. Bestellen via de QR aan tafel blijft wel mogelijk; zet daarvoor ook \"Bestellen via QR aan tafel\" uit.",
+        "confirm_desc": "Je website, je menukaart en de QR aan tafel tonen vandaag \"gesloten\". Online bestellen, afhalen, leveren en bestellen aan tafel kan vandaag niet, online reserveren voor vandaag ook niet. Gasten met een open rekening kunnen nog afrekenen. Morgen ben je weer open volgens je openingsuren.",
         "reason": "Reden (optioneel)",
         "reason_placeholder": "Bv. personeel ziek",
         "confirm": "Vandaag dicht",
         "closed_toast": "Je zaak staat vandaag dicht",
-        "open_toast": "Je zaak is vandaag weer open"
+        "open_toast": "Je zaak is vandaag weer open",
+        "banner": "Je zaak staat vandaag dicht",
+        "banner_desc": "Gasten kunnen vandaag niet bestellen (online en aan tafel) en niet reserveren voor vandaag.",
+        "reopen": "Toch open vandaag"
       },
       "zone": {
         "open": "OPEN",
@@ -12312,8 +12322,8 @@
         "until": "tot {{time}} · tik om te hervatten",
         "running": "Loopt",
         "minutes": "{{count}} min",
-        "pausedToast": "Online bestellingen gepauzeerd voor {{count}} minuten",
-        "resumed": "Online bestellingen lopen weer"
+        "pausedToast": "Keuken gepauzeerd voor {{count}} minuten",
+        "resumed": "De keuken neemt weer bestellingen aan"
       },
       "zone": {
         "open": "OPEN",

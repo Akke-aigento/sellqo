@@ -1,3 +1,81 @@
+## HORECA-STAAT-1 — één stand voor "kan hier nu besteld worden?" op site, menu, QR en server; meldingen wegvegen — 4 november 2026
+
+Branch `staat-1` (vanaf 999a2fa), samen met `staat-1` in sellqo-storefront (vanaf 96203df). Changelog 2026.15h. Stempel storefront-api `HORECA-STAAT-1` (header `horeca-staat-1`). Nog niets live.
+
+**Root cause (live nagetrokken op Café De Wissel, dfa62de5-…, preset bar, read-only):** `shop_live`/`shop_ordering` aan, `qr_mode='order'`, `qr_flow='check'`, `paused_until` 20:53 UTC, `business_hours.week = {}`, `closures = [{2026-11-04, "Personeel ziek"}]`, `qr_block_outside_hours=false`, één actieve methode "Afhalen aan de toog" (pickup) met `slots_enabled=true` en eigen afhaaluren 15:00–23:45, posten Bar (kind `bar`, standaard) en Keuken (kind `kitchen`).
+1. *Toasts niet weg te vegen* — `src/components/ui/sonner.tsx` stond op `swipeDirections={["top"]}`: een zijwaartse duimveeg werd gedempt en sprong terug (gemeten met CDP-touch op de oude config: na veeg rechts/links bleven 1 en 2 toasts staan). Met de muis selecteerde vegen de tekst, en dan negeert sonner het vegen (`isHighlighted`).
+2. *+-knoppen op de homepage zonder online bestellen* — `MenuList` (sellqo-storefront `ShopChrome.tsx`) toonde de decoratieve "+" in de sectie "Onze kaart" enkel op kanaal en voorraad, nooit op `flags.ordering`.
+3. *"Vandaag dicht" nergens zichtbaar en bestellen bleef kunnen* — storefront: `openStatus`/`FooterHours` gaven niets zonder weekuren; `/menu` toonde enkel `tableOrderingClosed` (enkel met `qr_block_outside_hours` én weekuren). Server: `tableClosedError` (oud, index.ts) gebruikte `openState`, dat `null` geeft zonder weekuren, dus geen enkele tafelweigering; online weigerde enkel `validateCartFulfillment` en dat enkel zonder tijdsloten (`!enabled && blocked`).
+4. *Keuken pauzeren hield niets tegen* — `paused_until` werd enkel gelezen door `computeSlots`/`orderingBlocked` (afhalen/leveren): met tijdsloten bleven latere sloten kiesbaar, aan tafel (De Wissel bestelt via QR op de rekening) werd de pauze nergens gelezen.
+
+**Uitgevoerd**
+- `supabase/functions/_shared/orderingState.ts` (nieuw, puur): `computeOrderingState(input) → { online, table, closed_today }`, per context `{ open, reason, message, until?, reopens_at?, scope? }`; `closedTodayInfo` (blok van gisteren over middernacht telt nog, UREN-1c; `until` = lokale middernacht na de laatste aaneengesloten sluitingsdag; zonder weekuren `reopens_at = until`), `stationFor`/`pausedAtKitchen` (route op product → categorie → standaardpost, enkel actieve posten; geen post = voorzichtig keuken), `hasKitchenSplit`, `kitchenPausedMessage`.
+- `supabase/functions/storefront-api/index.ts`:
+  - `loadOrderingState` (r. 923, foutbestendig → null), `loadPrepRouting`, `kitchenPausedProducts` (r. 975), `cartBlockProducts`, `orderingBlockError` (r. 1007). `tableClosedError` is weg (vervangen).
+  - `get_config` → additief `ordering_state` (achteraan; r. 333/≈425). `resolve_table` → additief `ordering_state` met de zone (r. 1640).
+  - Afgedwongen: `cart_add_item` (r. 3433, online/tafel volgens `params.table`), `checkout_table` (r. 1132), `table_request_place` (r. 1177, producten lui opgehaald), `checkout_complete` tafel (r. 5128) en online (r. 5144; geldt dus ook voor `checkout_place_order`/`checkout_create_session`). `get_fulfillment_slots`: bij vandaag dicht of pauze geen sloten meer (r. ≈1077).
+  - `get_products`/`get_product`: additief `kitchen_paused_until` enkel tijdens een pauze en enkel op keukengerechten (r. 2000/789); anders byte-gelijk.
+  - Stempel `HORECA-STAAT-1`.
+- `src/components/ui/sonner.tsx`: vegen naar boven, links en rechts; `select-none` op de toast; sluitkruisje 28 px; standaard 4 s; `toast.error` krijgt standaard 8 s (eenmalige wrap bij het laden van de module; een eigen `duration` wint). Geldt voor de 220+ bestaande aanroepen (`toast` uit 'sonner' en `use-toast`).
+- Nu-paneel: `src/lib/horeca/nowPanel.ts` (`pauseTileVisible` + optioneel `tableOrdering`, nieuw `pauseEffectKey`), `useKitchenPause.ts` (ook `qr_mode` en of er actieve posten zijn), `NowPanel.tsx` (pauzetegel toont het echte gevolg; status "Je zaak staat vandaag dicht · reden" met **Toch open vandaag** (bij een periode de link naar de openingsuren); status "Online en keukengerechten aan tafel staan stil tot 21:53" met **Hervatten**), `KitchenPauseControl.tsx` (label "Keuken pauzeren", juiste uitleg; ook zichtbaar als er enkel aan tafel besteld wordt).
+- i18n (5 talen): nieuw `admin.now.pause.{resume, resume_hint, effect_online_kitchen, effect_online_table, effect_online, effect_kitchen, effect_table}`, `admin.kitchen.pause_hint_all`, `admin.now.closed.{banner, banner_desc, reopen}`; aangepast `admin.now.pause.tap`, `admin.kitchen.{pause_hint, paused_toast, resumed_toast, pause_online}`, `admin.now.closed.confirm_desc`, `kassa.now.pause.{pausedToast, resumed}`; weg `admin.now.pause.until` (ongebruikt; `kassa.now.pause.until` blijft).
+- Changelog 2026.15h (`ordering_state_everywhere` bugfix, `kitchen_pause_drinks`, `swipe_notifications`) in `PublicChangelog.tsx` + `landing.{nl,en,fr,de,uk}.json`; `docs/newsletter-queue.md`.
+- `supabase/migrations/20261104160000_horeca_staat_1_docs.sql` (md5 `a61f0582d3c90f42e518ae9e1917ae9c`): 7 vervangingen in nu-paneel, keukenscherm-en-tafelbestelling, openingsuren-instellen en qr-tafelrekening (het QR-artikel; een slug `qr-menu` bestaat live niet). Snapshot `snapshots.sellqo_20261104_doc_horeca_staat_1`.
+
+**Matrix (ingekort) — instelling → waar gelezen (na deze batch)**
+
+| Instelling | Server (storefront-api / _shared) | Storefront (sellqo-storefront) |
+|---|---|---|
+| shop_live, shop_ordering | resolve_domain (r. 267); `loadOrderingState` → `online.shop_offline/ordering_off` (enkel gemeld, niet afgedwongen: preview-cookie en BILLING-LOCK-2) | `sellqo.server.ts` `flags().ordering`; `lib/ordering.ts` |
+| qr_mode, qr_flow | resolve_domain; checkout_table/checkout_complete (TABLE_ORDERING_OFF); `orderingState` `table.qr_off/qr_view` | `flags.table/qrView/tableFlow`; `/menu` viewOnly |
+| qr_block_outside_hours | `orderingState` tafel `outside_hours` (enkel met weekuren) → toevoegen, checkout_table, tafelaanvraag, afrekenen | `ordering_state.table` (oude API: `tableOrderingClosed`) |
+| online_block_outside_hours | `validateCartFulfillment` + `fulfillmentSlotsFor` (per soort, ongewijzigd); `orderingState` online `outside_hours` (zonder sloten) | `ordering_state.online`; afrekenen `slots.outside_hours` |
+| business_hours.week + closures | `orderingState.closedTodayInfo` → online én tafel `closed_today`; slots; `reservation_slots` (SQL, ongewijzigd: sluiting = geen sloten die dag, nagekeken) | `ordering_state.closed_today`; `hours.ts` (`openStatus`, `upcomingClosure` ook zonder weekuren) |
+| paused_until | online `paused` (toevoegen + afrekenen + geen sloten); tafel enkel keukengerechten (`pausedAtKitchen`), zonder posten alles | balk + `kitchen_paused_until` per product |
+| fulfillment-methodes | `shipping_methods.is_active/fulfillment_type` → `online.no_methods` (gemeld, niet afgedwongen) | geen "+" en uitleg op de productpagina |
+| dining_areas.is_open | resolve_table, checkout_table, tafelaanvraag, oproepen, afrekenen (ZONE_CLOSED, ongewijzigd) + `orderingState` `zone_closed` | `shell.zoneClosed` → balk, geen "+" |
+| sold_out_until / channels / is_active / hide_from_storefront | `isSoldOutToday`, `channelAllows`, `cartAvailabilityError`, get_products-filter (ongewijzigd) | `canAddProduct` (voorraad + kanaal + keuken) overal |
+| daily_special_until | get_products `daily_special` (ongewijzigd) | `/menu` "Vandaag", homebanner (ongewijzigd) |
+| qr_call_waiter/bill | table_call (ongewijzigd; vandaag dicht weigert niet: rekening vragen moet kunnen) | StaffCall |
+| reservations online | resolve_domain, reservation_slots/request_place (SQL, ongewijzigd) | `/reserveren` |
+
+Oppervlakken: homepage-secties (menu_card, featured/collection met lijststijl, preset-standaardhome), `/menu` (online, aan tafel, bestelvenster), productpagina (+ sticky-balk, tickets), collecties, zoeken, mandje (+ lade, mini-mandje, stepper), afrekenen (online en aan tafel): allemaal via `useOrdering()` (sellqo-storefront role-audit).
+
+**API-contract (additief)**
+- `get_config.ordering_state` en `resolve_table.ordering_state`: `{ online: S, table: S, closed_today: { reason, until, reopens_at } | null }` met `S = { open, reason: 'shop_offline'|'ordering_off'|'closed_today'|'outside_hours'|'paused'|'qr_off'|'qr_view'|'zone_closed'|'no_methods'|null, message, until?, reopens_at?, scope?: 'all'|'kitchen' }`. Tafel bij een pauze met posten: `open: true, reason: 'paused', scope: 'kitchen'`. `null` bij een leesfout.
+- Producten: `kitchen_paused_until` (enkel tijdens een pauze, enkel keukengerechten).
+- Foutcodes: `CLOSED_TODAY` (bestond in validateCartFulfillment, nu overal), `ORDERING_PAUSED` (bestaand, online), `OUTSIDE_HOURS` (bestaand), `ZONE_CLOSED` (bestaand), nieuw `KITCHEN_PAUSED` (tafel). Weigeringen in `cart_add_item` worden geworpen als JSON (`{code,message,until}`), zoals SOLD_OUT.
+
+**Keuzes**
+- Keuken vs bar: betrouwbaar via `prep_stations.kind` (`kitchen|bar|other`, check-constraint sinds TAFEL-1) en dezelfde routing als `horeca_apply_one` (product → categorie → standaardpost). Enkel `kind='kitchen'` ligt stil; een product zonder post (geen route, geen standaard) ook (voorzichtig). Zonder actieve posten: alles aan tafel stil (`scope:'all'`).
+- Online bij vandaag dicht of pauze: ook geen later tijdslot meer (vroeger PAUSE-1: wel). Zo is "online dicht" overal hetzelfde; de site toont geen sloten en geen knop.
+- shop_offline/ordering_off/no_methods worden gemeld maar niet door de server afgedwongen: de preview-cookie van de pilot laat de site bestellen zonder `shop_ordering`, en BILLING-LOCK-2 houdt een dichte winkel al tegen. De site verbergt de knoppen.
+- Vandaag dicht weigert `table_call` en `table_check_*` niet: wie al zit, kan de rekening vragen en afrekenen.
+- Toasts: geen wijziging in `src/kassa/`; de kassa-app gebruikt dezelfde `Toaster` en krijgt het vegen mee. De Nu-tegel in de kassa (`NowScreen.tsx`) roept `pauseTileVisible` zonder `tableOrdering` en houdt zo zijn oude zichtbaarheid; de teksten (`kassa.now.pause.*`) zijn wel bijgewerkt.
+
+**Security-keuzes** Enkel leesacties met de service role in storefront-api (fulfillment_settings, business_hours, shipping_methods, prep_stations, prep_station_routes, products), altijd gefilterd op `tenant_id`. `ordering_state` bevat geen tokens, geen post-id's en geen gevoelige velden; `kitchen_paused_until` is een tijdstip. Beheer: `useKitchenPause` leest `prep_stations` (RLS: elk lid van de winkel). Geen RLS, grants of policies gewijzigd. Docs-migratie: snapshot-tabel `revoke all from anon, authenticated`.
+
+**Gedeelde-paden-waarschuwing** `get_config`, `resolve_table`, `get_products`, `get_product`, `cart_add_item`, `checkout_complete` zijn gedeeld met de zes eigen frontends. Live nagetrokken (read-only, 4-11): Astra Sleep, Benny Rich, Loveke, Mancini Milano, VanXcel en Zona Dorata hebben géén `business_hours`- en géén `fulfillment_settings`-rij (dus geen sluiting, geen pauze, geen QR). Voor hen: enkel de extra sleutel `ordering_state` (met `online.open = true`: `shop_live/shop_ordering` tellen niet voor een eigen frontend), geen `kitchen_paused_until`, geen nieuwe weigering. Bewezen in de rooktest (eigen frontend: sleutels, toevoegen online en aan tafel) en `horecaStaat.test.ts`. Kost: `get_config` +4 kleine leesacties, `get_products`/`get_product` +1 (paused_until), `cart_add_item` +4.
+
+**Verificatie**
+- Deno-unit `_shared/orderingState.test.ts`: 17 tests groen (elke regel, combinaties, De Wissel live, sluitingsperiode, blok over middernacht, verlopen pauze, closure zonder weekuren, zomer/winteruur en onbekende zone, keuken/bar-routing).
+- Handlertests `scripts/promo-compare/horecaStaat.test.ts`: 11 groen; op de code van vóór deze batch 10 van 11 rood (enkel "rekening vragen blijft kunnen" is groen op beide: het is een niet-regressietest). Alle promo-compare-tests in CI: 248 groen (stempels HORECA-NU-1 → HORECA-STAAT-1, `businessHours.test.ts` kent nu `ordering_state` als laatste sleutel).
+- Rooktest storefront-api (import map naar stubs): groen, nieuwe check "eigen frontend zonder uren/pauze".
+- `_shared`-tests uit CI: 29 bestanden groen; 3 vragen deno.land (netwerk, sandbox), ongewijzigd.
+- `deno check` storefront-api + orderingState: groen.
+- SQL: `scripts/gks/sql/run.sh` volledig groen, nieuw blok: docs-migratie 2× gedraaid, zelfde md5 per artikel, elk artikel gewijzigd, 11 controles `t`.
+- Beheer: tsc 0, build 0, lint 1457 → 1455 (beter dan de baseline), vitest CI-stap 45 bestanden / 528 tests groen (nowPanel +1 test), i18n-parity 5 talen volledig.
+- Harnas: `meldingen` 21 controles groen (vinger links/rechts/boven, muis rechts/boven, kruisje ≥ 26 px, 4 s/8 s, bovenaan); `nu-paneel` groen met de nieuwe controles (pauzetegel, pauzestatus + Hervatten → `paused_until: null`, dicht-status + Toch open vandaag, geen dicht-status als open). Screenshots `/tmp/harness/meldingen-*.png`, `/tmp/harness/nu-paneel-*-beheer-druk.png`, `…-beheer-pauze-status.png`.
+- `src/kassa` niet geraakt: `KASSA_SW_VERSION` blijft `sellqo-kassa-0.23.0`, `vitest src/kassa` niet nodig.
+
+**Uitrol** 1) `storefront-api` deployen (enige functie: `grep -rl _shared/orderingState` → enkel storefront-api; geen bestaand `_shared`-bestand gewijzigd) en meten: GET → `HORECA-STAAT-1`, `get_config` van De Wissel → `ordering_state.online.reason`. 2) sellqo-storefront pushen (werkt ook met de oude API: oud gedrag). 3) sellqo pushen + CI groen. 4) sellqo.app publiceren (Nu-paneel, toasts). 5) Docs-migratie `20261104160000_horeca_staat_1_docs.sql`. 6) Native build voor de app (beheer + kassa: nieuwe toasts en Nu-teksten).
+
+**Bewust ongemoeid / Vervolg**
+- `src/kassa/app/screens/NowScreen.tsx`: de pauzetegel verschijnt op de kassa nog enkel bij online bestellen; gelijk trekken met het beheer = een fiscale release (eigen batch).
+- `online.no_methods`/`shop_offline`/`ordering_off` niet server-side afgedwongen (zie keuzes).
+- Een tafelaanvraag die al wacht op bevestiging blijft bevestigbaar op de kassa tijdens een pauze of sluiting (personeel beslist).
+- Café De Wissel heeft eigen afhaaluren (elke dag 15:00–23:45, `pickup_hours_mode` NULL → eigen uren): na middernacht staat online weer open; vandaag blijft het dicht door de sluiting.
+
 ## Samenvoeging HORECA-INSTELLINGEN-1 + HORECA-NU-1 — één lineaire reeks op main (2026.15f + 2026.15g) — 4 november 2026
 
 **Wat:** branch `horeca-release` = origin/main (5473d87) + HORECA-INSTELLINGEN-1(+1b) als fast-forward (7 commits) + HORECA-NU-1(+1b) als cherry-pick (6 commits) + deze samenvoegcommit. Geen nieuwe functionaliteit.

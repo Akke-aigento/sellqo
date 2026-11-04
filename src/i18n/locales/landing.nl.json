@@ -2553,6 +2553,18 @@
         "daily_special": {
           "title": "Dagschotel",
           "description": "Duid in het Nu-paneel of in de kassa een of meer gerechten van je kaart aan als dagschotel, of maak er snel een nieuw aan met naam, prijs en categorie. Je menukaart toont bovenaan \"Vandaag\" met je dagschotel, de homepage van een horecathema een kleine banner, en in de kassa staat de dagschotel bovenaan de kaart zodat je hem met één tik aanslaat. De prijs is gewoon die van het product. Morgen om 5 uur vervalt de aanduiding vanzelf; met \"Geen dagschotel vandaag\" haal je ze meteen weg."
+        },
+        "ordering_state_everywhere": {
+          "title": "Gesloten, gepauzeerd of online bestellen uit: overal hetzelfde",
+          "description": "Je website, je menukaart, het QR-menu aan tafel en het afrekenen volgen nu één en dezelfde stand. Staat je zaak vandaag dicht, dan zien gasten bovenaan \"Vandaag gesloten\" met je reden, ook als je geen openingsuren invulde, en kan er online en aan tafel niet besteld worden. Bestel je niet online, of is je zaak buiten de uren met de schakelaar \"enkel binnen de openingsuren\", dan verdwijnen de +-knoppen en \"In winkelmandje\" op elke pagina, ook in de sectie met je kaart op de homepage. Ook wie een oude link of knop gebruikt, kan niet bestellen: de server weigert met dezelfde melding. Gasten met een open rekening kunnen nog afrekenen."
+        },
+        "kitchen_pause_drinks": {
+          "title": "Keuken pauzeren: dranken aan tafel blijven bestelbaar",
+          "description": "Pauzeer je de keuken, dan staan online bestellingen (afhalen en leveren) stil tot het tijdstip dat je koos, en aan tafel enkel de gerechten die naar een keukenpost gaan. Dranken en alles wat naar de bar gaat, blijven bestelbaar. Gasten zien bovenaan \"Keuken even dicht tot 21:53\" en bij een gerecht waarom het nu niet kan. Heb je geen bereidingsposten ingesteld, dan ligt tijdens de pauze ook bestellen aan tafel stil. Het Nu-paneel toont wat er stilligt, met een knop om te hervatten."
+        },
+        "swipe_notifications": {
+          "title": "Meldingen wegvegen",
+          "description": "Meldingen in je beheer en in de kassa-app veeg je weg naar links, rechts of boven, of je sluit ze met het kruisje. Een gewone melding verdwijnt na 4 seconden, een foutmelding na 8 seconden."
         }
       },
       "copyLink": "Kopieer link",

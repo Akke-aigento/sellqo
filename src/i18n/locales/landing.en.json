@@ -2553,6 +2553,18 @@
         "daily_special": {
           "title": "Dish of the day",
           "description": "In the Now panel or on the POS, mark one or more dishes from your menu as dish of the day, or quickly create a new one with a name, price and category. Your menu shows \"Today\" at the top with your dish of the day, the homepage of a hospitality theme shows a small banner, and on the POS the dish of the day sits at the top of the menu so you ring it up with one tap. The price is simply the product price. Tomorrow at 5 am the mark expires automatically; \"No dish of the day today\" removes them right away."
+        },
+        "ordering_state_everywhere": {
+          "title": "Closed, paused or online ordering off: the same everywhere",
+          "description": "Your website, your menu, the table QR menu and checkout now follow one and the same state. If your venue is closed today, guests see \"Closed today\" with your reason at the top, even if you did not fill in opening hours, and nobody can order online or at the table. If you do not take online orders, or your venue is outside its hours with the \"only within opening hours\" switch, the + buttons and \"Add to cart\" disappear on every page, including the menu section on your homepage. Old links or buttons cannot get around it either: the server refuses with the same message. Guests with an open bill can still pay."
+        },
+        "kitchen_pause_drinks": {
+          "title": "Pause the kitchen: drinks at the table can still be ordered",
+          "description": "When you pause the kitchen, online orders (pickup and delivery) stop until the time you chose, and at the table only the dishes that go to a kitchen station. Drinks and everything that goes to the bar can still be ordered. Guests see \"Kitchen closed for a moment until 21:53\" at the top and, for a dish, why it is not possible right now. Without preparation stations, ordering at the table also stops during the pause. The Now panel shows what is on hold, with a button to resume."
+        },
+        "swipe_notifications": {
+          "title": "Swipe notifications away",
+          "description": "Notifications in your admin and in the POS app can be swiped away to the left, right or top, or closed with the cross. A regular notification disappears after 4 seconds, an error after 8 seconds."
         }
       },
       "copyLink": "Copy link",

@@ -1,5 +1,5 @@
-// PAUSE-1 — online bestellingen even pauzeren vanaf het keukenscherm (druk, oven vol).
-// Geldt voor afhalen en leveren via de webshop; bestellen aan tafel blijft werken.
+// PAUSE-1 — de keuken even pauzeren vanaf het keukenscherm (druk, oven vol).
+// HORECA-STAAT-1: geldt voor afhalen en leveren via de webshop én de keukengerechten aan tafel (QR); dranken blijven.
 import { PauseCircle, PlayCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useTracks } from '@/hooks/useBusinessModules';
@@ -15,7 +15,7 @@ export function KitchenPauseControl({ now }: { now: number }) {
 
   const until = data?.until ? new Date(data.until) : null;
   const paused = !!until && until.getTime() > now;
-  if (!paused && data && !data.webshop && !hasTrack('webshop')) return null;
+  if (!paused && data && !data.webshop && !data.table && !hasTrack('webshop')) return null;
   if (paused) {
     return (
       <Button variant="destructive" size="sm" onClick={() => set.mutate(null)} disabled={set.isPending}>
@@ -34,7 +34,7 @@ export function KitchenPauseControl({ now }: { now: number }) {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-64">
-        <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">{t('admin.kitchen.pause_hint')}</DropdownMenuLabel>
+        <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">{t(data?.table && !data.kitchenSplit ? 'admin.kitchen.pause_hint_all' : 'admin.kitchen.pause_hint')}</DropdownMenuLabel>
         <DropdownMenuSeparator />
         {PAUSE_MINUTES.map((m) => (
           <DropdownMenuItem key={m} onClick={() => set.mutate(inMinutes(m))}>{t('admin.kitchen.pause_minutes', { count: m })}</DropdownMenuItem>

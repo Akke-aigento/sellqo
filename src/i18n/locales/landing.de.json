@@ -2553,6 +2553,18 @@
         "daily_special": {
           "title": "Tagesgericht",
           "description": "Markiere im Jetzt-Panel oder an der Kasse ein oder mehrere Gerichte deiner Karte als Tagesgericht oder lege schnell ein neues mit Name, Preis und Kategorie an. Deine Speisekarte zeigt oben „Heute“ mit deinem Tagesgericht, die Startseite eines Gastro-Themes ein kleines Banner, und an der Kasse steht das Tagesgericht oben auf der Karte, damit du es mit einem Tipp bonierst. Der Preis ist einfach der Produktpreis. Morgen um 5 Uhr läuft die Markierung automatisch ab; mit „Heute kein Tagesgericht“ entfernst du sie sofort."
+        },
+        "ordering_state_everywhere": {
+          "title": "Geschlossen, pausiert oder Online-Bestellen aus: überall gleich",
+          "description": "Deine Website, deine Speisekarte, das QR-Menü am Tisch und der Checkout folgen jetzt ein und demselben Stand. Ist dein Lokal heute geschlossen, sehen Gäste oben „Heute geschlossen“ mit deinem Grund, auch ohne eingetragene Öffnungszeiten, und niemand kann online oder am Tisch bestellen. Nimmst du keine Online-Bestellungen an, oder ist dein Lokal außerhalb der Öffnungszeiten mit dem Schalter „nur innerhalb der Öffnungszeiten“, verschwinden die +-Knöpfe und „In den Warenkorb“ auf jeder Seite, auch im Bereich mit deiner Karte auf der Startseite. Auch ein alter Link oder Knopf hilft nicht weiter: Der Server lehnt mit derselben Meldung ab. Gäste mit einer offenen Rechnung können noch bezahlen."
+        },
+        "kitchen_pause_drinks": {
+          "title": "Küche pausieren: Getränke am Tisch bleiben bestellbar",
+          "description": "Pausierst du die Küche, ruhen Online-Bestellungen (Abholung und Lieferung) bis zur gewählten Uhrzeit, und am Tisch nur die Gerichte, die an eine Küchenstation gehen. Getränke und alles, was an die Bar geht, bleiben bestellbar. Gäste sehen oben „Küche kurz geschlossen bis 21:53“ und bei einem Gericht, warum es gerade nicht geht. Ohne Zubereitungsstationen ruht während der Pause auch das Bestellen am Tisch. Das Jetzt-Panel zeigt, was ruht, mit einem Knopf zum Fortsetzen."
+        },
+        "swipe_notifications": {
+          "title": "Meldungen wegwischen",
+          "description": "Meldungen in deiner Verwaltung und in der Kassen-App wischst du nach links, rechts oder oben weg, oder du schließt sie mit dem Kreuz. Eine normale Meldung verschwindet nach 4 Sekunden, eine Fehlermeldung nach 8 Sekunden."
         }
       },
       "copyLink": "Link kopieren",

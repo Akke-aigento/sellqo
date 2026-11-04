@@ -7,6 +7,8 @@ const rows: Record<string, unknown> = {
   fulfillment_settings: { tenant_id: 't1', qr_mode: 'order', qr_flow: 'check', qr_pay_counter: true, qr_pay_online: false, paused_until: pausedUntil, pay_on_pickup: true },
   business_hours: { week: {}, closures, timezone: 'Europe/Brussels' },
   products, categories, dining_areas: areas, legal_pages: [{ id: 'l1' }], vat_rates: [],
+  // HORECA-STAAT-1 — keuken en bar: tijdens een pauze liggen aan tafel enkel de keukengerechten stil.
+  prep_stations: [{ id: 's1' }, { id: 's2' }],
 };
 const w = window as unknown as { __writes?: unknown[] };
 w.__writes = [];

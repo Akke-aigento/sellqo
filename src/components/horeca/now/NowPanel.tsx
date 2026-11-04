@@ -17,6 +17,7 @@ import { isHorecaOnly } from '@/lib/tracks';
 import { mijnZaakUrl } from '@/lib/mijnZaak';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { BUSINESS_HOURS_URL } from '@/components/admin/settings/hours/HoursModeChoice';
@@ -25,7 +26,7 @@ import { PAUSE_MINUTES, endOfToday, useKitchenPause } from '@/components/admin/k
 import { useKaart } from '@/components/admin/horeca/kaart/useKaart';
 import { isSoldOutNow } from '@/components/admin/storefront/food/useSoldOutToday';
 import { qrOrderHasNoPayWay } from '@/components/admin/storefront/food/qrModeRules';
-import { activeUntil, pauseTileVisible, zoneTiles } from '@/lib/horeca/nowPanel';
+import { activeUntil, pauseEffectKey, pauseTileVisible, zoneTiles } from '@/lib/horeca/nowPanel';
 import { NowTile } from './NowTile';
 import { SoldOutSheet, SpecialSheet } from './NowSheets';
 import { useNowAreas, useNowClosedToday, useNowQr, useNowSpecials } from './useNowData';
@@ -121,13 +122,15 @@ function NowPanelTiles({ nowMs }: { nowMs: number }) {
     );
   }
 
-  // 3. Keuken pauzeren — enkel als er online besteld kan worden (de pauze geldt niet aan tafel) of al gepauzeerd.
+  // 3. Keuken pauzeren — als er online of aan tafel besteld kan worden, of al gepauzeerd. HORECA-STAAT-1: de
+  // tegel zegt wat er echt stilligt (online, keukengerechten aan tafel), zoals storefront-api het afdwingt.
+  const pauseEffect = pause.data ? pauseEffectKey({ online: pause.data.webshop, table: pause.data.table, kitchenSplit: pause.data.kitchenSplit }) : 'effect_online';
   if (isAdmin && pause.data) {
     const until = pause.data.until && activeUntil(pause.data.until, nowMs) ? pause.data.until : null;
-    if (pauseTileVisible({ onlineOrdering: pause.data.webshop, paused: !!until })) {
+    if (pauseTileVisible({ onlineOrdering: pause.data.webshop, tableOrdering: pause.data.table, paused: !!until })) {
       tiles.push(until ? (
         <NowTile key="pause" testId="now-pause" icon={PauseCircle} title={t('admin.now.pause.title')} state={t('admin.now.pause.paused')}
-          sub={t('admin.now.pause.until', { time: time(until) })} tone="alert" pressed busy={pause.set.isPending}
+          sub={`${t(`admin.now.pause.${pauseEffect}`, { time: time(until) })} · ${t('admin.now.pause.resume_hint')}`} tone="alert" pressed busy={pause.set.isPending}
           onClick={() => pause.set.mutate(null)} />
       ) : (
         <DropdownMenu key="pause">
@@ -135,7 +138,7 @@ function NowPanelTiles({ nowMs }: { nowMs: number }) {
             <NowTile testId="now-pause" icon={ChefHat} title={t('admin.now.pause.title')} state={t('admin.now.pause.running')} sub={t('admin.now.pause.tap')} tone="off" busy={pause.set.isPending} />
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-64">
-            <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">{t('admin.kitchen.pause_hint')}</DropdownMenuLabel>
+            <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">{t(pause.data.table && !pause.data.kitchenSplit ? 'admin.kitchen.pause_hint_all' : 'admin.kitchen.pause_hint')}</DropdownMenuLabel>
             <DropdownMenuSeparator />
             {PAUSE_MINUTES.map((m) => (
               <DropdownMenuItem key={m} className="h-11" onClick={() => pause.set.mutate(new Date(Date.now() + m * 60_000))}>{t('admin.kitchen.pause_minutes', { count: m })}</DropdownMenuItem>
@@ -197,6 +200,11 @@ function NowPanelTiles({ nowMs }: { nowMs: number }) {
   }
 
   if (!tiles.length) return null;
+  // HORECA-STAAT-1 — vandaag dicht: een duidelijke status bovenaan Vandaag, met één knop om weer te openen
+  // (een sluitingsperiode beheer je bij de openingsuren).
+  const closedNow = isAdmin && closed.state?.closed ? closed.state : null;
+  // HORECA-STAAT-1 — keuken gepauzeerd: de volledige gevolgen in één zin (de tegel is daarvoor te smal op gsm).
+  const pausedNow = isAdmin && pause.data?.until && activeUntil(pause.data.until, nowMs) ? pause.data.until : null;
 
   return (
     <section aria-labelledby="now-panel-title" className="flex flex-col gap-3 rounded-2xl border bg-background p-3 shadow-sm md:p-4" data-testid="now-panel">
@@ -204,6 +212,28 @@ function NowPanelTiles({ nowMs }: { nowMs: number }) {
         <h2 id="now-panel-title" className="text-lg font-extrabold">{t('admin.now.title')}</h2>
         <span className="text-xs text-muted-foreground">{t('admin.now.subtitle')}</span>
       </div>
+      {closedNow ? (
+        <div role="status" data-testid="now-closed-banner" className="flex flex-col gap-2 rounded-xl border border-destructive/40 bg-destructive/10 p-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
+            <p className="font-bold">{t('admin.now.closed.banner')}{closedNow.reason ? ` · ${closedNow.reason}` : ''}</p>
+            <p className="text-sm text-muted-foreground">{t('admin.now.closed.banner_desc')}</p>
+          </div>
+          {closedNow.period ? (
+            <Link to={href(BUSINESS_HOURS_URL)} className="shrink-0 text-sm font-medium text-primary underline">{t('settings.businessHours.edit_link')}</Link>
+          ) : (
+            <Button variant="outline" className="h-11 shrink-0" disabled={closed.set.isPending}
+              onClick={() => closed.set.mutate({ closed: false }, { onSuccess: () => toast.success(t('admin.now.closed.open_toast')), onError: fail })}>
+              {t('admin.now.closed.reopen')}
+            </Button>
+          )}
+        </div>
+      ) : null}
+      {pausedNow && !closedNow ? (
+        <div role="status" data-testid="now-pause-banner" className="flex flex-col gap-2 rounded-xl border border-warning/50 bg-warning/10 p-3 sm:flex-row sm:items-center sm:justify-between">
+          <p className="min-w-0 font-semibold">{t(`admin.now.pause.${pauseEffect}`, { time: time(pausedNow) })}</p>
+          <Button variant="outline" className="h-11 shrink-0" disabled={pause.set.isPending} onClick={() => pause.set.mutate(null)}>{t('admin.now.pause.resume')}</Button>
+        </div>
+      ) : null}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">{tiles}</div>
 
       <SoldOutSheet open={sheet === 'soldout'} onClose={() => setSheet(null)} products={products} />

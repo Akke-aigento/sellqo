@@ -1,6 +1,6 @@
 // HORECA-NU-1 — pure regels van het Nu-paneel.
 import { describe, expect, it } from 'vitest';
-import { activeUntil, closedToday, fetchActiveDailySpecials, localYmd, onMenuChannel, pauseTileVisible, specialEligible, withMenuChannels, zoneTiles, type SpecialsClient } from './nowPanel';
+import { activeUntil, closedToday, fetchActiveDailySpecials, localYmd, onMenuChannel, pauseEffectKey, pauseTileVisible, specialEligible, withMenuChannels, zoneTiles, type SpecialsClient } from './nowPanel';
 import { CHANNELS } from '@/components/admin/storefront/food/ProductChannelsCard';
 
 describe('localYmd', () => {
@@ -41,6 +41,17 @@ describe('tegels', () => {
     expect(pauseTileVisible({ onlineOrdering: false, paused: false })).toBe(false);
     expect(pauseTileVisible({ onlineOrdering: true, paused: false })).toBe(true);
     expect(pauseTileVisible({ onlineOrdering: false, paused: true })).toBe(true);
+    // HORECA-STAAT-1: ook als er enkel aan tafel besteld wordt (keukengerechten liggen dan stil).
+    expect(pauseTileVisible({ onlineOrdering: false, tableOrdering: true, paused: false })).toBe(true);
+    expect(pauseTileVisible({ onlineOrdering: false, tableOrdering: false, paused: false })).toBe(false);
+  });
+  it('pauseEffectKey: zegt wat er echt stilligt (zelfde regel als storefront-api)', () => {
+    expect(pauseEffectKey({ online: true, table: true, kitchenSplit: true })).toBe('effect_online_kitchen');
+    expect(pauseEffectKey({ online: true, table: true, kitchenSplit: false })).toBe('effect_online_table');
+    expect(pauseEffectKey({ online: true, table: false, kitchenSplit: true })).toBe('effect_online');
+    expect(pauseEffectKey({ online: false, table: true, kitchenSplit: true })).toBe('effect_kitchen');
+    expect(pauseEffectKey({ online: false, table: true, kitchenSplit: false })).toBe('effect_table');
+    expect(pauseEffectKey({ online: false, table: false, kitchenSplit: false })).toBe('effect_online');
   });
   it('activeUntil: enkel een moment in de toekomst', () => {
     const now = Date.UTC(2026, 10, 4, 12);

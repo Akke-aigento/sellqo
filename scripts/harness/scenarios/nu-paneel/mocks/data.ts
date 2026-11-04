@@ -1,5 +1,5 @@
 // HORECA-NU-1 — Café De Wissel: kaart, zones en instellingen (rustig of druk).
-import { druk } from './h';
+import { druk, pauze } from './h';
 const inMin = (m: number) => new Date(Date.now() + m * 60_000).toISOString();
 const tomorrow5 = () => { const d = new Date(); d.setDate(d.getDate() + 1); d.setHours(5, 0, 0, 0); return d.toISOString(); };
 export const today = new Date().toISOString().slice(0, 10);
@@ -30,5 +30,5 @@ export const areas = [
   { id: 'a1', name: 'Zaal', sort: 0, grid_w: 20, grid_h: 12, is_active: true, is_open: true },
   { id: 'a2', name: 'Terras', sort: 1, grid_w: 20, grid_h: 10, is_active: true, is_open: !druk },
 ];
-export const pausedUntil = druk ? inMin(20) : null;
+export const pausedUntil = druk || pauze ? inMin(20) : null;
 export const closures = druk ? [{ from: today, to: today, reason: 'Personeel ziek' }] : [];

@@ -6603,13 +6603,13 @@
       "geluid_uit": "Ton aus",
       "auto_print_aan": "Hier drucken an",
       "auto_print_uit": "Hier drucken aus",
-      "pause_online": "Online-Bestellungen pausieren",
-      "pause_hint": "Abholung und Lieferung über den Webshop nehmen vorübergehend keine neuen Bestellungen an. Bestellen am Tisch funktioniert weiter.",
+      "pause_online": "Küche pausieren",
+      "pause_hint": "Online-Bestellungen (Abholung und Lieferung) und Küchengerichte per QR am Tisch sind kurz pausiert. Getränke am Tisch bleiben bestellbar.",
       "pause_minutes": "{{count}} Minuten",
       "pause_today": "Rest des Tages",
       "paused_until": "Pausiert bis {{time}} · fortsetzen",
-      "paused_toast": "Online-Bestellungen pausiert bis {{time}}",
-      "resumed_toast": "Online-Bestellungen sind wieder möglich",
+      "paused_toast": "Küche pausiert bis {{time}}",
+      "resumed_toast": "Die Küche nimmt wieder Bestellungen an",
       "source_table": "Tisch",
       "cancelled_item": "Storno",
       "station": "Station",
@@ -6626,7 +6626,8 @@
       "print_health_stuck": "warten auf den Drucker: {{count}}",
       "print_health_offline": "keine Verbindung mit {{names}}",
       "print_health_hint": "Prüf den Drucker (an, Papier, Netzwerk) und gib die Bons in der Zwischenzeit mündlich weiter.",
-      "print_health_seen": "Gesehen"
+      "print_health_seen": "Gesehen",
+      "pause_hint_all": "Online-Bestellungen (Abholung und Lieferung) und Bestellen per QR am Tisch sind kurz pausiert. Richte Zubereitungsstationen ein, damit Getränke bestellbar bleiben."
     },
     "pos": {
       "pOSKitchenPanel": {
@@ -9734,9 +9735,15 @@
       "pause": {
         "title": "Küche pausieren",
         "paused": "PAUSIERT",
-        "until": "bis {{time}} · tippen zum Fortsetzen",
         "running": "Läuft",
-        "tap": "Tippe, um Online-Bestellungen zu pausieren"
+        "tap": "Tippe, um die Küche kurz zu pausieren",
+        "resume_hint": "tippen zum Fortsetzen",
+        "effect_online_kitchen": "Online und Küchengerichte am Tisch pausiert bis {{time}}",
+        "effect_online_table": "Online und Bestellen am Tisch pausiert bis {{time}}",
+        "effect_online": "Online-Bestellungen pausiert bis {{time}}",
+        "effect_kitchen": "Küchengerichte am Tisch pausiert bis {{time}}",
+        "effect_table": "Bestellen am Tisch pausiert bis {{time}}",
+        "resume": "Fortsetzen"
       },
       "soldout": {
         "title": "Heute ausverkauft",
@@ -9751,12 +9758,15 @@
         "period": "Heute liegt in einem Schließzeitraum.",
         "period_toast": "Heute liegt in einem Schließzeitraum. Ändere ihn bei deinen Öffnungszeiten.",
         "confirm_title": "Heute ausnahmsweise geschlossen?",
-        "confirm_desc": "Deine Website zeigt heute „geschlossen“; Online-Reservierungen für heute sind nicht mehr möglich, Abholung und Lieferung heute auch nicht. Morgen hast du wieder laut deinen Öffnungszeiten geöffnet. Bestellen per QR am Tisch bleibt aber möglich; schalte dafür auch „Bestellen per QR am Tisch“ aus.",
+        "confirm_desc": "Deine Website, deine Speisekarte und der QR am Tisch zeigen heute „geschlossen“. Online bestellen, Abholung, Lieferung und Bestellen am Tisch sind heute nicht möglich, Online-Reservierungen für heute auch nicht. Gäste mit einer offenen Rechnung können noch bezahlen. Morgen hast du wieder laut deinen Öffnungszeiten geöffnet.",
         "reason": "Grund (optional)",
         "reason_placeholder": "Z. B. Personal krank",
         "confirm": "Heute schließen",
         "closed_toast": "Dein Betrieb ist heute geschlossen",
-        "open_toast": "Dein Betrieb ist heute wieder geöffnet"
+        "open_toast": "Dein Betrieb ist heute wieder geöffnet",
+        "banner": "Dein Lokal ist heute geschlossen",
+        "banner_desc": "Gäste können heute nicht bestellen (online und am Tisch) und nicht für heute reservieren.",
+        "reopen": "Heute doch öffnen"
       },
       "zone": {
         "open": "OFFEN",
@@ -12310,8 +12320,8 @@
         "until": "bis {{time}} · tippen zum Fortsetzen",
         "running": "Läuft",
         "minutes": "{{count}} Min.",
-        "pausedToast": "Online-Bestellungen für {{count}} Minuten pausiert",
-        "resumed": "Online-Bestellungen laufen wieder"
+        "pausedToast": "Küche für {{count}} Minuten pausiert",
+        "resumed": "Die Küche nimmt wieder Bestellungen an"
       },
       "zone": {
         "open": "OFFEN",

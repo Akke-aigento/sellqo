@@ -35,6 +35,10 @@ met FDM, enkel bekijken, databank zonder de oproep-kolommen, Engels — en Kassa
 `mijn-zaak` (HORECA-INSTELLINGEN-1: horeca-only-zijbalk met Transacties onder Rapporten, Mijn zaak met de checklist, elke groep
 met tabs, Betalen › Fooi, oude `?section=`-links die doorsturen, staff-rol, Personeel, Reservaties, de zoekbalk met "fooi",
 ⌘K in de kop met "printer" + Enter, en als bewijs een webshopzaak: zijbalk en klassieke Instellingen).
+`meldingen` (HORECA-STAAT-1: toasts wegvegen met een vinger (CDP-touch) naar links, rechts en boven en met de muis,
+het sluitkruisje, 4 s voor een gewone melding en 8 s voor een fout, bovenaan en niet over de onderbalk; gooit bij een
+fout, dus exit 1). `nu-paneel` meet sinds HORECA-STAAT-1 ook de pauzetegel en -status ("Online en keukengerechten aan
+tafel staan stil tot …", `?v=pauze`) en de status "Je zaak staat vandaag dicht" met "Toch open vandaag".
 
 Lessen: mock het spoorfilter (`isItemBlocked`) bewust, anders zie je items die de echte app verbergt.
 Nooit `pkill -f` op de vite-server; `shoot.mjs` stopt hem zelf.

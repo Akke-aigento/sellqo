@@ -5,7 +5,7 @@
 //
 // Run (vanuit de repo-root, met netwerk voor de echte imports):
 //   cp supabase/functions/storefront-api/index.ts supabase/functions/storefront-api/__smoke.ts
-//   echo 'export { getProducts, getProductFilters, computeCartTotals, cartAddItem, getFulfillmentSlots, validateCartFulfillment, payOnPickupMethod, checkoutTable, fulfillmentAvailability, foodInfo, ticketFeeFor, orderOverageFeeCents, resolveEventPrice, earlyBirdForType, seatPublicStatus, validateDiscountCode, appliedCodesOnly, resolveDomain, getSeo, getSitemapData, isSoldOutToday, channelAllows, cartAvailabilityError, cartRestore, cartGet, getCartForCheckout, checkoutComplete, checkoutVerifyPayment, cartUpdateItem, cartRemoveItem, cartApplyDiscount, cartRemoveDiscount };' >> supabase/functions/storefront-api/__smoke.ts
+//   echo 'export { getProducts, getProductFilters, computeCartTotals, cartAddItem, getFulfillmentSlots, validateCartFulfillment, payOnPickupMethod, checkoutTable, fulfillmentAvailability, foodInfo, ticketFeeFor, orderOverageFeeCents, resolveEventPrice, earlyBirdForType, seatPublicStatus, validateDiscountCode, appliedCodesOnly, resolveDomain, getSeo, getSitemapData, isSoldOutToday, channelAllows, cartAvailabilityError, cartRestore, cartGet, getCartForCheckout, checkoutComplete, checkoutVerifyPayment, cartUpdateItem, cartRemoveItem, cartApplyDiscount, cartRemoveDiscount, getConfig, loadOrderingState };' >> supabase/functions/storefront-api/__smoke.ts
 //   deno run --allow-read --allow-env --allow-net --no-lock --import-map=scripts/promo-compare/import_map.smoke.json scripts/promo-compare/smoke.ts
 //   rm supabase/functions/storefront-api/__smoke.ts
 import { FakeDb } from './fakeSupabase.ts';
@@ -719,6 +719,33 @@ await check('cart_restore: herstel-link verlaten winkelmandje (MAIL-3)', async (
     assert(stripeAmountMismatch({ amount_total: null }, 10) === null, 'geen bedrag = geen oordeel');
   });
 }
+
+// HORECA-STAAT-1 — eerste wet: een eigen frontend zonder openingsuren of pauze merkt niets. get_config krijgt
+// enkel ordering_state achteraan; toevoegen (online en aan tafel) gaat zoals voorheen.
+await check('HORECA-STAAT-1: eigen frontend zonder uren/pauze — enkel een extra sleutel, toevoegen ongewijzigd', async () => {
+  const CF = 'tenant-cf';
+  const cdb = new FakeDb({
+    tenants: [{ id: CF, name: 'Eigen', currency: 'EUR', tax_percentage: 21 }],
+    tenant_theme_settings: [{ tenant_id: CF, use_custom_frontend: true, shop_live: false, shop_ordering: false }],
+    tenant_domains: [], storefront_config: [], translations: [], business_hours: [], fulfillment_settings: [],
+    shipping_methods: [{ id: 's', tenant_id: CF, fulfillment_type: 'shipping', is_active: true }],
+    products: [{ id: 'cp', tenant_id: CF, name: 'Hoodie', price: 60, is_active: true, track_inventory: false, stock: 0, category_id: null, channels: null, sold_out_until: null }],
+    storefront_carts: [{ id: 'cc', tenant_id: CF, session_id: 's', currency: 'EUR', discount_codes: [], expires_at: '2999-01-01T00:00:00Z' }],
+    storefront_cart_items: [], product_variants: [], product_addon_groups: [], product_categories: [],
+    volume_discounts: [], bogo_promotions: [], product_bundles: [], automatic_discounts: [], discount_stacking_rules: [], discount_codes: [], customer_groups: [],
+  });
+  const cfg = await S.getConfig(cdb, CF, {});
+  const keys = Object.keys(cfg);
+  assert(JSON.stringify(keys) === JSON.stringify(['store', 'contact', 'social', 'languages', 'canonical_domain', 'features', 'payments', 'appearance', 'business_hours', 'ordering_state']), `sleutels: ${JSON.stringify(keys)}`);
+  assert(cfg.business_hours === null && cfg.ordering_state?.online?.open === true && cfg.ordering_state.closed_today === null, JSON.stringify(cfg.ordering_state));
+  const st = await S.loadOrderingState(cdb, CF);
+  assert(st?.online.reason === null, `shop_live/shop_ordering tellen niet voor een eigen frontend: ${JSON.stringify(st?.online)}`);
+  for (const table of [false, true]) {
+    let err: unknown = null;
+    try { await S.cartAddItem(cdb, CF, { cart_id: 'cc', product_id: 'cp', quantity: 1, ...(table ? { table: true } : {}) }); } catch (e) { err = e; }
+    assert(!(err instanceof Error && /CLOSED_TODAY|ORDERING_PAUSED|KITCHEN_PAUSED|OUTSIDE_HOURS/.test(err.message)), `toevoegen (tafel=${table}): ${err}`);
+  }
+});
 
 if (failures > 0) { console.error(`${failures} rooktest(en) gefaald`); Deno.exit(1); }
 console.log('Rooktest storefront-api groen.');

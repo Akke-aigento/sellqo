@@ -6603,13 +6603,13 @@
       "geluid_uit": "Son désactivé",
       "auto_print_aan": "Impression ici activée",
       "auto_print_uit": "Impression ici désactivée",
-      "pause_online": "Suspendre les commandes en ligne",
-      "pause_hint": "Le retrait et la livraison via la boutique en ligne n’acceptent plus de nouvelles commandes pendant un moment. La commande à table continue de fonctionner.",
+      "pause_online": "Mettre la cuisine en pause",
+      "pause_hint": "Les commandes en ligne (retrait et livraison) et les plats de cuisine via le QR à table sont en pause pendant un moment. Les boissons à table restent commandables.",
       "pause_minutes": "{{count}} minutes",
       "pause_today": "Reste de la journée",
       "paused_until": "En pause jusqu’à {{time}} · reprendre",
-      "paused_toast": "Commandes en ligne suspendues jusqu’à {{time}}",
-      "resumed_toast": "Les commandes en ligne sont à nouveau ouvertes",
+      "paused_toast": "Cuisine en pause jusqu’à {{time}}",
+      "resumed_toast": "La cuisine accepte à nouveau les commandes",
       "source_table": "Table",
       "cancelled_item": "Annuler",
       "station": "Poste",
@@ -6626,7 +6626,8 @@
       "print_health_stuck": "en attente de l'imprimante : {{count}}",
       "print_health_offline": "pas de connexion avec {{names}}",
       "print_health_hint": "Vérifie l'imprimante (allumée, papier, réseau) et transmets les bons oralement en attendant.",
-      "print_health_seen": "Vu"
+      "print_health_seen": "Vu",
+      "pause_hint_all": "Les commandes en ligne (retrait et livraison) et la commande via le QR à table sont en pause pendant un moment. Configurez des postes de préparation pour que les boissons restent commandables."
     },
     "pos": {
       "pOSKitchenPanel": {
@@ -9734,9 +9735,15 @@
       "pause": {
         "title": "Mettre la cuisine en pause",
         "paused": "EN PAUSE",
-        "until": "jusqu’à {{time}} · touchez pour reprendre",
         "running": "En cours",
-        "tap": "Touchez pour mettre les commandes en ligne en pause"
+        "tap": "Touchez pour mettre la cuisine en pause",
+        "resume_hint": "touchez pour reprendre",
+        "effect_online_kitchen": "Commandes en ligne et plats de cuisine à table en pause jusqu’à {{time}}",
+        "effect_online_table": "Commandes en ligne et à table en pause jusqu’à {{time}}",
+        "effect_online": "Commandes en ligne en pause jusqu’à {{time}}",
+        "effect_kitchen": "Plats de cuisine à table en pause jusqu’à {{time}}",
+        "effect_table": "Commandes à table en pause jusqu’à {{time}}",
+        "resume": "Reprendre"
       },
       "soldout": {
         "title": "Épuisé aujourd’hui",
@@ -9751,12 +9758,15 @@
         "period": "Aujourd’hui fait partie d’une période de fermeture.",
         "period_toast": "Aujourd’hui fait partie d’une période de fermeture. Modifiez-la dans vos heures d’ouverture.",
         "confirm_title": "Fermer exceptionnellement aujourd’hui ?",
-        "confirm_desc": "Votre site affiche « fermé » aujourd’hui ; la réservation en ligne pour aujourd’hui n’est plus possible, ni le retrait ou la livraison aujourd’hui. Demain, vous rouvrez selon vos heures d’ouverture. La commande via le QR à table reste possible ; pour l’arrêter aussi, désactivez également « Commande via QR à table ».",
+        "confirm_desc": "Votre site, votre carte et le QR à table affichent « fermé » aujourd’hui. Commander en ligne, le retrait, la livraison et la commande à table ne sont pas possibles aujourd’hui, pas plus que la réservation en ligne pour aujourd’hui. Les clients avec une addition ouverte peuvent encore payer. Demain, vous rouvrez selon vos heures d’ouverture.",
         "reason": "Raison (facultatif)",
         "reason_placeholder": "Ex. personnel malade",
         "confirm": "Fermer aujourd’hui",
         "closed_toast": "Votre établissement est fermé aujourd’hui",
-        "open_toast": "Votre établissement est à nouveau ouvert aujourd’hui"
+        "open_toast": "Votre établissement est à nouveau ouvert aujourd’hui",
+        "banner": "Votre établissement est fermé aujourd’hui",
+        "banner_desc": "Les clients ne peuvent pas commander aujourd’hui (en ligne et à table) ni réserver pour aujourd’hui.",
+        "reopen": "Ouvrir quand même aujourd’hui"
       },
       "zone": {
         "open": "OUVERT",
@@ -12310,8 +12320,8 @@
         "until": "jusqu’à {{time}} · touchez pour reprendre",
         "running": "En cours",
         "minutes": "{{count}} min",
-        "pausedToast": "Commandes en ligne en pause pendant {{count}} minutes",
-        "resumed": "Les commandes en ligne reprennent"
+        "pausedToast": "Cuisine en pause pendant {{count}} minutes",
+        "resumed": "La cuisine accepte à nouveau les commandes"
       },
       "zone": {
         "open": "OUVERT",

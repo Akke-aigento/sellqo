@@ -315,7 +315,7 @@ Deno.test('HORECA-NU-1b: checkout_complete op een tafelmandje in een zone die in
   }
 });
 
-Deno.test('GET-stempel HORECA-NU-1', async () => {
+Deno.test('GET-stempel HORECA-STAAT-1', async () => {
   const r = await handler(new Request('https://f/storefront-api', { method: 'GET' }));
-  assert((await r.json()).version === 'HORECA-NU-1' && r.headers.get('X-SellQo-Api-Rev') === 'horeca-nu-1', 'stempel');
+  assert((await r.json()).version === 'HORECA-STAAT-1' && r.headers.get('X-SellQo-Api-Rev') === 'horeca-staat-1', 'stempel');
 });

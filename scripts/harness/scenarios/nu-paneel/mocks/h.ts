@@ -8,3 +8,5 @@ export const H = {
   lang: q.get('lang') ?? 'nl',
 };
 export const druk = H.v === 'druk';
+// HORECA-STAAT-1: enkel de keuken gepauzeerd (zaak open), voor de pauzestatus bovenaan.
+export const pauze = H.v === 'pauze';

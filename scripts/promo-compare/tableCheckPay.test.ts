@@ -83,9 +83,9 @@ Deno.test('status: teruggestort → leesbare reden; onbekend → NOT_FOUND', asy
   assert(nf.json.data?.error?.code === 'NOT_FOUND', JSON.stringify(nf.json));
 });
 
-Deno.test('GET-stempel storefront-api (HORECA-NU-1)', async () => {
+Deno.test('GET-stempel storefront-api (HORECA-STAAT-1)', async () => {
   const r = await handler(new Request('https://f/storefront-api', { method: 'GET' }));
-  assert((await r.json()).version === 'HORECA-NU-1', 'stempel');
+  assert((await r.json()).version === 'HORECA-STAAT-1', 'stempel');
 });
 
 // --- afrond-module ------------------------------------------------------------------------------

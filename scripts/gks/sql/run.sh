@@ -168,4 +168,15 @@ done
 out=$($P -d $DB -f test_horeca_nu_docs.sql 2>&1 | grep -v NOTICE) || { echo "$out" | tail -5; echo "FOUT in test_horeca_nu_docs.sql"; exit 1; }
 if echo "$out" | grep -qE '^ f$'; then echo "$out" | grep -B3 -E '^ f$'; echo "FOUT: controle faalt in test_horeca_nu_docs.sql"; fail=1; fi
 echo "$out" | tail -1
+# HORECA-STAAT-1: de docs-migratie twee keer, md5 per artikel vergelijken (en met de stand vooraf).
+$P -d $DB -f 13_horeca_staat_docs_prelude.sql >/dev/null
+$P -d $DB -c "create table if not exists public.horeca_staat_docs_md5_voor as select slug, md5(content) as md5 from public.doc_articles where slug in ('nu-paneel', 'keukenscherm-en-tafelbestelling', 'openingsuren-instellen', 'qr-tafelrekening')" >/dev/null
+for RUN in 1 2; do
+  M=../../../supabase/migrations/20261104160000_horeca_staat_1_docs.sql
+  $P -d $DB -f $M >/dev/null 2>/tmp/kassa_mig.err || { cat /tmp/kassa_mig.err; echo "FOUT in $M (run $RUN)"; exit 1; }
+  $P -d $DB -c "insert into public.horeca_staat_docs_md5 select $RUN, slug, md5(content) from public.doc_articles where slug in ('nu-paneel', 'keukenscherm-en-tafelbestelling', 'openingsuren-instellen', 'qr-tafelrekening')" >/dev/null
+done
+out=$($P -d $DB -f test_horeca_staat_docs.sql 2>&1 | grep -v NOTICE) || { echo "$out" | tail -5; echo "FOUT in test_horeca_staat_docs.sql"; exit 1; }
+if echo "$out" | grep -qE '^ f$'; then echo "$out" | grep -B3 -E '^ f$'; echo "FOUT: controle faalt in test_horeca_staat_docs.sql"; fail=1; fi
+echo "$out" | tail -1
 exit $fail

@@ -2553,6 +2553,18 @@
         "daily_special": {
           "title": "Plat du jour",
           "description": "Dans le panneau Maintenant ou à la caisse, marque un ou plusieurs plats de ta carte comme plat du jour, ou crée-en rapidement un nouveau avec un nom, un prix et une catégorie. Ta carte affiche « Aujourd'hui » en haut avec ton plat du jour, la page d'accueil d'un thème horeca une petite bannière, et à la caisse le plat du jour se trouve en haut de la carte pour l'encoder en un geste. Le prix est simplement celui du produit. Demain à 5 h, le marquage expire automatiquement ; « Pas de plat du jour aujourd'hui » les retire tout de suite."
+        },
+        "ordering_state_everywhere": {
+          "title": "Fermé, en pause ou commande en ligne désactivée : partout pareil",
+          "description": "Ton site, ta carte, le menu QR à table et le paiement suivent désormais un seul et même état. Si ton établissement est fermé aujourd'hui, les clients voient « Fermé aujourd'hui » avec ta raison en haut, même sans heures d'ouverture, et personne ne peut commander en ligne ni à table. Si tu ne prends pas de commandes en ligne, ou si ton établissement est hors de ses heures avec l'interrupteur « uniquement pendant les heures d'ouverture », les boutons + et « Ajouter au panier » disparaissent sur chaque page, y compris dans la section de ta carte sur la page d'accueil. Un ancien lien ou bouton ne permet pas non plus de passer : le serveur refuse avec le même message. Les clients avec une addition ouverte peuvent encore payer."
+        },
+        "kitchen_pause_drinks": {
+          "title": "Mettre la cuisine en pause : les boissons à table restent commandables",
+          "description": "Quand tu mets la cuisine en pause, les commandes en ligne (retrait et livraison) s'arrêtent jusqu'à l'heure choisie, et à table seulement les plats qui vont vers un poste cuisine. Les boissons et tout ce qui va au bar restent commandables. Les clients voient en haut « Cuisine fermée un moment jusqu'à 21:53 » et, pour un plat, pourquoi ce n'est pas possible maintenant. Sans postes de préparation, la commande à table s'arrête aussi pendant la pause. Le panneau Maintenant montre ce qui est en pause, avec un bouton pour reprendre."
+        },
+        "swipe_notifications": {
+          "title": "Balayer les notifications",
+          "description": "Les notifications de ton administration et de l'application caisse se balaient vers la gauche, la droite ou le haut, ou se ferment avec la croix. Une notification normale disparaît après 4 secondes, une erreur après 8 secondes."
         }
       },
       "copyLink": "Copier le lien",
