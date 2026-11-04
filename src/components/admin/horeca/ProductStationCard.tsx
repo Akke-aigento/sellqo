@@ -10,9 +10,12 @@ import { useTranslation } from 'react-i18next';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { usePrepStationMutations, usePrepStations } from '@/hooks/usePrepStations';
+import { useHorecaHref } from '@/hooks/useHorecaHref';
 
 export function ProductStationCard({ productId }: { productId: string }) {
   const { t } = useTranslation();
+  // HORECA-INSTELLINGEN-1: horeca-only linkt meteen naar de nieuwe plek (Mijn zaak / Personeel).
+  const href = useHorecaHref();
   const { data, isLoading } = usePrepStations();
   const { routeProduct } = usePrepStationMutations();
   const { data: cat } = useQuery({
@@ -48,7 +51,7 @@ export function ProductStationCard({ productId }: { productId: string }) {
         {isLoading ? <Loader2 className="h-5 w-5 animate-spin" aria-label={t('common.loading')} /> : stations.length === 0 ? (
           <p className="text-sm text-muted-foreground">
             {t('admin.prepStations.product.none')}{' '}
-            <Link to="/admin/bestellen?tab=posten" className="underline">{t('admin.prepStations.product.manage')}</Link>
+            <Link to={href('/admin/bestellen?tab=posten')} className="underline">{t('admin.prepStations.product.manage')}</Link>
           </p>
         ) : (
           <div className="space-y-2">
@@ -62,7 +65,7 @@ export function ProductStationCard({ productId }: { productId: string }) {
             </select>
             <p className="text-xs text-muted-foreground">
               {t('admin.prepStations.product.note')}{' '}
-              <Link to="/admin/bestellen?tab=posten" className="underline">{t('admin.prepStations.product.manage')}</Link>
+              <Link to={href('/admin/bestellen?tab=posten')} className="underline">{t('admin.prepStations.product.manage')}</Link>
             </p>
           </div>
         )}

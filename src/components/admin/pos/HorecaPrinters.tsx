@@ -24,6 +24,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { LANG_CODES } from '@/i18n/languages';
+import { useHorecaHref } from '@/hooks/useHorecaHref';
 
 interface PrinterRow { id: string; name: string; width_chars: number; lang: string; is_active: boolean; last_seen_at: string | null; last_status: string | null }
 interface StationRow { id: string; name: string; kind: string; is_default: boolean; printer_id: string | null }
@@ -64,6 +65,8 @@ function CopyField({ label, value }: { label: string; value: string }) {
 
 export function HorecaPrinters() {
   const { t } = useTranslation();
+  // HORECA-INSTELLINGEN-1: horeca-only linkt meteen naar de nieuwe plek (Mijn zaak / Personeel).
+  const href = useHorecaHref();
   const { currentTenant } = useTenant();
   const tenantId = currentTenant?.id;
   const qc = useQueryClient();
@@ -260,7 +263,7 @@ export function HorecaPrinters() {
           {data.stations.length === 0 ? (
             <p className="text-sm text-muted-foreground">
               {t('admin.horecaPrint.no_stations')}{' '}
-              <Link to="/admin/bestellen?tab=posten" className="underline">{t('admin.horecaPrint.to_stations')}</Link>
+              <Link to={href('/admin/bestellen?tab=posten')} className="underline">{t('admin.horecaPrint.to_stations')}</Link>
             </p>
           ) : data.stations.map((s) => (
             <div key={s.id} className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -293,7 +296,7 @@ export function HorecaPrinters() {
           <div className="flex items-start justify-between gap-4">
             <div>
               <Label htmlFor="rc-online" className="text-sm font-medium">{t('admin.horecaPrint.mail_online')}</Label>
-              <p className="text-xs text-muted-foreground">{data.receipt.online_pay ? t('admin.horecaPrint.mail_online_hint') : <>{t('admin.horecaPrint.mail_online_needs_online')} <Link to="/admin/bestellen?tab=qr" className="font-medium text-primary underline">{t('admin.horecaPay.qr_to_settings')}</Link></>}</p>
+              <p className="text-xs text-muted-foreground">{data.receipt.online_pay ? t('admin.horecaPrint.mail_online_hint') : <>{t('admin.horecaPrint.mail_online_needs_online')} <Link to={href('/admin/bestellen?tab=qr')} className="font-medium text-primary underline">{t('admin.horecaPay.qr_to_settings')}</Link></>}</p>
             </div>
             <Switch id="rc-online" checked={data.receipt.mail_online} disabled={busy !== null || data.fiscal || !data.receipt.online_pay}
               onCheckedChange={(v) => saveReceipt({ mail_online: v })} />

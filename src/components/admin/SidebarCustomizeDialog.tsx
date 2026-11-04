@@ -16,6 +16,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { RotateCcw } from 'lucide-react';
 import { useSidebarPreferences } from '@/hooks/useSidebarPreferences';
+import { useHorecaHref } from '@/hooks/useHorecaHref';
 
 interface MenuItem {
   id: string;
@@ -37,6 +38,8 @@ export function SidebarCustomizeDialog({
   menuItems,
 }: SidebarCustomizeDialogProps) {
   const { t } = useTranslation();
+  // HORECA-INSTELLINGEN-1: horeca-only linkt meteen naar de nieuwe plek (Mijn zaak / Personeel).
+  const href = useHorecaHref();
   const { hiddenItems, updatePreferences, isUpdating, showAllItems } = useSidebarPreferences();
   const [localHidden, setLocalHidden] = useState<string[]>([]);
 
@@ -111,7 +114,7 @@ export function SidebarCustomizeDialog({
         </ScrollArea>
 
         {/* ONDERBALK-1: de onderbalk op de gsm stel je in bij Instellingen › Mijn onderbalk. */}
-        <Link to="/admin/settings?section=bottom-nav" onClick={() => onOpenChange(false)} className="text-sm text-primary hover:underline">
+        <Link to={href('/admin/settings?section=bottom-nav')} onClick={() => onOpenChange(false)} className="text-sm text-primary hover:underline">
           {t('settings.bottomNav.link')}
         </Link>
         <DialogFooter className="flex-col sm:flex-row gap-2">

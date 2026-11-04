@@ -19,6 +19,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { BusinessHoursCard } from '@/components/admin/settings/hours/BusinessHoursCard';
 import { Link } from 'react-router-dom';
 import { useFrontendMode } from '@/hooks/useFrontendMode';
+import { useHorecaHref } from '@/hooks/useHorecaHref';
 
 // Verhuisd uit StoreSettings (WEBSHOP-4b).
 const CURRENCIES = [
@@ -41,8 +42,11 @@ function displayName(lang: string, type: 'region' | 'currency', code: string): s
   }
 }
 
-export function BusinessSettings() {
+/** HORECA-INSTELLINGEN-1: `showHours={false}` in Mijn zaak, waar de openingsuren een eigen tab hebben. */
+export function BusinessSettings({ showHours = true }: { showHours?: boolean } = {}) {
   const { t, i18n } = useTranslation();
+  // HORECA-INSTELLINGEN-1: horeca-only linkt meteen naar de nieuwe plek (Mijn zaak / Personeel).
+  const href = useHorecaHref();
   const { currentTenant, refreshTenants } = useTenant();
   const { isCustomFrontend } = useFrontendMode();
   const { toast } = useToast();
@@ -237,7 +241,7 @@ export function BusinessSettings() {
             {/* UREN-1b — website-winkels: het logo staat op één plek (Branding) en geldt ook hier. Eigen frontends: ongewijzigd. */}
             {!isCustomFrontend ? (
               <Button variant="outline" size="sm" asChild>
-                <Link to="/admin/settings?section=branding">{t('settings.business.logo_in_branding')}</Link>
+                <Link to={href('/admin/settings?section=branding')}>{t('settings.business.logo_in_branding')}</Link>
               </Button>
             ) : <>
             <input
@@ -462,7 +466,7 @@ export function BusinessSettings() {
         </Button>
       </CardContent>
     </Card>
-    <BusinessHoursCard />
+    {showHours ? <BusinessHoursCard /> : null}
     </div>
   );
 }

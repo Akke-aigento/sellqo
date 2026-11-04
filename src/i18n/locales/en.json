@@ -185,7 +185,11 @@
       "email_automations": "Automations",
       "floor": "Floor",
       "pos_app": "POS app",
-      "website": "Website"
+      "website": "Website",
+      "reservations": "Reservations",
+      "staff": "Staff",
+      "my_business": "My venue",
+      "transactions": "Transactions"
     },
     "bottom": {
       "today": "Today",
@@ -12423,5 +12427,181 @@
     "rate_limited_desc": "Try again in a minute.",
     "generate_error": "Generation failed",
     "deleted": "Image deleted"
+  },
+  "mijnZaak": {
+    "title": "My venue",
+    "subtitle": "Everything your venue sets up, one place per topic.",
+    "overview": "Overview",
+    "groups_heading": "Settings",
+    "my_account": "My account",
+    "groups": {
+      "zaak": {
+        "title": "Your venue",
+        "desc": "Details, opening hours, logo and colours, website."
+      },
+      "gasten": {
+        "title": "Your guests",
+        "desc": "QR at the table, pickup and delivery, reservations, messages to guests."
+      },
+      "betalen": {
+        "title": "Payments",
+        "desc": "Payment methods at the till, online payments, tips and the card terminal."
+      },
+      "zaalKeuken": {
+        "title": "Floor & kitchen",
+        "desc": "Floor plan, stations and courses, printers and receipts, kitchen screens."
+      },
+      "toestellen": {
+        "title": "Tills & devices",
+        "desc": "Tills and paired devices, lock time, alerts per device."
+      },
+      "geld": {
+        "title": "Money & accounting",
+        "desc": "VAT, invoices and Peppol, accounting (Odoo), your SellQo plan."
+      },
+      "jij": {
+        "title": "You",
+        "desc": "Your profile, your own alerts and your bottom bar on the phone."
+      }
+    },
+    "tabs": {
+      "gegevens": "Details",
+      "uren": "Opening hours & closing days",
+      "merk": "Logo & colours",
+      "website": "Website & domain",
+      "qr": "QR at the table",
+      "afhalen": "Pickup & delivery",
+      "reserveren": "Reservations",
+      "berichten": "Messages to guests",
+      "kassa": "At the till",
+      "online": "Online payments",
+      "fooi": "Tips",
+      "terminal": "Card terminal",
+      "zaalplan": "Floor plan",
+      "posten": "Stations & courses",
+      "printers": "Printers & receipts",
+      "keukenschermen": "Kitchen screens",
+      "kassas": "Tills & pairing",
+      "vergrendeling": "Lock time",
+      "meldingen": "Alerts per device",
+      "btw": "VAT",
+      "facturen": "Invoices & Peppol",
+      "boekhouding": "Accounting (Odoo)",
+      "plan": "SellQo plan",
+      "profiel": "Profile",
+      "mijnMeldingen": "My alerts",
+      "onderbalk": "My bottom bar"
+    },
+    "staff": {
+      "title": "Staff",
+      "intro": "Who works for you: staff with a PIN for the till, their hours and who may manage the venue.",
+      "tab_pin": "Staff (PIN)",
+      "tab_hours": "Hours",
+      "tab_admins": "Managers",
+      "lock_link": "How many minutes before the till locks is set in My venue › Tills & devices"
+    },
+    "setup": {
+      "title": "Set up your venue: {{done}} of {{total}} done",
+      "intro": "Tap a step to sort it out right away.",
+      "all_done": "Everything is ready. You can still open any step to change something.",
+      "done": "Done",
+      "todo": "To do",
+      "optional": "Optional, not counted",
+      "open": "Open",
+      "do": "Set up",
+      "company": "Details filled in (name, address, VAT number)",
+      "hours": "Opening hours filled in",
+      "logo": "Logo added",
+      "kassa": "At least one till with a paired device",
+      "staff": "Till staff with a PIN",
+      "floor": "Floor plan with tables",
+      "station": "At least one station (kitchen, bar …)",
+      "printer": "Printer connected",
+      "qr": "QR menu on",
+      "pay": "Payment method at the till chosen",
+      "stripe": "Online payments connected (Stripe), needed for QR payments or online ordering",
+      "website": "Website live"
+    },
+    "website": {
+      "title": "Your website",
+      "desc": "Theme, logo on the site, pages and your homepage are managed on the Website page.",
+      "live": "Live",
+      "offline": "Offline",
+      "open": "Go to Website",
+      "view": "View"
+    },
+    "floor": {
+      "title": "Floor plan",
+      "desc": "Draw zones, tables and the terrace in the Floor editor. The QR code per table comes from this plan.",
+      "edit": "Edit floor plan",
+      "live": "Live floor"
+    },
+    "kitchen": {
+      "title": "Kitchen screens",
+      "desc": "Open the kitchen screen on a tablet in the kitchen or at the bar and choose the station there. Which dishes go to which station is set under Stations & courses.",
+      "open": "Open kitchen screen",
+      "stations": "Stations & courses"
+    },
+    "plan": {
+      "title": "Your SellQo plan",
+      "desc": "Your subscription, SellQo invoices and add-ons.",
+      "open": "Go to your plan"
+    },
+    "tip": {
+      "online_title": "Tips when paying online",
+      "online_desc": "Guests who pay the table bill online via the QR code can leave a tip. You switch it on under QR at the table, together with online payment.",
+      "online_now": "Now:",
+      "online_link": "Go to QR at the table"
+    },
+    "kaart": {
+      "settings_link": "QR, pickup and delivery settings are in My venue › Your guests"
+    },
+    "reservations": {
+      "settings_link": "Purple from, late after and online booking: My venue › Your guests › Reservations",
+      "intro": "Your reservations per day and the online requests waiting for an answer."
+    }
+  },
+  "settingsSearch": {
+    "label": "Search settings",
+    "placeholder": "Search a setting: tip, printer, pin, terrace …",
+    "empty": "Nothing found. Try another word.",
+    "results": "Results",
+    "all": "All settings",
+    "open": "Search settings",
+    "shortcut": "Search a setting (⌘K or Ctrl+K)",
+    "syn": {
+      "zaak_gegevens": "company, business, name, address, vat number, company number, iban, bank account, phone, email",
+      "zaak_uren": "hours, open, closed, opening hours, closing day, holiday, public holiday, vacation",
+      "zaak_merk": "logo, colour, color, colours, brand, branding, favicon",
+      "zaak_website": "website, site, domain, theme, homepage, online",
+      "gasten_qr": "qr, sticker, qr code, menu, order at the table, call waiter, ask for the bill",
+      "gasten_afhalen": "pickup, takeaway, delivery, deliver, time slots, online ordering",
+      "gasten_reserveren": "reserve, reservation, booking, purple, late, online booking",
+      "gasten_berichten": "messages, mails, email, customers, guests, confirmation, communication",
+      "betalen_kassa": "payment method, cash, transfer, meal voucher, gift voucher, till",
+      "betalen_online": "stripe, online payments, bancontact, card, apple pay, payout, payments",
+      "betalen_fooi": "tip, tips, gratuity",
+      "betalen_terminal": "terminal, card terminal, card reader, payment terminal",
+      "zaal_keuken_zaalplan": "terrace, zone, table, tables, floor, floor plan, layout",
+      "zaal_keuken_posten": "station, stations, kitchen, bar, course, courses, routing",
+      "zaal_keuken_printers": "printer, receipt, ticket, receipt printer, print, kitchen ticket",
+      "zaal_keuken_keukenschermen": "kitchen screen, tablet, screen, kitchen, kds",
+      "toestellen_kassas": "till, tills, device, pair, tablet, phone, register, till app",
+      "toestellen_vergrendeling": "lock, lock time, lock screen, auto lock, pin screen",
+      "toestellen_meldingen": "alerts, notifications, push, bell, sound, device",
+      "geld_btw": "vat, rate, rates, vat rate, tax",
+      "geld_facturen": "invoice, invoices, peppol, e-invoicing, invoice number, compliance",
+      "geld_boekhouding": "accounting, odoo, accountant, bookkeeping, export",
+      "geld_plan": "subscription, plan, package, sellqo, add-on, modules",
+      "jij_profiel": "profile, password, language, account, my details",
+      "jij_mijn_meldingen": "my alerts, push, notifications, phone",
+      "jij_onderbalk": "bottom bar, shortcuts, phone, bottom menu",
+      "personeel_pin": "pin, code, staff, employee, waiter, till staff",
+      "personeel_uren": "hours, worked hours, clock in, shift",
+      "personeel_beheerders": "manager, team, team members, invite, permissions, role",
+      "reservaties_lijst": "reservations, bookings, today, party, requests",
+      "kaart_extras": "extra, extras, supplement, sauce, options",
+      "kaart_allergens": "allergens, allergy, gluten, lactose, nuts"
+    }
   }
 }

@@ -185,7 +185,11 @@
       "email_automations": "Automatiseringen",
       "floor": "Zaal",
       "pos_app": "Kassa-app",
-      "website": "Website"
+      "website": "Website",
+      "reservations": "Reservaties",
+      "staff": "Personeel",
+      "my_business": "Mijn zaak",
+      "transactions": "Transacties"
     },
     "bottom": {
       "today": "Vandaag",
@@ -12425,5 +12429,181 @@
     "rate_limited_desc": "Probeer het over een minuut opnieuw.",
     "generate_error": "Fout bij genereren",
     "deleted": "Afbeelding verwijderd"
+  },
+  "mijnZaak": {
+    "title": "Mijn zaak",
+    "subtitle": "Alles wat je zaak instelt, op één plek per onderwerp.",
+    "overview": "Overzicht",
+    "groups_heading": "Instellingen",
+    "my_account": "Mijn account",
+    "groups": {
+      "zaak": {
+        "title": "Je zaak",
+        "desc": "Gegevens, openingsuren, logo en kleuren, website."
+      },
+      "gasten": {
+        "title": "Je gasten",
+        "desc": "QR aan tafel, afhalen en leveren, reserveren, berichten aan gasten."
+      },
+      "betalen": {
+        "title": "Betalen",
+        "desc": "Betaalwijzen aan de kassa, online betalen, fooi en de betaalterminal."
+      },
+      "zaalKeuken": {
+        "title": "Zaal & keuken",
+        "desc": "Zaalplan, posten en gangen, printers en bonnen, keukenschermen."
+      },
+      "toestellen": {
+        "title": "Kassa’s & toestellen",
+        "desc": "Kassa’s en gekoppelde toestellen, vergrendeltijd, meldingen per toestel."
+      },
+      "geld": {
+        "title": "Geld & boekhouding",
+        "desc": "Btw, facturen en Peppol, boekhouding (Odoo), je SellQo-plan."
+      },
+      "jij": {
+        "title": "Jij",
+        "desc": "Je profiel, je eigen meldingen en je onderbalk op de gsm."
+      }
+    },
+    "tabs": {
+      "gegevens": "Gegevens",
+      "uren": "Openingsuren & sluitingsdagen",
+      "merk": "Logo & kleuren",
+      "website": "Website & domein",
+      "qr": "QR aan tafel",
+      "afhalen": "Afhalen & leveren",
+      "reserveren": "Reserveren",
+      "berichten": "Berichten aan gasten",
+      "kassa": "Aan de kassa",
+      "online": "Online betalen",
+      "fooi": "Fooi",
+      "terminal": "Betaalterminal",
+      "zaalplan": "Zaalplan",
+      "posten": "Posten & gangen",
+      "printers": "Printers & bon",
+      "keukenschermen": "Keukenschermen",
+      "kassas": "Kassa’s & koppelen",
+      "vergrendeling": "Vergrendeltijd",
+      "meldingen": "Meldingen per toestel",
+      "btw": "Btw",
+      "facturen": "Facturen & Peppol",
+      "boekhouding": "Boekhouding (Odoo)",
+      "plan": "SellQo-plan",
+      "profiel": "Profiel",
+      "mijnMeldingen": "Mijn meldingen",
+      "onderbalk": "Mijn onderbalk"
+    },
+    "staff": {
+      "title": "Personeel",
+      "intro": "Wie bij jou werkt: medewerkers met een PIN voor de kassa, hun uren en wie de zaak mag beheren.",
+      "tab_pin": "Medewerkers (PIN)",
+      "tab_hours": "Uren",
+      "tab_admins": "Beheerders",
+      "lock_link": "Na hoeveel minuten de kassa vergrendelt, stel je in bij Mijn zaak › Kassa’s & toestellen"
+    },
+    "setup": {
+      "title": "Je zaak inrichten: {{done}} van {{total}} klaar",
+      "intro": "Tik op een stap om hem meteen te regelen.",
+      "all_done": "Alles staat klaar. Je kan elke stap nog altijd openen om iets te wijzigen.",
+      "done": "Klaar",
+      "todo": "Nog doen",
+      "optional": "Optioneel, telt niet mee",
+      "open": "Openen",
+      "do": "Instellen",
+      "company": "Gegevens ingevuld (naam, adres, btw-nummer)",
+      "hours": "Openingsuren ingevuld",
+      "logo": "Logo toegevoegd",
+      "kassa": "Minstens één kassa met een gekoppeld toestel",
+      "staff": "Kassapersoneel met een PIN",
+      "floor": "Zaalplan met tafels",
+      "station": "Minstens één post (keuken, bar …)",
+      "printer": "Printer gekoppeld",
+      "qr": "QR-menu aan",
+      "pay": "Betaalwijze aan de kassa gekozen",
+      "stripe": "Online betalen gekoppeld (Stripe), nodig voor QR-betalen of online bestellen",
+      "website": "Website live"
+    },
+    "website": {
+      "title": "Je website",
+      "desc": "Thema, logo op de site, pagina’s en je homepage beheer je op de pagina Website.",
+      "live": "Live",
+      "offline": "Offline",
+      "open": "Naar Website",
+      "view": "Bekijken"
+    },
+    "floor": {
+      "title": "Zaalplan",
+      "desc": "Zones, tafels en terras teken je in de editor van de Zaal. De QR-code per tafel komt uit dit plan.",
+      "edit": "Zaalplan bewerken",
+      "live": "Live zaal"
+    },
+    "kitchen": {
+      "title": "Keukenschermen",
+      "desc": "Open het keukenscherm op een tablet in de keuken of aan de bar en kies daar de post. Welke gerechten naar welke post gaan, regel je bij Posten & gangen.",
+      "open": "Keukenscherm openen",
+      "stations": "Posten & gangen"
+    },
+    "plan": {
+      "title": "Je SellQo-plan",
+      "desc": "Je abonnement, facturen van SellQo en add-ons.",
+      "open": "Naar je plan"
+    },
+    "tip": {
+      "online_title": "Fooi bij online afrekenen",
+      "online_desc": "Gasten die de tafelrekening via de QR-code online betalen, kunnen fooi geven. Dat zet je aan bij QR aan tafel, samen met online afrekenen.",
+      "online_now": "Nu:",
+      "online_link": "Naar QR aan tafel"
+    },
+    "kaart": {
+      "settings_link": "Instellingen voor QR, afhalen en leveren staan in Mijn zaak › Je gasten"
+    },
+    "reservations": {
+      "settings_link": "Paars vanaf, te laat na en online reserveren: Mijn zaak › Je gasten › Reserveren",
+      "intro": "Je reservaties per dag en de online aanvragen die op een antwoord wachten."
+    }
+  },
+  "settingsSearch": {
+    "label": "Instellingen zoeken",
+    "placeholder": "Zoek een instelling: fooi, printer, pin, terras …",
+    "empty": "Niets gevonden. Probeer een ander woord.",
+    "results": "Resultaten",
+    "all": "Alle instellingen",
+    "open": "Instellingen zoeken",
+    "shortcut": "Zoek een instelling (⌘K of Ctrl+K)",
+    "syn": {
+      "zaak_gegevens": "bedrijf, naam, adres, btw-nummer, ondernemingsnummer, iban, rekeningnummer, telefoon, e-mail",
+      "zaak_uren": "uren, open, gesloten, openingsuren, sluitingsdag, vakantie, feestdag, verlof",
+      "zaak_merk": "logo, kleur, kleuren, huisstijl, branding, favicon",
+      "zaak_website": "website, site, domein, thema, homepage, webshop, online",
+      "gasten_qr": "qr, sticker, qr-code, menukaart, bestellen aan tafel, ober roepen, rekening vragen",
+      "gasten_afhalen": "afhalen, leveren, levering, takeaway, bezorgen, tijdsloten, webshop, thuis bestellen",
+      "gasten_reserveren": "reserveren, reservatie, reservering, booking, paars, te laat, online reserveren",
+      "gasten_berichten": "berichten, mails, e-mail, klanten, gasten, bevestiging, communicatie",
+      "betalen_kassa": "betaalwijze, betaalmethode, cash, contant, overschrijving, maaltijdcheque, cadeaubon, kassa",
+      "betalen_online": "stripe, online betalen, bancontact, kaart, apple pay, uitbetaling, betalingen",
+      "betalen_fooi": "fooi, tip, drinkgeld, fooien",
+      "betalen_terminal": "terminal, betaalterminal, kaartlezer, bancontact-toestel, pin-toestel",
+      "zaal_keuken_zaalplan": "terras, zone, tafel, tafels, zaal, zaalplan, plattegrond",
+      "zaal_keuken_posten": "post, posten, keuken, bar, gang, gangen, routering",
+      "zaal_keuken_printers": "printer, bon, ticket, kassabon, bonprinter, afdrukken, keukenbon",
+      "zaal_keuken_keukenschermen": "keukenscherm, tablet, scherm, keuken, kds",
+      "toestellen_kassas": "kassa, kassa’s, toestel, koppelen, tablet, gsm, terminal, kassa-app",
+      "toestellen_vergrendeling": "vergrendelen, vergrendeltijd, slot, pin-scherm, automatisch vergrendelen",
+      "toestellen_meldingen": "meldingen, notificaties, push, bel, geluid, toestel",
+      "geld_btw": "btw, tarief, tarieven, btw-tarief, belasting",
+      "geld_facturen": "factuur, facturen, peppol, e-facturatie, factuurnummer, compliance",
+      "geld_boekhouding": "boekhouding, odoo, boekhouder, accounting, export",
+      "geld_plan": "abonnement, plan, pakket, sellqo, factuur sellqo, add-on, modules",
+      "jij_profiel": "profiel, wachtwoord, taal, account, mijn gegevens",
+      "jij_mijn_meldingen": "mijn meldingen, push, notificaties, gsm",
+      "jij_onderbalk": "onderbalk, snelkoppelingen, gsm, menu onderaan",
+      "personeel_pin": "pin, code, medewerker, personeel, ober, kelner, kassapersoneel, insz",
+      "personeel_uren": "uren, gewerkte uren, prikklok, rooster, shift",
+      "personeel_beheerders": "beheerder, team, teamleden, uitnodigen, rechten, rol",
+      "reservaties_lijst": "reservaties, reservering, vandaag, gezelschap, aanvragen",
+      "kaart_extras": "extra, extras, supplement, saus, opties",
+      "kaart_allergens": "allergenen, allergie, gluten, lactose, noten"
+    }
   }
 }

@@ -10,6 +10,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { weekHasRanges, type HoursMode } from '@/lib/businessHours';
 import { useBusinessHours } from '@/hooks/useBusinessHours';
 import { BusinessHoursSummary } from './BusinessHoursSummary';
+import { useHorecaHref } from '@/hooks/useHorecaHref';
 
 export const BUSINESS_HOURS_URL = '/admin/settings?section=company#openingsuren';
 
@@ -17,6 +18,8 @@ export function HoursModeChoice({ id, mode, onChange, children, disabled = false
   id: string; mode: HoursMode; onChange: (m: HoursMode) => void; children: ReactNode; disabled?: boolean;
 }) {
   const { t } = useTranslation();
+  // HORECA-INSTELLINGEN-1: horeca-only linkt meteen naar de nieuwe plek (Mijn zaak / Personeel).
+  const href = useHorecaHref();
   const { data: hours, isLoading } = useBusinessHours();
   const empty = !isLoading && !weekHasRanges(hours?.week);
   return (
@@ -38,7 +41,7 @@ export function HoursModeChoice({ id, mode, onChange, children, disabled = false
               <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />{t('settings.businessHours.mode_business_empty')}
             </p>
           ) : hours ? <BusinessHoursSummary hours={hours} /> : null}
-          <Link to={BUSINESS_HOURS_URL} className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline">
+          <Link to={href(BUSINESS_HOURS_URL)} className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline">
             {empty ? t('settings.businessHours.fill_in') : t('settings.businessHours.edit_link')}<ChevronRight className="h-4 w-4" aria-hidden />
           </Link>
         </div>

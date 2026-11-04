@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { usePlatformViewMode } from '@/hooks/usePlatformViewMode';
 import { Switch } from '@/components/ui/switch';
+import { SettingsSearchButton } from '@/components/admin/mijnzaak/SettingsSearchDialog';
 
 export function AdminHeader() {
   const { currentTenant } = useTenant();
@@ -79,6 +80,8 @@ export function AdminHeader() {
         </div>
       )}
 
+      {/* HORECA-INSTELLINGEN-1: instellingen zoeken (⌘K/Ctrl-K); enkel voor zaken met een register. */}
+      <SettingsSearchButton />
       <NotificationCenter />
       <ThemeToggle />
     </header>

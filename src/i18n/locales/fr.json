@@ -213,7 +213,11 @@
       "email_automations": "Automatisations",
       "floor": "Salle",
       "pos_app": "Appli caisse",
-      "website": "Site web"
+      "website": "Site web",
+      "reservations": "Réservations",
+      "staff": "Personnel",
+      "my_business": "Mon établissement",
+      "transactions": "Transactions"
     },
     "bottom": {
       "today": "Aujourd'hui",
@@ -12423,5 +12427,181 @@
     "rate_limited_desc": "Réessayez dans une minute.",
     "generate_error": "Échec de la génération",
     "deleted": "Image supprimée"
+  },
+  "mijnZaak": {
+    "title": "Mon établissement",
+    "subtitle": "Tout ce que votre établissement configure, un seul endroit par sujet.",
+    "overview": "Aperçu",
+    "groups_heading": "Paramètres",
+    "my_account": "Mon compte",
+    "groups": {
+      "zaak": {
+        "title": "Votre établissement",
+        "desc": "Coordonnées, heures d’ouverture, logo et couleurs, site web."
+      },
+      "gasten": {
+        "title": "Vos clients",
+        "desc": "QR à table, à emporter et livraison, réservations, messages aux clients."
+      },
+      "betalen": {
+        "title": "Paiements",
+        "desc": "Moyens de paiement en caisse, paiement en ligne, pourboire et terminal de paiement."
+      },
+      "zaalKeuken": {
+        "title": "Salle & cuisine",
+        "desc": "Plan de salle, postes et services, imprimantes et tickets, écrans de cuisine."
+      },
+      "toestellen": {
+        "title": "Caisses & appareils",
+        "desc": "Caisses et appareils couplés, délai de verrouillage, alertes par appareil."
+      },
+      "geld": {
+        "title": "Argent & comptabilité",
+        "desc": "TVA, factures et Peppol, comptabilité (Odoo), votre formule SellQo."
+      },
+      "jij": {
+        "title": "Vous",
+        "desc": "Votre profil, vos propres alertes et votre barre du bas sur le téléphone."
+      }
+    },
+    "tabs": {
+      "gegevens": "Coordonnées",
+      "uren": "Heures d’ouverture & jours de fermeture",
+      "merk": "Logo & couleurs",
+      "website": "Site web & domaine",
+      "qr": "QR à table",
+      "afhalen": "À emporter & livraison",
+      "reserveren": "Réservations",
+      "berichten": "Messages aux clients",
+      "kassa": "En caisse",
+      "online": "Paiement en ligne",
+      "fooi": "Pourboire",
+      "terminal": "Terminal de paiement",
+      "zaalplan": "Plan de salle",
+      "posten": "Postes & services",
+      "printers": "Imprimantes & tickets",
+      "keukenschermen": "Écrans de cuisine",
+      "kassas": "Caisses & couplage",
+      "vergrendeling": "Délai de verrouillage",
+      "meldingen": "Alertes par appareil",
+      "btw": "TVA",
+      "facturen": "Factures & Peppol",
+      "boekhouding": "Comptabilité (Odoo)",
+      "plan": "Formule SellQo",
+      "profiel": "Profil",
+      "mijnMeldingen": "Mes alertes",
+      "onderbalk": "Ma barre du bas"
+    },
+    "staff": {
+      "title": "Personnel",
+      "intro": "Qui travaille chez vous : le personnel avec un code PIN pour la caisse, leurs heures et qui peut gérer l’établissement.",
+      "tab_pin": "Personnel (PIN)",
+      "tab_hours": "Heures",
+      "tab_admins": "Gestionnaires",
+      "lock_link": "Le délai de verrouillage de la caisse se règle dans Mon établissement › Caisses & appareils"
+    },
+    "setup": {
+      "title": "Configurer votre établissement : {{done}} sur {{total}} prêts",
+      "intro": "Touchez une étape pour la régler tout de suite.",
+      "all_done": "Tout est prêt. Vous pouvez toujours ouvrir une étape pour modifier quelque chose.",
+      "done": "Prêt",
+      "todo": "À faire",
+      "optional": "Facultatif, non compté",
+      "open": "Ouvrir",
+      "do": "Configurer",
+      "company": "Coordonnées complétées (nom, adresse, numéro de TVA)",
+      "hours": "Heures d’ouverture complétées",
+      "logo": "Logo ajouté",
+      "kassa": "Au moins une caisse avec un appareil couplé",
+      "staff": "Personnel de caisse avec un code PIN",
+      "floor": "Plan de salle avec tables",
+      "station": "Au moins un poste (cuisine, bar …)",
+      "printer": "Imprimante connectée",
+      "qr": "Menu QR activé",
+      "pay": "Moyen de paiement en caisse choisi",
+      "stripe": "Paiement en ligne connecté (Stripe), nécessaire pour le paiement QR ou la commande en ligne",
+      "website": "Site web en ligne"
+    },
+    "website": {
+      "title": "Votre site web",
+      "desc": "Thème, logo sur le site, pages et page d’accueil se gèrent sur la page Site web.",
+      "live": "En ligne",
+      "offline": "Hors ligne",
+      "open": "Aller au site web",
+      "view": "Voir"
+    },
+    "floor": {
+      "title": "Plan de salle",
+      "desc": "Dessinez zones, tables et terrasse dans l’éditeur de la salle. Le code QR par table provient de ce plan.",
+      "edit": "Modifier le plan de salle",
+      "live": "Salle en direct"
+    },
+    "kitchen": {
+      "title": "Écrans de cuisine",
+      "desc": "Ouvrez l’écran de cuisine sur une tablette en cuisine ou au bar et choisissez-y le poste. Quels plats vont à quel poste se règle dans Postes & services.",
+      "open": "Ouvrir l’écran de cuisine",
+      "stations": "Postes & services"
+    },
+    "plan": {
+      "title": "Votre formule SellQo",
+      "desc": "Votre abonnement, les factures SellQo et les modules complémentaires.",
+      "open": "Voir votre formule"
+    },
+    "tip": {
+      "online_title": "Pourboire lors du paiement en ligne",
+      "online_desc": "Les clients qui paient l’addition en ligne via le code QR peuvent laisser un pourboire. Vous l’activez dans QR à table, avec le paiement en ligne.",
+      "online_now": "Actuellement :",
+      "online_link": "Aller à QR à table"
+    },
+    "kaart": {
+      "settings_link": "Les paramètres QR, à emporter et livraison se trouvent dans Mon établissement › Vos clients"
+    },
+    "reservations": {
+      "settings_link": "Violet à partir de, en retard après et réservation en ligne : Mon établissement › Vos clients › Réservations",
+      "intro": "Vos réservations par jour et les demandes en ligne en attente de réponse."
+    }
+  },
+  "settingsSearch": {
+    "label": "Rechercher dans les paramètres",
+    "placeholder": "Rechercher un paramètre : pourboire, imprimante, pin, terrasse …",
+    "empty": "Rien trouvé. Essayez un autre mot.",
+    "results": "Résultats",
+    "all": "Tous les paramètres",
+    "open": "Rechercher dans les paramètres",
+    "shortcut": "Rechercher un paramètre (⌘K ou Ctrl+K)",
+    "syn": {
+      "zaak_gegevens": "entreprise, nom, adresse, numéro de tva, numéro d’entreprise, iban, compte bancaire, téléphone, e-mail",
+      "zaak_uren": "heures, ouvert, fermé, horaires, jour de fermeture, vacances, jour férié, congé",
+      "zaak_merk": "logo, couleur, couleurs, charte, marque, favicon",
+      "zaak_website": "site web, site, domaine, thème, page d’accueil, en ligne",
+      "gasten_qr": "qr, autocollant, code qr, carte, commander à table, appeler le serveur, demander l’addition",
+      "gasten_afhalen": "à emporter, livraison, livrer, créneaux, commande en ligne",
+      "gasten_reserveren": "réserver, réservation, violet, retard, réservation en ligne",
+      "gasten_berichten": "messages, e-mails, clients, confirmation, communication",
+      "betalen_kassa": "moyen de paiement, espèces, virement, chèque-repas, bon cadeau, caisse",
+      "betalen_online": "stripe, paiement en ligne, bancontact, carte, apple pay, versement, paiements",
+      "betalen_fooi": "pourboire, tip, pourboires",
+      "betalen_terminal": "terminal, terminal de paiement, lecteur de carte",
+      "zaal_keuken_zaalplan": "terrasse, zone, table, tables, salle, plan de salle",
+      "zaal_keuken_posten": "poste, postes, cuisine, bar, service, services",
+      "zaal_keuken_printers": "imprimante, ticket, reçu, imprimer, bon de cuisine",
+      "zaal_keuken_keukenschermen": "écran de cuisine, tablette, écran, cuisine, kds",
+      "toestellen_kassas": "caisse, caisses, appareil, coupler, tablette, téléphone, application caisse",
+      "toestellen_vergrendeling": "verrouiller, verrouillage, écran pin, verrouillage automatique",
+      "toestellen_meldingen": "alertes, notifications, push, sonnerie, son, appareil",
+      "geld_btw": "tva, taux, taux de tva, taxe",
+      "geld_facturen": "facture, factures, peppol, facturation électronique, numérotation",
+      "geld_boekhouding": "comptabilité, odoo, comptable, export",
+      "geld_plan": "abonnement, formule, offre, sellqo, module complémentaire",
+      "jij_profiel": "profil, mot de passe, langue, compte",
+      "jij_mijn_meldingen": "mes alertes, push, notifications, téléphone",
+      "jij_onderbalk": "barre du bas, raccourcis, téléphone",
+      "personeel_pin": "pin, code, employé, personnel, serveur",
+      "personeel_uren": "heures, heures travaillées, pointage, service",
+      "personeel_beheerders": "gestionnaire, équipe, membres, inviter, droits, rôle",
+      "reservaties_lijst": "réservations, aujourd’hui, groupe, demandes",
+      "kaart_extras": "supplément, suppléments, sauce, options",
+      "kaart_allergens": "allergènes, allergie, gluten, lactose, noix"
+    }
   }
 }

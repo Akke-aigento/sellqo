@@ -213,7 +213,11 @@
       "email_automations": "Automatisierungen",
       "floor": "Saal",
       "pos_app": "Kassen-App",
-      "website": "Website"
+      "website": "Website",
+      "reservations": "Reservierungen",
+      "staff": "Personal",
+      "my_business": "Mein Betrieb",
+      "transactions": "Transaktionen"
     },
     "bottom": {
       "today": "Heute",
@@ -12423,5 +12427,181 @@
     "rate_limited_desc": "Versuch es in einer Minute erneut.",
     "generate_error": "Erstellen fehlgeschlagen",
     "deleted": "Bild gelöscht"
+  },
+  "mijnZaak": {
+    "title": "Mein Betrieb",
+    "subtitle": "Alles, was dein Betrieb einstellt – ein Ort pro Thema.",
+    "overview": "Übersicht",
+    "groups_heading": "Einstellungen",
+    "my_account": "Mein Konto",
+    "groups": {
+      "zaak": {
+        "title": "Dein Betrieb",
+        "desc": "Daten, Öffnungszeiten, Logo und Farben, Website."
+      },
+      "gasten": {
+        "title": "Deine Gäste",
+        "desc": "QR am Tisch, Abholung und Lieferung, Reservierungen, Nachrichten an Gäste."
+      },
+      "betalen": {
+        "title": "Bezahlen",
+        "desc": "Zahlungsarten an der Kasse, Online-Zahlung, Trinkgeld und Kartenterminal."
+      },
+      "zaalKeuken": {
+        "title": "Gastraum & Küche",
+        "desc": "Raumplan, Stationen und Gänge, Drucker und Belege, Küchenbildschirme."
+      },
+      "toestellen": {
+        "title": "Kassen & Geräte",
+        "desc": "Kassen und gekoppelte Geräte, Sperrzeit, Meldungen pro Gerät."
+      },
+      "geld": {
+        "title": "Geld & Buchhaltung",
+        "desc": "MwSt., Rechnungen und Peppol, Buchhaltung (Odoo), dein SellQo-Tarif."
+      },
+      "jij": {
+        "title": "Du",
+        "desc": "Dein Profil, deine eigenen Meldungen und deine untere Leiste auf dem Handy."
+      }
+    },
+    "tabs": {
+      "gegevens": "Daten",
+      "uren": "Öffnungszeiten & Ruhetage",
+      "merk": "Logo & Farben",
+      "website": "Website & Domain",
+      "qr": "QR am Tisch",
+      "afhalen": "Abholung & Lieferung",
+      "reserveren": "Reservieren",
+      "berichten": "Nachrichten an Gäste",
+      "kassa": "An der Kasse",
+      "online": "Online bezahlen",
+      "fooi": "Trinkgeld",
+      "terminal": "Kartenterminal",
+      "zaalplan": "Raumplan",
+      "posten": "Stationen & Gänge",
+      "printers": "Drucker & Beleg",
+      "keukenschermen": "Küchenbildschirme",
+      "kassas": "Kassen & Koppeln",
+      "vergrendeling": "Sperrzeit",
+      "meldingen": "Meldungen pro Gerät",
+      "btw": "MwSt.",
+      "facturen": "Rechnungen & Peppol",
+      "boekhouding": "Buchhaltung (Odoo)",
+      "plan": "SellQo-Tarif",
+      "profiel": "Profil",
+      "mijnMeldingen": "Meine Meldungen",
+      "onderbalk": "Meine untere Leiste"
+    },
+    "staff": {
+      "title": "Personal",
+      "intro": "Wer bei dir arbeitet: Mitarbeitende mit PIN für die Kasse, ihre Stunden und wer den Betrieb verwalten darf.",
+      "tab_pin": "Mitarbeitende (PIN)",
+      "tab_hours": "Stunden",
+      "tab_admins": "Verwalter",
+      "lock_link": "Nach wie vielen Minuten die Kasse sperrt, stellst du unter Mein Betrieb › Kassen & Geräte ein"
+    },
+    "setup": {
+      "title": "Betrieb einrichten: {{done}} von {{total}} erledigt",
+      "intro": "Tippe auf einen Schritt, um ihn gleich zu erledigen.",
+      "all_done": "Alles ist bereit. Du kannst jeden Schritt weiterhin öffnen, um etwas zu ändern.",
+      "done": "Erledigt",
+      "todo": "Noch zu tun",
+      "optional": "Optional, zählt nicht",
+      "open": "Öffnen",
+      "do": "Einrichten",
+      "company": "Daten ausgefüllt (Name, Adresse, USt-IdNr.)",
+      "hours": "Öffnungszeiten ausgefüllt",
+      "logo": "Logo hinzugefügt",
+      "kassa": "Mindestens eine Kasse mit gekoppeltem Gerät",
+      "staff": "Kassenpersonal mit PIN",
+      "floor": "Raumplan mit Tischen",
+      "station": "Mindestens eine Station (Küche, Bar …)",
+      "printer": "Drucker verbunden",
+      "qr": "QR-Menü an",
+      "pay": "Zahlungsart an der Kasse gewählt",
+      "stripe": "Online-Zahlung verbunden (Stripe), nötig für QR-Zahlung oder Online-Bestellung",
+      "website": "Website online"
+    },
+    "website": {
+      "title": "Deine Website",
+      "desc": "Theme, Logo auf der Seite, Seiten und Startseite verwaltest du auf der Seite Website.",
+      "live": "Online",
+      "offline": "Offline",
+      "open": "Zur Website",
+      "view": "Ansehen"
+    },
+    "floor": {
+      "title": "Raumplan",
+      "desc": "Bereiche, Tische und Terrasse zeichnest du im Raumplan-Editor. Der QR-Code pro Tisch kommt aus diesem Plan.",
+      "edit": "Raumplan bearbeiten",
+      "live": "Live-Gastraum"
+    },
+    "kitchen": {
+      "title": "Küchenbildschirme",
+      "desc": "Öffne den Küchenbildschirm auf einem Tablet in der Küche oder an der Bar und wähle dort die Station. Welche Gerichte zu welcher Station gehen, stellst du unter Stationen & Gänge ein.",
+      "open": "Küchenbildschirm öffnen",
+      "stations": "Stationen & Gänge"
+    },
+    "plan": {
+      "title": "Dein SellQo-Tarif",
+      "desc": "Dein Abonnement, SellQo-Rechnungen und Add-ons.",
+      "open": "Zum Tarif"
+    },
+    "tip": {
+      "online_title": "Trinkgeld bei Online-Zahlung",
+      "online_desc": "Gäste, die die Tischrechnung per QR-Code online bezahlen, können Trinkgeld geben. Das schaltest du unter QR am Tisch ein, zusammen mit der Online-Zahlung.",
+      "online_now": "Jetzt:",
+      "online_link": "Zu QR am Tisch"
+    },
+    "kaart": {
+      "settings_link": "Einstellungen für QR, Abholung und Lieferung findest du unter Mein Betrieb › Deine Gäste"
+    },
+    "reservations": {
+      "settings_link": "Lila ab, zu spät nach und Online-Reservierung: Mein Betrieb › Deine Gäste › Reservieren",
+      "intro": "Deine Reservierungen pro Tag und die Online-Anfragen, die auf Antwort warten."
+    }
+  },
+  "settingsSearch": {
+    "label": "Einstellungen suchen",
+    "placeholder": "Einstellung suchen: Trinkgeld, Drucker, PIN, Terrasse …",
+    "empty": "Nichts gefunden. Versuch ein anderes Wort.",
+    "results": "Ergebnisse",
+    "all": "Alle Einstellungen",
+    "open": "Einstellungen suchen",
+    "shortcut": "Einstellung suchen (⌘K oder Strg+K)",
+    "syn": {
+      "zaak_gegevens": "Firma, Unternehmen, Name, Adresse, USt-IdNr, Handelsregister, IBAN, Bankkonto, Telefon, E-Mail",
+      "zaak_uren": "Stunden, offen, geschlossen, Öffnungszeiten, Ruhetag, Urlaub, Feiertag, Betriebsferien",
+      "zaak_merk": "Logo, Farbe, Farben, Marke, Branding, Favicon",
+      "zaak_website": "Website, Seite, Domain, Theme, Startseite, online",
+      "gasten_qr": "QR, Aufkleber, QR-Code, Speisekarte, am Tisch bestellen, Kellner rufen, Rechnung",
+      "gasten_afhalen": "Abholung, Lieferung, liefern, Takeaway, Zeitfenster, Online-Bestellung",
+      "gasten_reserveren": "reservieren, Reservierung, Buchung, lila, zu spät, Online-Reservierung",
+      "gasten_berichten": "Nachrichten, E-Mails, Kunden, Gäste, Bestätigung, Kommunikation",
+      "betalen_kassa": "Zahlungsart, bar, Überweisung, Essensgutschein, Gutschein, Kasse",
+      "betalen_online": "Stripe, online bezahlen, Bancontact, Karte, Apple Pay, Auszahlung, Zahlungen",
+      "betalen_fooi": "Trinkgeld, Tip, Trinkgelder",
+      "betalen_terminal": "Terminal, Kartenterminal, Kartenleser, EC-Gerät",
+      "zaal_keuken_zaalplan": "Terrasse, Bereich, Tisch, Tische, Raum, Raumplan",
+      "zaal_keuken_posten": "Station, Stationen, Küche, Bar, Gang, Gänge",
+      "zaal_keuken_printers": "Drucker, Beleg, Bon, Kassenbon, drucken, Küchenbon",
+      "zaal_keuken_keukenschermen": "Küchenbildschirm, Tablet, Bildschirm, Küche, KDS",
+      "toestellen_kassas": "Kasse, Kassen, Gerät, koppeln, Tablet, Handy, Kassen-App",
+      "toestellen_vergrendeling": "sperren, Sperrzeit, Sperrbildschirm, automatisch sperren, PIN-Bildschirm",
+      "toestellen_meldingen": "Meldungen, Benachrichtigungen, Push, Klingel, Ton, Gerät",
+      "geld_btw": "MwSt, Steuersatz, Sätze, Steuer",
+      "geld_facturen": "Rechnung, Rechnungen, Peppol, E-Rechnung, Rechnungsnummer",
+      "geld_boekhouding": "Buchhaltung, Odoo, Steuerberater, Export",
+      "geld_plan": "Abonnement, Tarif, Paket, SellQo, Add-on, Module",
+      "jij_profiel": "Profil, Passwort, Sprache, Konto",
+      "jij_mijn_meldingen": "meine Meldungen, Push, Benachrichtigungen, Handy",
+      "jij_onderbalk": "untere Leiste, Verknüpfungen, Handy",
+      "personeel_pin": "PIN, Code, Mitarbeiter, Personal, Kellner",
+      "personeel_uren": "Stunden, Arbeitszeit, Stempeluhr, Schicht",
+      "personeel_beheerders": "Verwalter, Team, Teammitglieder, einladen, Rechte, Rolle",
+      "reservaties_lijst": "Reservierungen, heute, Gruppe, Anfragen",
+      "kaart_extras": "Extra, Extras, Zuschlag, Soße, Optionen",
+      "kaart_allergens": "Allergene, Allergie, Gluten, Laktose, Nüsse"
+    }
   }
 }

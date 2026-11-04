@@ -129,6 +129,8 @@ import { ClassicPosGate } from "./components/admin/pos/ClassicPosGate";
 import KitchenPage from "./pages/admin/Kitchen";
 import OrderingHubPage from "./pages/admin/OrderingHub";
 import FloorPage from "./pages/admin/Floor";
+import StaffPage from "./pages/admin/Staff";
+import ReservationsPage from "./pages/admin/Reservations";
 import POSTerminalSettingsPage from "./pages/admin/POSTerminalSettings";
 import SEODashboard from "./pages/admin/SEODashboard";
 import SocialPlanner from "./pages/admin/SocialPlanner";
@@ -340,6 +342,9 @@ const App = () => (
               <Route path="bestellen" element={<RouteGuard requireRead="orders"><OrderingHubPage /></RouteGuard>} />
               {/* HORECA-ZIJBALK-1: live zaaloverzicht + zaalplan bewerken (?tab=bewerken). */}
               <Route path="zaal" element={<RouteGuard requireRead="orders"><FloorPage /></RouteGuard>} />
+              {/* HORECA-INSTELLINGEN-1: Personeel (kassa-PIN, uren, beheerders) en Reservaties als eigen pagina. */}
+              <Route path="personeel" element={<RouteGuard requireRead="pos"><StaffPage /></RouteGuard>} />
+              <Route path="reservaties" element={<RouteGuard requireRead="orders"><ReservationsPage /></RouteGuard>} />
               <Route path="checkin" element={<RouteGuard requireRole={['tenant_admin', 'staff']}><EventsModuleGate><TicketCheckinPage /></EventsModuleGate></RouteGuard>} />
               <Route path="events" element={<RouteGuard requireRole={['tenant_admin', 'staff']}><EventDashboardPage /></RouteGuard>} />
               <Route path="events/new" element={<RouteGuard requireRole={['tenant_admin']}><EventsModuleGate><EventWizardPage /></EventsModuleGate></RouteGuard>} />

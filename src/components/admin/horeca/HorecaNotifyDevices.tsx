@@ -23,6 +23,7 @@ import { getInstallId } from '@/lib/installId';
 import { DEVICE_KINDS, HORECA_ALERT_EVENTS, listDevices, removeDevice, saveDevice, SHARED_KINDS, silenceDevice, type DeviceProfile, type HorecaAlertEvent } from '@/lib/deviceAlerts';
 import { DeviceAlertsDialog } from '@/components/horeca/DeviceAlertsDialog';
 import { cn } from '@/lib/utils';
+import { useHorecaHref } from '@/hooks/useHorecaHref';
 
 const key = (tenantId: string | undefined) => ['horeca-notify-devices', tenantId] as const;
 
@@ -147,6 +148,8 @@ function DeviceCard({ d, tenantId, stations, onChanged }: {
 
 export function HorecaNotifyDevices() {
   const { t } = useTranslation();
+  // HORECA-INSTELLINGEN-1: horeca-only linkt meteen naar de nieuwe plek (Mijn zaak / Personeel).
+  const href = useHorecaHref();
   const { currentTenant } = useTenant();
   const tenantId = currentTenant?.id;
   const qc = useQueryClient();
@@ -183,7 +186,7 @@ export function HorecaNotifyDevices() {
       </CardContent>
       {adding ? (
         <DeviceAlertsDialog open={adding} onOpenChange={(o) => { setAdding(o); if (!o) void refresh(); }}
-          tenantId={tenantId} kind="phone" defaultName={t('deviceAlerts.defaultName.phone')} stationNames={stationNames} manageHref="/admin/pos" />
+          tenantId={tenantId} kind="phone" defaultName={t('deviceAlerts.defaultName.phone')} stationNames={stationNames} manageHref={href('/admin/pos')} />
       ) : null}
     </Card>
   );

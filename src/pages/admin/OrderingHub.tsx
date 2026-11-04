@@ -4,9 +4,10 @@
 //      tafel uit het zaalplan, ZAAL-H1; zonder zaalplan nog /menu?tafel=N)
 // Producten, extra's en keuken zijn gedeeld. Alleen met de horeca-module.
 import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
 import { ArrowRight, Bike, ChevronRight, BookOpen, ChefHat, ExternalLink, Globe, Pizza, QrCode, UtensilsCrossed } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { useHorecaStatus } from '@/hooks/useHorecaStatus';
+import { isHorecaOnly } from '@/lib/tracks';
+import { KAART_TABS_HORECA_ONLY, legacyKaartTarget, mijnZaakUrl } from '@/lib/mijnZaak';
 import { useTenant } from '@/hooks/useTenant';
 import { useHorecaModule } from '@/hooks/useHorecaModule';
 import { Badge } from '@/components/ui/badge';
@@ -22,13 +23,13 @@ import { QR_MODES, type QrMode } from '@/components/admin/storefront/food/qrMode
 import { PrepStationsManager } from '@/components/admin/horeca/PrepStationsManager';
 import { CoursesSettings } from '@/components/admin/horeca/CoursesSettings';
 import { ReservationsManager } from '@/components/admin/horeca/ReservationsManager';
-import { useFloorPlan } from '@/hooks/useFloorPlan';
 import { useTranslation } from 'react-i18next';
 import { ModuleGateLoading, ModuleOffCard } from '@/components/admin/ModuleOffCard';
 import { useTracks } from '@/hooks/useBusinessModules';
 import { useCan } from '@/hooks/useCan';
 import { KaartManager } from '@/components/admin/horeca/kaart/KaartManager';
 import { FLOOR_EDIT_URL } from '@/lib/horeca/liveFloor';
+import { useHorecaHref } from '@/hooks/useHorecaHref';
 
 // KAART-4 — de Kaart staat vooraan en is de standaardtab: dat is wat een barman hier het vaakst
 // komt doen. Het overzicht (webshop- en QR-status) blijft bereikbaar via ?tab=overview.
@@ -58,39 +59,23 @@ function Status({ on, children }: { on: boolean; children: React.ReactNode }) {
   return <Badge variant={on ? 'default' : 'secondary'} className={cn(on && 'bg-emerald-600 hover:bg-emerald-600')}>{children}</Badge>;
 }
 
-function Overview({ go }: { go: (t: Tab) => void }) {
+function Overview({ go, horecaOnly }: { go: (t: Tab) => void; horecaOnly: boolean }) {
   const { t } = useTranslation();
+  // HORECA-INSTELLINGEN-1: horeca-only linkt meteen naar de nieuwe plek (Mijn zaak / Personeel).
+  const href = useHorecaHref();
   const canSettings = useCan('read', 'settings_general');
   const { currentTenant } = useTenant();
-  const tenantId = currentTenant?.id;
   const slug = currentTenant?.slug || '';
-  // ZAAL-H1 — zelfde bron als de tab Zaalplan (één bron per getal).
-  const { data: floor } = useFloorPlan();
-  const { data } = useQuery({
-    queryKey: ['ordering-hub', tenantId],
-    enabled: !!tenantId,
-    queryFn: async () => {
-      const [ts, fs, methods, groups, menu] = await Promise.all([
-        supabase.from('tenant_theme_settings').select('shop_live, shop_ordering').eq('tenant_id', tenantId!).maybeSingle(),
-        supabase.from('fulfillment_settings').select('slots_enabled, pay_on_pickup, notify_ready, qr_mode, qr_pay_counter, qr_pay_online, qr_flow').eq('tenant_id', tenantId!).maybeSingle(),
-        supabase.from('shipping_methods').select('fulfillment_type').eq('tenant_id', tenantId!).eq('is_active', true).in('fulfillment_type', ['pickup', 'local_delivery']),
-        supabase.from('product_addon_groups').select('id', { count: 'exact', head: true }).eq('tenant_id', tenantId!).eq('is_active', true),
-        // Zelfde telling als de tab Kaart (actieve producten, zonder tickets/cadeaubonnen).
-        supabase.from('products').select('id', { count: 'exact', head: true }).eq('tenant_id', tenantId!).eq('is_active', true).in('product_type', ['physical', 'service', 'digital'] as never),
-      ]);
-      const m = methods.data || [];
-      return {
-        live: !!ts.data?.shop_live, ordering: !!ts.data?.shop_ordering,
-        pickup: m.some((x) => x.fulfillment_type === 'pickup'), delivery: m.some((x) => x.fulfillment_type === 'local_delivery'),
-        slots: !!fs.data?.slots_enabled, payOnPickup: !!fs.data?.pay_on_pickup, notify: fs.data?.notify_ready !== false,
-        qrMode: ((fs.data?.qr_mode as QrMode) || 'view'), qrCounter: fs.data?.qr_pay_counter !== false, qrOnline: !!fs.data?.qr_pay_online,
-        // QR-REKENING-1b — op de tafelrekening betaalt de gast op het einde, niet per bestelling.
-        qrCheck: fs.data?.qr_flow === 'check',
-        groups: groups.count ?? 0,
-        menu: menu.count ?? 0,
-      };
-    },
-  });
+  // HORECA-INSTELLINGEN-1: één bron met Mijn zaak en Instellingen › Horeca (tafels via useFloorPlan).
+  const { data: st } = useHorecaStatus();
+  const data = st ? {
+    live: st.shopLive, ordering: st.shopOrdering, pickup: st.pickup, delivery: st.delivery,
+    slots: st.slots, payOnPickup: st.payOnPickup,
+    qrMode: st.qrMode as QrMode, qrCounter: st.qrPayCounter, qrOnline: st.qrPayOnline,
+    // QR-REKENING-1b — op de tafelrekening betaalt de gast op het einde, niet per bestelling.
+    qrCheck: st.qrFlow === 'check',
+    groups: st.addonGroups, menu: st.menuItems,
+  } : null;
   if (!data) return null;
   const webshopOn = data.live && data.ordering && (data.pickup || data.delivery);
   const qrMode = QR_MODES.find((m) => m.value === data.qrMode);
@@ -116,7 +101,8 @@ function Overview({ go }: { go: (t: Tab) => void }) {
               <li className="flex justify-between"><span className="text-muted-foreground">{t('admin.orderingHub.betalen_bij_afhalen')}</span><span>{data.payOnPickup ? t('admin.orderingHub.aan') : t('admin.adsProductMap.uit')}</span></li>
             </ul>
             <div className="flex flex-wrap gap-2">
-              <Button size="sm" onClick={() => go('webshop')}>{t('admin.orderingHub.afhalen_leveren_instellen')}<ArrowRight className="ml-1.5 h-4 w-4" /></Button>
+              {/* HORECA-INSTELLINGEN-1: horeca-only stelt dit in bij Mijn zaak › Je gasten (link onderaan). */}
+              {horecaOnly ? null : <Button size="sm" onClick={() => go('webshop')}>{t('admin.orderingHub.afhalen_leveren_instellen')}<ArrowRight className="ml-1.5 h-4 w-4" /></Button>}
               <Button size="sm" variant="outline" asChild><Link to="/admin/storefront"><Globe className="mr-1.5 h-4 w-4" />{t('admin.orderingHub.winkel_openen')}</Link></Button>
             </div>
           </CardContent>
@@ -139,11 +125,13 @@ function Overview({ go }: { go: (t: Tab) => void }) {
               <li className="flex justify-between"><span className="text-muted-foreground">{t('admin.orderingHub.menukaart')}</span>
                 <a href={`https://${slug}.sellqo.shop/menu`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 hover:underline">{slug}.sellqo.shop/menu<ExternalLink className="h-3 w-3" /></a></li>
               <li className="flex justify-between"><span className="text-muted-foreground">{t('admin.orderingHub.floor_plan')}</span>
-                <Link to={FLOOR_EDIT_URL} className="hover:underline">{floor && floor.tables.length > 0 ? t('admin.orderingHub.floor_summary', { tables: floor.tables.length, areas: floor.areas.length }) : t('admin.orderingHub.floor_none')}</Link></li>
+                <Link to={FLOOR_EDIT_URL} className="hover:underline">{st && st.tables > 0 ? t('admin.orderingHub.floor_summary', { tables: st.tables, areas: st.areas }) : t('admin.orderingHub.floor_none')}</Link></li>
             </ul>
-            <div className="flex flex-wrap gap-2">
-              <Button size="sm" onClick={() => go('qr')}>{t('admin.orderingHub.qr_menu_instellen_en_afdrukken')}<ArrowRight className="ml-1.5 h-4 w-4" /></Button>
-            </div>
+            {horecaOnly ? null : (
+              <div className="flex flex-wrap gap-2">
+                <Button size="sm" onClick={() => go('qr')}>{t('admin.orderingHub.qr_menu_instellen_en_afdrukken')}<ArrowRight className="ml-1.5 h-4 w-4" /></Button>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -163,15 +151,16 @@ function Overview({ go }: { go: (t: Tab) => void }) {
             <ChefHat className="mt-0.5 h-5 w-5 text-muted-foreground" />
             <span><span className="block font-medium">{t('admin.orderingHub.keukenscherm')}</span><span className="block text-sm text-muted-foreground">{t('admin.orderingHub.webshop_tafels_en_kassa_samen')}</span></span>
           </Link>
-          <Link to="/admin/pos" className="flex items-start gap-3 rounded-lg border bg-card p-4 hover:bg-muted/50 hover:no-underline">
+          <Link to={href('/admin/pos')} className="flex items-start gap-3 rounded-lg border bg-card p-4 hover:bg-muted/50 hover:no-underline">
             <UtensilsCrossed className="mt-0.5 h-5 w-5 text-muted-foreground" />
             <span><span className="block font-medium">{t('admin.orderingHub.kassa')}</span><span className="block text-sm text-muted-foreground">{t('admin.orderingHub.ter_plaatse_meenemen_en_telefoon')}</span></span>
           </Link>
         </div>
         {/* WANDELING: alle horeca-instellingen met hun stand, op één overzicht (enkel links). */}
+        {/* HORECA-INSTELLINGEN-1: horeca-only — de instellingen staan in Mijn zaak (één link, geen tweede plek). */}
         {canSettings ? (
-          <Link to="/admin/settings?section=horeca" className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline">
-            {t('admin.orderingHub.all_settings')} <ChevronRight className="h-4 w-4" aria-hidden />
+          <Link to={horecaOnly ? mijnZaakUrl('gasten') : '/admin/settings?section=horeca'} className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline">
+            {horecaOnly ? t('mijnZaak.kaart.settings_link') : t('admin.orderingHub.all_settings')} <ChevronRight className="h-4 w-4" aria-hidden />
           </Link>
         ) : null}
       </div>
@@ -182,18 +171,27 @@ function Overview({ go }: { go: (t: Tab) => void }) {
 export default function OrderingHubPage() {
   const { t } = useTranslation();
   const horeca = useHorecaModule();
-  const { ready } = useTracks();
+  const { ready, hasTrack } = useTracks();
+  // HORECA-INSTELLINGEN-1: horeca-only — QR, afhalen & leveren, posten en reservaties zijn verhuisd
+  // (Mijn zaak, Reservaties); hier blijft de inhoud van de kaart. Combinaties: alles zoals voorheen.
+  const horecaOnly = isHorecaOnly(hasTrack);
+  const shown = (id: string) => !horecaOnly || (KAART_TABS_HORECA_ONLY as readonly string[]).includes(id);
+  const dailyTabs = DAILY_TABS.filter((tb) => shown(tb.id));
+  const setupTabs = SETUP_TABS.filter((tb) => shown(tb.id));
   const [params, setParams] = useSearchParams();
   const raw = params.get('tab');
-  const tab: Tab = TABS.some((tb) => tb.id === raw) ? (raw as Tab) : DEFAULT_TAB;
+  const tab: Tab = TABS.some((tb) => tb.id === raw && shown(tb.id)) ? (raw as Tab) : DEFAULT_TAB;
   const go = (t: Tab) => setParams((p) => { const n = new URLSearchParams(p); if (t === DEFAULT_TAB) n.delete('tab'); else n.set('tab', t); return n; }, { replace: true });
   const navigate = useNavigate();
-  const inSetup = SETUP_TABS.some((x) => x.id === tab);
+  const inSetup = setupTabs.some((x) => x.id === tab);
   const tabClass = (on: boolean) => cn('whitespace-nowrap border-b-2 px-3 py-2 text-sm font-medium', on ? 'border-primary text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground');
 
   // HORECA-ZIJBALK-1: oude links naar het zaalplan blijven werken.
   if (raw === 'zaal') return <Navigate to={FLOOR_EDIT_URL} replace />;
   if (!ready) return <ModuleGateLoading />;
+  // HORECA-INSTELLINGEN-1: oude links naar verhuisde tabs gaan door naar de nieuwe plek.
+  const moved = horecaOnly ? legacyKaartTarget(raw) : null;
+  if (moved) return <Navigate to={moved} replace />;
   if (!horeca) return <ModuleOffCard module="horeca" />;
 
   return (
@@ -209,18 +207,18 @@ export default function OrderingHubPage() {
       </div>
       <div className="space-y-2">
         <div role="tablist" className="flex gap-1 overflow-x-auto border-b">
-          {DAILY_TABS.map((tb) => (
+          {dailyTabs.map((tb) => (
             <button key={tb.id} type="button" role="tab" aria-selected={tab === tb.id} onClick={() => go(tb.id)} className={tabClass(tab === tb.id)}>
               {t(tb.labelKey)}
             </button>
           ))}
-          <button type="button" role="tab" aria-selected={inSetup} onClick={() => { if (!inSetup) go(SETUP_TABS[0].id); }} className={tabClass(inSetup)}>
+          <button type="button" role="tab" aria-selected={inSetup} onClick={() => { if (!inSetup) go(setupTabs[0].id); }} className={tabClass(inSetup)}>
             {t('admin.orderingHub.tab_setup')}
           </button>
         </div>
         {inSetup ? (
           <div role="tablist" aria-label={t('admin.orderingHub.tab_setup')} className="flex gap-1.5 overflow-x-auto pb-1">
-            {SETUP_TABS.map((tb) => (
+            {setupTabs.map((tb) => (
               <button key={tb.id} type="button" role="tab" aria-selected={tab === tb.id} onClick={() => go(tb.id)}
                 className={cn('whitespace-nowrap rounded-full border px-3 py-1.5 text-sm', tab === tb.id ? 'border-primary bg-primary text-primary-foreground' : 'bg-background hover:bg-muted')}>
                 {t(tb.labelKey)}
@@ -230,7 +228,7 @@ export default function OrderingHubPage() {
         ) : null}
       </div>
       <div className="max-w-5xl">
-        {tab === 'overview' ? <Overview go={go} /> : null}
+        {tab === 'overview' ? <Overview go={go} horecaOnly={horecaOnly} /> : null}
         {tab === 'kaart' ? <KaartManager /> : null}
         {tab === 'webshop' ? <FulfillmentSettings /> : null}
         {tab === 'qr' ? <div className="space-y-6"><QrModeSettings /><MenuQrManager onOpenFloorPlan={() => navigate(FLOOR_EDIT_URL)} /></div> : null}

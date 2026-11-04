@@ -25,6 +25,7 @@ import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
 import { QR_MODES, type QrMode } from './qrModes';
 import { BUSINESS_HOURS_URL } from '@/components/admin/settings/hours/HoursModeChoice';
+import { useHorecaHref } from '@/hooks/useHorecaHref';
 
 type QrFlow = 'order' | 'check';
 const QR_FLOWS: QrFlow[] = ['check', 'order'];
@@ -72,6 +73,8 @@ function Group({ title, desc, children }: { title: string; desc?: ReactNode; chi
 
 export function QrModeSettings() {
   const { t } = useTranslation();
+  // HORECA-INSTELLINGEN-1: horeca-only linkt meteen naar de nieuwe plek (Mijn zaak / Personeel).
+  const href = useHorecaHref();
   const { currentTenant } = useTenant();
   const { user } = useAuth();
   const tenantId = currentTenant?.id;
@@ -165,7 +168,6 @@ export function QrModeSettings() {
     toast.success(t('admin.storefront.food.qr_saved'));
     await Promise.all([
       qc.invalidateQueries({ queryKey: ['qr-mode', tenantId] }),
-      qc.invalidateQueries({ queryKey: ['ordering-hub', tenantId] }),
       qc.invalidateQueries({ queryKey: ['kassa-qr-auto-accept', tenantId] }),
       qc.invalidateQueries({ queryKey: ['horeca-pay-settings', tenantId] }),
       qc.invalidateQueries({ queryKey: ['kassa-pay-settings', tenantId] }),
@@ -177,7 +179,7 @@ export function QrModeSettings() {
     <>{t('admin.horecaPay.online_no_stripe')} <Link to="/admin/payments" className="font-medium text-primary underline">{t('admin.horecaPay.online_to_stripe')}</Link></>
   );
   const fiscalReason = (
-    <>{t('admin.horecaPay.online_fiscal')} <Link to="/admin/settings?section=horeca" className="font-medium text-primary underline">{t('admin.qrTable.fiscal_link')}</Link></>
+    <>{t('admin.horecaPay.online_fiscal')} <Link to={href('/admin/settings?section=horeca')} className="font-medium text-primary underline">{t('admin.qrTable.fiscal_link')}</Link></>
   );
   const checkReason = data.fiscal ? fiscalReason : !stripeOk ? noStripe : null;
   const needsCheckOnline = !s.checkOnline || checkBlocked ? t('admin.qrTable.needs_check_online') : null;
@@ -235,7 +237,7 @@ export function QrModeSettings() {
             ) : null}
             {data.hoursRuleAvailable ? (
               <ToggleRow title={t('admin.qrTable.outside_hours')} desc={t('admin.qrTable.outside_hours_desc')} checked={s.outsideHours} onChange={(v) => set({ outsideHours: v })}
-                reason={<Link to={BUSINESS_HOURS_URL} className="font-medium text-primary underline">{t('settings.businessHours.edit_link')}</Link>} />
+                reason={<Link to={href(BUSINESS_HOURS_URL)} className="font-medium text-primary underline">{t('settings.businessHours.edit_link')}</Link>} />
             ) : null}
           </Group>
 

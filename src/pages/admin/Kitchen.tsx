@@ -21,6 +21,7 @@ import { useWakeLock } from '@/hooks/useWakeLock';
 import { useAppShell } from '@/hooks/useAppShell';
 import { DeviceAlertsDialog } from '@/components/horeca/DeviceAlertsDialog';
 import { PrintHealthBanner } from '@/components/horeca/PrintHealthBanner';
+import { useHorecaHref } from '@/hooks/useHorecaHref';
 
 const SOUND_KEY = 'sq_kitchen_sound';
 const WAKE_KEY = 'sq_kitchen_wake';
@@ -28,6 +29,8 @@ const PRINT_KEY = 'sq_kitchen_autoprint';
 
 export default function KitchenPage() {
   const { t, i18n } = useTranslation();
+  // HORECA-INSTELLINGEN-1: horeca-only linkt meteen naar de nieuwe plek (Mijn zaak / Personeel).
+  const href = useHorecaHref();
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => { const id = setInterval(() => setNow(Date.now()), 15_000); return () => clearInterval(id); }, []);
   const { cards: allCards, isLoading, error, setStatus, busyKeys } = useKitchenBoard(now, true, BOARD_POLL_FAST);
@@ -120,7 +123,7 @@ export default function KitchenPage() {
         <DeviceAlertsDialog open={alertsOpen} onOpenChange={setAlertsOpen} tenantId={currentTenant.id} kind="station"
           defaultName={stations.find((x) => x.id === activeStation)?.name ?? t('deviceAlerts.defaultName.station')}
           stationId={activeStation} stationNames={new Map(stations.map((x) => [x.id, x.name]))}
-          wakeKey={WAKE_KEY} wakeDefault onWakeChange={setWake} wakeActive={wakeActive} manageHref="/admin/pos" />
+          wakeKey={WAKE_KEY} wakeDefault onWakeChange={setWake} wakeActive={wakeActive} manageHref={href('/admin/pos')} />
       ) : null}
 
       {needsTap ? (

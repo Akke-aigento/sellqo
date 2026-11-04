@@ -60,9 +60,8 @@ import { StorefrontSettings } from '@/components/admin/storefront/StorefrontSett
 import { ReviewsHub } from '@/components/admin/storefront/ReviewsHub';
 import { useAuth } from '@/hooks/useAuth';
 import { useCan, type Resource } from '@/hooks/useCan';
-import { useTenantPageOverrides } from '@/hooks/useTenantPageOverrides';
 import { useEmailLogoAutoBackfill } from '@/hooks/useEmailLogoBackfill';
-import { useTenantSubscription } from '@/hooks/useTenantSubscription';
+import { useSettingsFeatureVisible } from '@/hooks/useZaakAccess';
 import { Wrench, Blocks, PanelBottom, UtensilsCrossed, LayoutGrid, BookOpen } from 'lucide-react';
 import { MyBottomNavSettings } from '@/components/admin/settings/MyBottomNavSettings';
 import { HorecaSettingsHub } from '@/components/admin/settings/HorecaSettingsHub';
@@ -70,7 +69,8 @@ import { MoreToolsSettings } from '@/components/admin/settings/MoreToolsSettings
 import { AccountingSettings } from '@/components/admin/settings/AccountingSettings';
 import { BusinessModulesSettings } from '@/components/admin/settings/BusinessModulesSettings';
 import { useTracks } from '@/hooks/useBusinessModules';
-import { tracksAllow, type Track } from '@/lib/tracks';
+import { isHorecaOnly, tracksAllow, type Track } from '@/lib/tracks';
+import { MijnZaak } from '@/components/admin/mijnzaak/MijnZaak';
 
 interface SettingsSection {
   id: string;
@@ -210,6 +210,14 @@ const settingsGroups: SettingsGroup[] = [
 ];
 
 export default function SettingsPage() {
+  const { hasTrack } = useTracks();
+  // HORECA-INSTELLINGEN-1: een horecazaak zonder webshop of events krijgt "Mijn zaak" (checklist, zes
+  // groepen met tabs, zoekbalk). Oude ?section=-links stuurt Mijn zaak zelf door. Andere zaken: ongewijzigd.
+  if (isHorecaOnly(hasTrack)) return <MijnZaak />;
+  return <ClassicSettings />;
+}
+
+function ClassicSettings() {
   const { t } = useTranslation();
   // MAIL-UX-1: ontbrekende mailversie van het logo stil op de achtergrond aanmaken (best effort).
   useEmailLogoAutoBackfill();
@@ -229,8 +237,7 @@ export default function SettingsPage() {
     !!searchParams.get('section')
   );
   const { roles } = useAuth();
-  const { isFeatureGranted } = useTenantPageOverrides();
-  const { subscription } = useTenantSubscription();
+  const featureVisible = useSettingsFeatureVisible();
   const isMobile = useIsMobile();
   const { hasTrack } = useTracks();
 
@@ -261,12 +268,8 @@ export default function SettingsPage() {
     // WERKPLEK-1: buiten de sporen van de winkel bestaat de sectie niet (beheerweergave ziet alles via hasTrack).
     if (!tracksAllow(section.tracks, hasTrack)) return false;
     if (section.hideWithTracks?.some(hasTrack)) return false;
-    if (!section.featureKey) return true;
-    if (isPlatformAdmin && isAdminView) return true;
-    if (isFeatureGranted(section.featureKey)) return true;
-    const features = subscription?.pricing_plan?.features as unknown as Record<string, boolean> | undefined;
-    if (!features) return true;
-    return features[section.featureKey] !== false;
+    // HORECA-INSTELLINGEN-1: de plan-regel woont in useSettingsFeatureVisible (ook gebruikt door Mijn zaak).
+    return featureVisible(section.featureKey);
   };
 
   const isSectionPermitted = (section: SettingsSection): boolean => {

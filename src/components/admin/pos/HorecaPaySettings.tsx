@@ -22,6 +22,7 @@ import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
 import { formatIBAN } from '@/lib/epcQrCode';
 import { normalizePaySettings, type PaySettings, type SettingMethod, type TerminalMode } from '@/kassa/app/horeca/paySettings';
+import { useHorecaHref } from '@/hooks/useHorecaHref';
 
 /** Betaalwijzen die je zelf aanvinkt; "kaart" volgt uit de terminal. */
 const TICK_METHODS: Exclude<SettingMethod, 'card'>[] = ['cash', 'transfer', 'cheque_meal', 'voucher'];
@@ -30,8 +31,21 @@ const TERMINALS: TerminalMode[] = ['none', 'standalone'];
 /** Enkel om de stand te tonen; wijzigen gebeurt in QR aan tafel (QR-MODULES-1). */
 interface QrPay { mode: string; flow: 'order' | 'check'; counter: boolean; online: boolean }
 
-export function HorecaPaySettings() {
+/** HORECA-INSTELLINGEN-1 — welk deel dit scherm toont (Mijn zaak › Betalen verdeelt het over tabs). */
+export type HorecaPayPart = 'methods' | 'terminal' | 'tip' | 'qr';
+const ALL_PARTS: HorecaPayPart[] = ['methods', 'terminal', 'tip', 'qr'];
+
+/**
+ * `parts` kiest enkel wat getoond wordt; laden en opslaan blijven dezelfde (één rij, enkel de kassa-kolommen).
+ * Een deel dat niet getoond wordt, schrijft dus ongewijzigd terug wat er stond. Zonder `parts`: alles, zoals
+ * op Kassabeheer › Betalen.
+ */
+export function HorecaPaySettings({ parts = ALL_PARTS }: { parts?: HorecaPayPart[] } = {}) {
+  const show = (p: HorecaPayPart) => parts.includes(p);
+  const editable = show('methods') || show('terminal') || show('tip');
   const { t } = useTranslation();
+  // HORECA-INSTELLINGEN-1: horeca-only linkt meteen naar de nieuwe plek (Mijn zaak / Personeel).
+  const href = useHorecaHref();
   const { currentTenant } = useTenant();
   const { user } = useAuth();
   const tenantId = currentTenant?.id;
@@ -97,19 +111,19 @@ export function HorecaPaySettings() {
       qc.invalidateQueries({ queryKey: ['horeca-pay-settings', tenantId] }),
       qc.invalidateQueries({ queryKey: ['kassa-pay-settings', tenantId] }),
       qc.invalidateQueries({ queryKey: ['qr-mode', tenantId] }),
-      qc.invalidateQueries({ queryKey: ['ordering-hub', tenantId] }),
+      qc.invalidateQueries({ queryKey: ['horeca-settings-hub', tenantId] }),
     ]);
   };
 
   return (
     <div className="space-y-4">
-      <Card>
+      {editable ? <Card>
         <CardHeader>
           <CardTitle>{t('admin.horecaPay.kassa_title')}</CardTitle>
           <CardDescription>{t('admin.horecaPay.kassa_desc')}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-5">
-          <div className="space-y-2">
+          {show('methods') ? <div className="space-y-2">
             <p className="text-sm font-medium">{t('admin.horecaPay.methods')}</p>
             <div className="grid gap-2 sm:grid-cols-2">
               {TICK_METHODS.map((m) => (
@@ -123,14 +137,14 @@ export function HorecaPaySettings() {
             {transferNoIban ? (
               <p role="alert" className="flex gap-2 rounded-md bg-amber-50 p-2.5 text-sm text-amber-900 dark:bg-amber-950 dark:text-amber-100">
                 <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-                <span>{t('admin.horecaPay.no_iban')} <Link to="/admin/settings?section=company" className="font-medium underline">{t('admin.horecaPay.to_company')}</Link></span>
+                <span>{t('admin.horecaPay.no_iban')} <Link to={href('/admin/settings?section=company')} className="font-medium underline">{t('admin.horecaPay.to_company')}</Link></span>
               </p>
             ) : pay.methods.includes('transfer') ? (
-              <p className="text-xs text-muted-foreground">{t('admin.horecaPay.iban_used', { iban: formatIBAN(iban) })} <Link to="/admin/settings?section=company" className="underline">{t('admin.horecaPay.change')}</Link></p>
+              <p className="text-xs text-muted-foreground">{t('admin.horecaPay.iban_used', { iban: formatIBAN(iban) })} <Link to={href('/admin/settings?section=company')} className="underline">{t('admin.horecaPay.change')}</Link></p>
             ) : null}
-          </div>
+          </div> : null}
 
-          <div className="space-y-2">
+          {show('terminal') ? <div className="space-y-2">
             <p className="text-sm font-medium">{t('admin.horecaPay.terminal')}</p>
             <div className="grid gap-2 sm:grid-cols-2">
               {TERMINALS.map((m) => (
@@ -141,17 +155,17 @@ export function HorecaPaySettings() {
                 </button>
               ))}
             </div>
-          </div>
+          </div> : null}
 
-          <label className="flex items-center justify-between gap-4 rounded-lg border p-3">
+          {show('tip') ? <label className="flex items-center justify-between gap-4 rounded-lg border p-3">
             <span><span className="block text-sm font-medium">{t('admin.horecaPay.kassa_tip')}</span><span className="block text-xs text-muted-foreground">{t('admin.horecaPay.kassa_tip_desc')}</span></span>
             <Switch checked={pay.kassa_tip} onCheckedChange={(v) => setPay({ ...pay, kassa_tip: v })} />
-          </label>
+          </label> : null}
         </CardContent>
-      </Card>
+      </Card> : null}
 
       {/* QR-MODULES-1: hoe de gast via de QR afrekent, stel je in bij QR aan tafel (één plek per taak). */}
-      <Card>
+      {show('qr') ? <Card>
         <CardHeader>
           <CardTitle>{t('admin.horecaPay.qr_title')}</CardTitle>
           <CardDescription>{t('admin.horecaPay.qr_moved')}</CardDescription>
@@ -165,15 +179,17 @@ export function HorecaPaySettings() {
                 ? `${t('admin.qrFlow.check_short')} · ${t('admin.qrTable.check_online')}: ${data.checkOnline ? t('settings.horecaHub.on') : t('settings.horecaHub.off')}`
                 : [qr.counter && t('admin.storefront.food.qrModeSettings.aan_de_toog'), qr.online && t('admin.qrTable.pay_online')].filter(Boolean).join(' · ') || t('admin.horecaPay.qr_none')}
           </p>
-          <Button asChild variant="outline" size="sm"><Link to="/admin/bestellen?tab=qr">{t('admin.horecaPay.qr_to_settings')}</Link></Button>
+          <Button asChild variant="outline" size="sm"><Link to={href('/admin/bestellen?tab=qr')}>{t('admin.horecaPay.qr_to_settings')}</Link></Button>
         </CardContent>
-      </Card>
+      </Card> : null}
 
-      <div className="flex justify-end">
+      {editable ? <div className="flex flex-wrap items-center justify-end gap-3">
+        {/* Zonder het deel Betaalwijzen in beeld (bv. tab Betaalterminal) toch zeggen waarom opslaan niet kan. */}
+        {noMethod && !show('methods') ? <p role="alert" className="text-sm text-destructive">{t('admin.horecaPay.need_method')}</p> : null}
         <Button onClick={save} disabled={saving || !dirty || noMethod}>
           {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}{dirty ? t('common.save') : t('admin.adsProductMap.opgeslagen')}
         </Button>
-      </div>
+      </div> : null}
     </div>
   );
 }

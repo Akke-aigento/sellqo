@@ -6,6 +6,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { ChevronLeft, ChevronRight, Loader2, Plus } from 'lucide-react';
 import { toast } from 'sonner';
+import { Link } from 'react-router-dom';
+import { mijnZaakUrl } from '@/lib/mijnZaak';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useTenant } from '@/hooks/useTenant';
@@ -24,7 +26,14 @@ const LATE_OPTIONS = [10, 15, 20, 30] as const;
 const startOfDay = (d: Date) => { const x = new Date(d); x.setHours(0, 0, 0, 0); return x; };
 const addDays = (d: Date, n: number) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
 
-export function ReservationsManager() {
+/**
+ * HORECA-INSTELLINGEN-1 — `part`: 'all' (Kaart › Reservaties bij horeca + webshop/events, zoals voorheen),
+ * 'list' (de dagelijst op /admin/reservaties, horeca-only) of 'settings' (paars vanaf / te laat na en
+ * online reserveren, in Mijn zaak › Je gasten › Reserveren). Zelfde queries en opslag; enkel wat getoond wordt.
+ */
+export function ReservationsManager({ part = 'all' }: { part?: 'all' | 'list' | 'settings' }) {
+  const showList = part !== 'settings';
+  const showSettings = part !== 'list';
   const { t, i18n } = useTranslation();
   const { currentTenant } = useTenant();
   const tenantId = currentTenant?.id;
@@ -36,13 +45,13 @@ export function ReservationsManager() {
   const listKey = ['reservations', tenantId, day.toISOString()];
   const { data: list, isLoading } = useQuery({
     queryKey: listKey,
-    enabled: !!tenantId,
+    enabled: !!tenantId && showList,
     queryFn: () => fetchReservations(tenantId!, day.toISOString(), addDays(day, 1).toISOString()),
   });
   // RESERVATIE-2: online aanvragen die op een antwoord wachten (alle dagen).
   const { data: pending } = useQuery({
     queryKey: ['reservations', tenantId, 'pending'],
-    enabled: !!tenantId,
+    enabled: !!tenantId && showList,
     queryFn: () => { const d = new Date(); d.setHours(0, 0, 0, 0); return fetchPendingRequests(tenantId!, d.toISOString()); },
   });
   const settingsKey = ['reservation-settings', tenantId];
@@ -69,7 +78,7 @@ export function ReservationsManager() {
 
   return (
     <div className="space-y-6">
-      {pending && pending.length > 0 && (
+      {showList && pending && pending.length > 0 && (
         <Card className="border-amber-500">
           <CardHeader>
             <CardTitle>{t('reservations.pendingTitle', { count: pending.length })}</CardTitle>
@@ -83,7 +92,7 @@ export function ReservationsManager() {
           </CardContent>
         </Card>
       )}
-      <Card>
+      {showList ? <Card>
         <CardHeader>
           <CardTitle>{t('reservations.title')}</CardTitle>
           <CardDescription>{t('reservations.adminIntro')}</CardDescription>
@@ -103,10 +112,15 @@ export function ReservationsManager() {
               onEdit={(r) => setEdit({ reservation: r })}
               onStatus={(r, status) => setStatus.mutate({ id: r.id, status })} />
           )}
+          {part === 'list' ? (
+            <Link to={mijnZaakUrl('gasten', 'reserveren')} className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline">
+              {t('mijnZaak.reservations.settings_link')}<ChevronRight className="h-4 w-4" aria-hidden />
+            </Link>
+          ) : null}
         </CardContent>
-      </Card>
+      </Card> : null}
 
-      <Card>
+      {showSettings ? <Card>
         <CardHeader>
           <CardTitle>{t('reservations.settingsTitle')}</CardTitle>
           <CardDescription>{t('reservations.settingsIntro')}</CardDescription>
@@ -128,9 +142,9 @@ export function ReservationsManager() {
           </label>
           <p className="text-xs text-muted-foreground sm:col-span-2">{t('reservations.privacyNote')}</p>
         </CardContent>
-      </Card>
+      </Card> : null}
 
-      <OnlineReservationsCard />
+      {showSettings ? <OnlineReservationsCard /> : null}
 
       {edit && (
         <ReservationDialog initial={edit.reservation} tables={tables} defaultDate={day} onClose={() => setEdit(null)}

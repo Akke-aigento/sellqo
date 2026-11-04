@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
+import { useHorecaHref } from '@/hooks/useHorecaHref';
 
 const KINDS: { kind: StationKind; icon: typeof ChefHat }[] = [
   { kind: 'kitchen', icon: ChefHat },
@@ -23,6 +24,8 @@ const KINDS: { kind: StationKind; icon: typeof ChefHat }[] = [
 
 export function PrepStationsManager() {
   const { t } = useTranslation();
+  // HORECA-INSTELLINGEN-1: horeca-only linkt meteen naar de nieuwe plek (Mijn zaak / Personeel).
+  const href = useHorecaHref();
   const { currentTenant } = useTenant();
   const tenantId = currentTenant?.id;
   const { data, isLoading } = usePrepStations();
@@ -61,7 +64,7 @@ export function PrepStationsManager() {
           <CardDescription>
             {t('admin.prepStations.intro')}{' '}
             {/* PRINT-2: printer per post staat op één plek (Kassa › Bon & printers); hier enkel een link. */}
-            <Link to="/admin/pos?tab=printers" className="underline">{t('admin.prepStations.printer_link')}</Link>
+            <Link to={href('/admin/pos?tab=printers')} className="underline">{t('admin.prepStations.printer_link')}</Link>
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
