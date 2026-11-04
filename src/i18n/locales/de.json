@@ -12697,6 +12697,7 @@
     "all": "Alle Einstellungen",
     "open": "Einstellungen suchen",
     "shortcut": "Einstellung suchen (⌘K oder Strg+K)",
+    "nu_zone": "Bereich öffnen oder schließen",
     "syn": {
       "zaak_gegevens": "Firma, Unternehmen, Name, Adresse, USt-IdNr, Handelsregister, IBAN, Bankkonto, Telefon, E-Mail",
       "zaak_uren": "Stunden, offen, geschlossen, Öffnungszeiten, Ruhetag, Urlaub, Feiertag, Betriebsferien",
@@ -12729,7 +12730,12 @@
       "personeel_beheerders": "Verwalter, Team, Teammitglieder, einladen, Rechte, Rolle",
       "reservaties_lijst": "Reservierungen, heute, Gruppe, Anfragen",
       "kaart_extras": "Extra, Extras, Zuschlag, Soße, Optionen",
-      "kaart_allergens": "Allergene, Allergie, Gluten, Laktose, Nüsse"
+      "kaart_allergens": "Allergene, Allergie, Gluten, Laktose, Nüsse",
+      "nu_zone": "Terrasse zu, Terrasse offen, Bereich zu, Bereich offen, Regen, draußen zu",
+      "nu_dagschotel": "Tagesgericht, Tagesempfehlung, Empfehlung, Tagesmenü, heute auf der Karte",
+      "nu_uitverkocht": "ausverkauft, aus, nicht mehr da, sold out, heute aus",
+      "nu_keuken": "Küche pausieren, Pause, zu viel los, Ansturm, Online-Bestellungen stoppen, Küche zu",
+      "nu_dicht": "heute zu, heute geschlossen, ausnahmsweise geschlossen, krank, Ruhetag heute"
     }
   }
 }

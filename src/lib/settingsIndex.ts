@@ -22,6 +22,10 @@ export interface SettingsEntry {
   rule: AccessRule;
 }
 
+/** Het Nu-paneel staat bovenaan Vandaag (het dashboard). */
+const TODAY_PATH = '/admin';
+const TODAY_GROUP = 'navigation.bottom.today';
+
 const syn = (id: string) => `settingsSearch.syn.${id.replace(/[.-]/g, '_')}`;
 
 function buildIndex(): SettingsEntry[] {
@@ -40,6 +44,16 @@ function buildIndex(): SettingsEntry[] {
     { id: 'reservaties.lijst', labelKey: 'reservations.title', groupKey: 'navigation.groups.daily', path: RESERVATIONS_PATH, synKey: syn('reservaties.lijst'), rule: { requiredRead: 'orders' } },
     { id: 'kaart.extras', labelKey: 'admin.orderingHub.tab_extras', groupKey: 'admin.orderingHub.tab_menu', path: `${KAART_PATH}?tab=extras`, synKey: syn('kaart.extras'), rule: { requiredRead: 'orders' } },
     { id: 'kaart.allergens', labelKey: 'admin.orderingHub.tab_allergens', groupKey: 'admin.orderingHub.tab_menu', path: `${KAART_PATH}?tab=allergens`, synKey: syn('kaart.allergens'), rule: { requiredRead: 'orders' } },
+  );
+  // HORECA-NU-1 (samenvoeging met HORECA-INSTELLINGEN-1): de schakelaars voor tijdens de dienst wonen in het
+  // Nu-paneel bovenaan Vandaag (/admin), niet in Mijn zaak. Rechten zoals de tegels (NowPanel.tsx): zones voor
+  // personeel, dagschotel/uitverkocht volgens producten, keuken pauzeren en vandaag dicht enkel de zaakvoerder.
+  out.push(
+    { id: 'nu.zone', labelKey: 'settingsSearch.nu_zone', groupKey: TODAY_GROUP, path: TODAY_PATH, synKey: syn('nu.zone'), rule: { requiredRead: 'orders' } },
+    { id: 'nu.dagschotel', labelKey: 'admin.now.special.title', groupKey: TODAY_GROUP, path: TODAY_PATH, synKey: syn('nu.dagschotel'), rule: { requiredRead: 'products' } },
+    { id: 'nu.uitverkocht', labelKey: 'admin.now.soldout.title', groupKey: TODAY_GROUP, path: TODAY_PATH, synKey: syn('nu.uitverkocht'), rule: { requiredRead: 'products' } },
+    { id: 'nu.keuken', labelKey: 'admin.now.pause.title', groupKey: TODAY_GROUP, path: TODAY_PATH, synKey: syn('nu.keuken'), rule: { adminOnly: true } },
+    { id: 'nu.dicht', labelKey: 'admin.now.closed.title', groupKey: TODAY_GROUP, path: TODAY_PATH, synKey: syn('nu.dicht'), rule: { adminOnly: true } },
   );
   return out;
 }

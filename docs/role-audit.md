@@ -1,3 +1,28 @@
+## Samenvoeging HORECA-INSTELLINGEN-1 + HORECA-NU-1 — één lineaire reeks op main (2026.15f + 2026.15g) — 4 november 2026
+
+**Wat:** branch `horeca-release` = origin/main (5473d87) + HORECA-INSTELLINGEN-1(+1b) als fast-forward (7 commits) + HORECA-NU-1(+1b) als cherry-pick (6 commits) + deze samenvoegcommit. Geen nieuwe functionaliteit.
+
+**Opgeloste conflicten (cherry-pick van B):**
+- `.github/workflows/ci.yml`: vitest-regel = A's lijst (mijnZaak, horecaSetup, settingsIndex) + B's (nowPanel, now, cockpitLayout); naam "… mijn zaak, Nu-paneel".
+- `PublicChangelog.tsx`: 2026.15g (B) boven 2026.15f (A) boven 2026.15e.
+- `landing.{nl,en,fr,de,uk}.json`: 3-weg-merge (jsonmerge.mjs); changes-volgorde … my_business_settings, settings_search, staff_reservations_menu, now_panel, zone_closed, daily_special (achteraan). i18n-parity groen.
+- `docs/role-audit.md`, `docs/newsletter-queue.md`: B-items boven A-items.
+- Zonder conflict samengevoegd: `{nl,en,fr,de,uk}.json`, `QrModeSettings.tsx`, `tableCheckPay.test.ts`, `scripts/harness/README.md`, `scripts/gks/sql/run.sh` (enkel B).
+
+**Samenvoegfixes (deze commit):**
+- `NowPanel.tsx`: de links in de tegels volgen voor horeca-only de plekken van Mijn zaak — QR aan tafel en openingsuren via `useHorecaHref` (→ `?section=gasten&tab=qr`, `?section=zaak&tab=uren`), "Betalingen instellen" → Mijn zaak › Betalen › Online. Andere zaken: ongewijzigd. "Website online zetten" blijft `/admin/storefront` (de schakelaar woont daar, ook voor horeca-only).
+- `settingsIndex.ts` (+ test, + `settingsSearch.nu_zone` en `settingsSearch.syn.nu_*` in 5 talen): vijf entries voor het Nu-paneel (zone/terras, dagschotel, uitverkocht, keuken pauzeren, vandaag dicht) → `/admin`, groep Vandaag, rechten zoals de tegels. Bestaande zoekvoorbeelden (o.a. "terras" → zaalplan, "gesloten" → openingsuren) blijven eerst.
+- Versiestempels: `horeca-device-push` en `stripe-connect-webhook` → `HORECA-INSTELLINGEN-1` (horecaPush.ts resp. tableCheckPay.ts gewijzigd), test `horecaDevicePush.test.ts` mee. storefront-api blijft `HORECA-NU-1`.
+- `20261104140100_horeca_nu_1_docs.sql`: het nieuwe artikel nu-paneel noemt Mijn zaak › Je gasten › QR aan tafel en Mijn zaak › Je zaak › Openingsuren (met de oude plek voor webshop/events). Ankers ongewijzigd.
+
+**Security-keuzes:** n.v.t. — geen RLS, grants of policies gewijzigd; zoekentries erven de bestaande toegangsregels (useZaakAccess).
+
+**Gedeelde-paden-waarschuwing:** storefront-api ongewijzigd t.o.v. HORECA-NU-1 (rooktest groen). De twee gestempelde functies krijgen enkel een nieuwe GET-stempel.
+
+**Verificatie:** tsc 0; build 0; lint −3 t.o.v. baseline; i18n-parity groen; CI-vitest 45 bestanden/527 tests; `vitest src/kassa` 366 groen; deno _shared 28/31 groen (3 laden niet zonder netwerk: addonBilling, pdfText, storefrontErrorStatus); promo-compare 237 groen; rooktest groen; deno check van de drie functies groen; `gks/sql/run.sh` groen; harnas mijn-zaak, horeca-beheer, nu-paneel groen op 390/1280. Docs-volgorde 140100 → 150000 op PG16 met de live inhoud van 22 artikels, elk 2×: idempotent, geen anker gebroken.
+
+**Bewust ongemoeid / Vervolg:** `FulfillmentSettings` (A) linkt de sluitingsdagen nog naar `BUSINESS_HOURS_URL` zonder `useHorecaHref`; de redirect vangt het op. `src/kassa/` niet aangeraakt door de samenvoeging (KASSA 0.23.0 uit B).
+
 ## HORECA-NU-1b — review-fixes op HORECA-NU-1 + NU-2 (2026.15g) — 4 november 2026
 
 Zelfde branch `horeca-nu-1` (sellqo, vanaf `b9d6462`; sellqo-storefront: enkel role-audit). Niets gepusht, niets live; de migraties zijn nog niet live en zijn daarom rechtstreeks aangepast. Stempel blijft `HORECA-NU-1`, `KASSA_SW_VERSION` blijft 0.23.0 (nog niet uitgerold).

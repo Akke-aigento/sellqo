@@ -60,9 +60,9 @@ serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
-  // FOOD-1 — versiestempel om een deploy zonder neveneffect te verifiëren.
+  // FOOD-1 — versiestempel om een deploy zonder neveneffect te verifiëren. HORECA-INSTELLINGEN-1: gebumpt (tableCheckPay.ts gewijzigd).
   if (req.method === "GET") {
-    return new Response(JSON.stringify({ ok: true, version: "REKENING-ONLINE-1" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ ok: true, version: "HORECA-INSTELLINGEN-1" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 
   try {

@@ -17,7 +17,8 @@ describe('zoekregister', () => {
     for (const e of SETTINGS_INDEX) {
       const url = new URL(e.path, 'https://x');
       const route = url.pathname.replace(/^\/admin\/?/, '');
-      expect(adminRoutes.has(route) || route === 'settings', `${e.id}: route ${url.pathname}`).toBe(true);
+      // '' = /admin zelf (Vandaag, met het Nu-paneel): de index-route van het dashboard.
+      expect(adminRoutes.has(route) || route === 'settings' || route === '', `${e.id}: route ${url.pathname}`).toBe(true);
       const tab = url.searchParams.get('tab');
       if (url.pathname === '/admin/settings') {
         const g = ZAAK_GROUPS.find((x) => x.id === url.searchParams.get('section'));
@@ -73,6 +74,8 @@ describe('zoeken (nl)', () => {
     ['qr', 'gasten.qr'], ['sticker', 'gasten.qr'],
     ['peppol', 'geld.facturen'], ['btw', 'geld.btw'],
     ['logo', 'zaak.merk'], ['kleur', 'zaak.merk'],
+    ['dagschotel', 'nu.dagschotel'], ['uitverkocht', 'nu.uitverkocht'], ['keuken pauzeren', 'nu.keuken'],
+    ['vandaag dicht', 'nu.dicht'], ['terras dicht', 'nu.zone'],
   ])('"%s" → %s', (q, id) => {
     expect(first(q)).toBe(id);
   });

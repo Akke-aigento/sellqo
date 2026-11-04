@@ -12697,6 +12697,7 @@
     "all": "All settings",
     "open": "Search settings",
     "shortcut": "Search a setting (⌘K or Ctrl+K)",
+    "nu_zone": "Open or close a zone",
     "syn": {
       "zaak_gegevens": "company, business, name, address, vat number, company number, iban, bank account, phone, email",
       "zaak_uren": "hours, open, closed, opening hours, closing day, holiday, public holiday, vacation",
@@ -12729,7 +12730,12 @@
       "personeel_beheerders": "manager, team, team members, invite, permissions, role",
       "reservaties_lijst": "reservations, bookings, today, party, requests",
       "kaart_extras": "extra, extras, supplement, sauce, options",
-      "kaart_allergens": "allergens, allergy, gluten, lactose, nuts"
+      "kaart_allergens": "allergens, allergy, gluten, lactose, nuts",
+      "nu_zone": "terrace closed, terrace open, zone closed, zone open, rain, outside closed",
+      "nu_dagschotel": "dish of the day, daily special, special, menu of the day, today on the menu",
+      "nu_uitverkocht": "sold out, out of stock, gone, 86, none left today",
+      "nu_keuken": "kitchen pause, pause, too busy, rush, stop online orders, kitchen closed",
+      "nu_dicht": "closed today, shut today, exceptionally closed, sick, day off"
     }
   }
 }

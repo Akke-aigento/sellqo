@@ -11,6 +11,10 @@ import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { useCan, useScopedRoles } from '@/hooks/useCan';
 import { useHorecaModule } from '@/hooks/useHorecaModule';
+import { useHorecaHref } from '@/hooks/useHorecaHref';
+import { useTracks } from '@/hooks/useBusinessModules';
+import { isHorecaOnly } from '@/lib/tracks';
+import { mijnZaakUrl } from '@/lib/mijnZaak';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
@@ -29,6 +33,9 @@ import { useNowAreas, useNowClosedToday, useNowQr, useNowSpecials } from './useN
 const QR_SETTINGS_URL = '/admin/bestellen?tab=qr';
 const SITE_URL = '/admin/storefront';
 const PAYMENTS_URL = '/admin/payments';
+// Samenvoeging met HORECA-INSTELLINGEN-1: horeca-only regelt online betalen in Mijn zaak › Betalen › Online
+// (/admin/payments heet daar Transacties). QR aan tafel en de openingsuren gaan via useHorecaHref naar Mijn zaak.
+const PAYMENTS_URL_HORECA_ONLY = mijnZaakUrl('betalen', 'online');
 
 const ReasonLink = ({ text, to, label }: { text: string; to: string; label: string }) => (
   <>{text} <Link to={to} className="font-medium text-primary underline">{label}</Link></>
@@ -58,6 +65,9 @@ function NowPanelTiles({ nowMs }: { nowMs: number }) {
   const areas = useNowAreas();
   const specials = useNowSpecials();
   const kaart = useKaart();
+  const href = useHorecaHref();
+  const { hasTrack, ready } = useTracks();
+  const paymentsUrl = ready && isHorecaOnly(hasTrack) ? PAYMENTS_URL_HORECA_ONLY : PAYMENTS_URL;
   const [sheet, setSheet] = useState<null | 'soldout' | 'special'>(null);
   const [confirmClose, setConfirmClose] = useState(false);
   const [reason, setReason] = useState('');
@@ -84,7 +94,7 @@ function NowPanelTiles({ nowMs }: { nowMs: number }) {
       <NowTile key="ordering" testId="now-ordering" icon={Globe} title={t('admin.now.ordering.title')} state={d.shop_ordering ? on : off}
         tone={d.shop_ordering ? 'on' : 'off'} pressed={d.shop_ordering} busy={shop.saving} disabled={!!blocker}
         reason={blocker === 'offline' ? <ReasonLink text={t('admin.now.ordering.offline')} to={SITE_URL} label={t('admin.now.ordering.offline_link')} />
-          : blocker === 'no_payments' ? <ReasonLink text={t('admin.now.ordering.no_payments')} to={PAYMENTS_URL} label={t('admin.now.ordering.no_payments_link')} /> : null}
+          : blocker === 'no_payments' ? <ReasonLink text={t('admin.now.ordering.no_payments')} to={paymentsUrl} label={t('admin.now.ordering.no_payments_link')} /> : null}
         onClick={async () => {
           const r = await shop.save({ shop_ordering: !d.shop_ordering });
           if (r.ok) toast.success(t(d.shop_ordering ? 'admin.storefront.shopOpenCard.online_bestellen_staat_uit' : 'admin.storefront.shopOpenCard.online_bestellen_staat_aan'));
@@ -103,7 +113,7 @@ function NowPanelTiles({ nowMs }: { nowMs: number }) {
         sub={ordering ? null : t('admin.now.qr.view_only')} tone={ordering ? 'on' : 'off'} pressed={ordering} busy={qr.set.isPending}
         disabled={!d.shopLive || noWay}
         reason={!d.shopLive ? <ReasonLink text={t('admin.now.qr.offline')} to={SITE_URL} label={t('admin.now.ordering.offline_link')} />
-          : noWay ? <ReasonLink text={t('admin.now.qr.no_pay_way')} to={QR_SETTINGS_URL} label={t('admin.now.qr.settings_link')} /> : null}
+          : noWay ? <ReasonLink text={t('admin.now.qr.no_pay_way')} to={href(QR_SETTINGS_URL)} label={t('admin.now.qr.settings_link')} /> : null}
         onClick={() => qr.set.mutate(ordering ? 'view' : 'order', {
           onSuccess: (m) => toast.success(t(m === 'order' ? 'admin.now.qr.on_toast' : 'admin.now.qr.off_toast')),
           onError: fail,
@@ -153,7 +163,7 @@ function NowPanelTiles({ nowMs }: { nowMs: number }) {
       <NowTile key="closed" testId="now-closed" icon={CalendarX} title={t('admin.now.closed.title')} state={s.closed ? t('admin.now.closed.closed') : t('admin.now.closed.open')}
         sub={s.closed ? s.reason : null} tone={s.closed ? 'alert' : 'neutral'} pressed={s.closed} busy={closed.set.isPending}
         disabled={s.period}
-        reason={s.period ? <ReasonLink text={t('admin.now.closed.period')} to={BUSINESS_HOURS_URL} label={t('settings.businessHours.edit_link')} /> : null}
+        reason={s.period ? <ReasonLink text={t('admin.now.closed.period')} to={href(BUSINESS_HOURS_URL)} label={t('settings.businessHours.edit_link')} /> : null}
         onClick={() => {
           if (!s.closed) { setReason(''); setConfirmClose(true); return; }
           closed.set.mutate({ closed: false }, { onSuccess: () => toast.success(t('admin.now.closed.open_toast')), onError: fail });

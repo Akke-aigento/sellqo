@@ -10,6 +10,8 @@
 -- 29705d9f29ff7691e420ddbbf232e528, keukenscherm-en-tafelbestelling f72f3412f4c7bd2e56fd065eb1ea964d,
 -- zaalplan-en-qr-per-tafel b5102d488cae9f80c58e34c339e9c2dd, zaal-live-overzicht 8ae473f840dba3aad22c562324a93401.
 -- Categorie a0000001-…006 bestaat live (zelfde als de zaal- en kassa-artikels).
+-- Samenvoeging met HORECA-INSTELLINGEN-1 (4-11): het nieuwe artikel noemt de plekken van Mijn zaak (horeca-only) én
+-- de oude (webshop/events). Draaien vóór 20261104150000 (die raakt andere ankers in keukenscherm/zaalplan).
 -- PAS DRAAIEN NA de publish van sellqo.app met HORECA-NU-1 (anders beschrijft het artikel wat nog niet live is).
 -- Idempotent: het nieuwe artikel via ON CONFLICT (doc_level, slug) DO UPDATE; elke replace() raakt enkel een rij
 -- waarin het anker precies één keer voorkomt én de nieuwe tekst nog niet staat. Snapshot vooraf, één keer.
@@ -38,7 +40,7 @@ values (
 <h2>De tegels</h2>
 <ul>
   <li><strong>Online bestellen</strong>: afhalen en leveren via je website aan of uit. Staat je website offline of heb je nog geen betaalmethode, dan staat de tegel grijs met een link die het oplost. Enkel de zaakvoerder.</li>
-  <li><strong>Bestellen via QR aan tafel</strong>: wisselt tussen bestellen aan tafel en het QR-menu enkel om te bekijken. Staat je QR-menu helemaal uit, dan zie je deze tegel niet. Hoe gasten betalen en de rest stel je in onder <strong>Kaart › Instellen › QR-menu</strong>. Enkel de zaakvoerder.</li>
+  <li><strong>Bestellen via QR aan tafel</strong>: wisselt tussen bestellen aan tafel en het QR-menu enkel om te bekijken. Staat je QR-menu helemaal uit, dan zie je deze tegel niet. Hoe gasten betalen en de rest stel je in onder <strong>Mijn zaak › Je gasten › QR aan tafel</strong> (met een webshop- of eventspakket: <strong>Kaart › Instellen › QR-menu</strong>). Enkel de zaakvoerder.</li>
   <li><strong>Keuken pauzeren</strong>: 15, 30 of 60 minuten (of tot het einde van de dag) geen nieuwe online bestellingen voor afhalen en leveren. Bestellen aan tafel blijft werken. Je ziet de tegel enkel als online bestellen aanstaat of er al een pauze loopt; tik op de gepauzeerde tegel om te hervatten. Enkel de zaakvoerder.</li>
   <li><strong>Uitverkocht vandaag</strong>: zoek een gerecht of drankje en zet het met één tik op <em>Op</em> of weer terug. Het is meteen overal op: website, QR-menu en kassa. Morgen om 5 uur staat alles vanzelf terug.</li>
   <li><strong>Uitzonderlijk dicht</strong>: zet je zaak vandaag dicht, met een korte reden als je wil (bv. personeel ziek). Je website toont dan vandaag "gesloten", en online reserveren, afhalen en leveren voor vandaag kunnen niet meer. Bestellen via de QR aan tafel blijft wel mogelijk; zet daarvoor ook <strong>Bestellen via QR aan tafel</strong> uit. Tik nog eens om vandaag weer open te gaan. Valt vandaag in een sluitingsperiode, dan pas je die aan bij je openingsuren. Enkel de zaakvoerder. Vroeger sluiten (een ander sluitingsuur voor vandaag) kan hier nog niet; pas daarvoor je openingsuren aan.</li>
@@ -50,7 +52,7 @@ values (
 <p>Op SellQo Kassa vind je onder <strong>⋯ › Nu</strong> de tegels voor op de vloer: uitverkocht, keuken pauzeren, je zones en de dagschotel. Een eigenaar of verantwoordelijke die aangemeld is, tikt meteen. Een andere medewerker kiest een eigenaar of verantwoordelijke die goedkeurt met zijn PIN; die PIN blijft enkel in dat scherm, tot je het verlaat of op <strong>Vergrendelen</strong> tikt. Elke wijziging wordt bewaard met wie ze deed en op welk toestel.</p>
 
 <h2>Waar staan de instellingen?</h2>
-<p>Het Nu-paneel is de snelle ingang. De instellingen zelf blijven op hun plek: online bestellen bij <strong>Website</strong>, de QR bij <strong>Kaart › Instellen › QR-menu</strong>, je openingsuren en sluitingsdagen bij je bedrijfsgegevens, je ruimtes onder <strong>Zaal</strong> en je gerechten onder <strong>Kaart</strong>.</p>$doc$
+<p>Het Nu-paneel is de snelle ingang. De instellingen zelf blijven op hun plek: online bestellen bij <strong>Website</strong>, de QR bij <strong>Mijn zaak › Je gasten › QR aan tafel</strong>, je openingsuren en sluitingsdagen bij <strong>Mijn zaak › Je zaak › Openingsuren &amp; sluitingsdagen</strong>, je ruimtes onder <strong>Zaal</strong> en je gerechten onder <strong>Kaart</strong>. Met een webshop- of eventspakket staat de QR onder <strong>Kaart › Instellen › QR-menu</strong> en staan je openingsuren bij je bedrijfsgegevens.</p>$doc$
 )
 on conflict (doc_level, slug) do update set
   category_id = excluded.category_id, title = excluded.title, excerpt = excluded.excerpt, context_path = excluded.context_path,
