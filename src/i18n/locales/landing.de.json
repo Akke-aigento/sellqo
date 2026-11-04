@@ -2541,6 +2541,18 @@
         "staff_reservations_menu": {
           "title": "Personal und Reservierungen haben einen eigenen Platz im Menü",
           "description": "Mit nur dem Gastro-Paket stehen deine Mitarbeitenden mit PIN, ihre Stunden und deine Verwalter gemeinsam unter Personal, mit Tabs oben. Reservierungen ist ein eigener Punkt in deinem Menü, neben Bestellungen. Zahlungen heißt jetzt Transaktionen und steht unter Berichte."
+        },
+        "now_panel": {
+          "title": "Das Jetzt-Panel: Schalter für den laufenden Betrieb",
+          "description": "Oben auf Heute haben Gastrobetriebe ein Panel mit großen Kacheln, die du mit einem Tipp umschaltest: Online-Bestellungen, Bestellen per QR am Tisch, die Küche kurz pausieren, was ausverkauft ist, heute ausnahmsweise geschlossen, deine Bereiche und das Tagesgericht. Jede Kachel zeigt ihren Stand und bestätigt kurz, was du geändert hast. Du siehst nur, was dein Betrieb nutzt und was deine Rolle darf. „Heute ausverkauft“ steckt jetzt in der gleichnamigen Kachel, mit Suche über deine ganze Karte. An der Kasse findest du ausverkauft, Küche pausieren, die Bereiche und das Tagesgericht unter ⋯ › Jetzt; der Inhaber oder eine verantwortliche Person gibt mit der PIN frei."
+        },
+        "zone_closed": {
+          "title": "Terrasse oder anderer Bereich vorübergehend zu",
+          "description": "Hast du mehr als einen Bereich auf deinem Raumplan, schließt du einen vorübergehend über das Jetzt-Panel oder die Kasse, zum Beispiel die Terrasse, wenn es regnet. Gäste an einem Tisch in diesem Bereich sehen oben im QR-Menü, dass der Bereich geschlossen ist, und können dort nicht bestellen oder die Bedienung rufen. Dein Personal kann dort ganz normal arbeiten: Auf dem Raumplan an der Kasse und unter Saal ist der Bereich abgeblendet und mit „zu“ markiert. Online-Reservierungen ändern sich nicht: Gäste wählen dort keinen Bereich."
+        },
+        "daily_special": {
+          "title": "Tagesgericht",
+          "description": "Markiere im Jetzt-Panel oder an der Kasse ein oder mehrere Gerichte deiner Karte als Tagesgericht oder lege schnell ein neues mit Name, Preis und Kategorie an. Deine Speisekarte zeigt oben „Heute“ mit deinem Tagesgericht, die Startseite eines Gastro-Themes ein kleines Banner, und an der Kasse steht das Tagesgericht oben auf der Karte, damit du es mit einem Tipp bonierst. Der Preis ist einfach der Produktpreis. Morgen um 5 Uhr läuft die Markierung automatisch ab; mit „Heute kein Tagesgericht“ entfernst du sie sofort."
         }
       },
       "copyLink": "Link kopieren",

@@ -2541,6 +2541,18 @@
         "staff_reservations_menu": {
           "title": "Staff and Reservations have their own place in the menu",
           "description": "With only the hospitality package, your staff with their PIN, their hours and your managers are together under Staff, with tabs at the top. Reservations is its own item in your menu, next to Orders. Payments is now called Transactions and sits under Reports."
+        },
+        "now_panel": {
+          "title": "The Now panel: switches for during service",
+          "description": "At the top of Today, hospitality businesses get a panel with large tiles you flip with one tap: online ordering, ordering via the table QR, pausing the kitchen for a while, what is sold out, closed today, your zones and the dish of the day. Each tile shows its state and briefly confirms what you changed. You only see what your business uses and what your role allows. \"Sold out today\" now lives in the Sold out today tile, with search across your whole menu. On the POS you find sold out, pause kitchen, the zones and the dish of the day under ⋯ › Now; an owner or manager approves with their PIN."
+        },
+        "zone_closed": {
+          "title": "Terrace or another zone temporarily closed",
+          "description": "If you have more than one zone on your floor plan, you can close one temporarily from the Now panel or the POS, for example the terrace when it rains. Guests at a table in that zone see at the top of the QR menu that the zone is closed and cannot order or call staff there. Your staff can still work on it: on the floor plan in the POS and under Floor the zone is dimmed and marked \"closed\". Online booking does not change: guests do not choose a zone there."
+        },
+        "daily_special": {
+          "title": "Dish of the day",
+          "description": "In the Now panel or on the POS, mark one or more dishes from your menu as dish of the day, or quickly create a new one with a name, price and category. Your menu shows \"Today\" at the top with your dish of the day, the homepage of a hospitality theme shows a small banner, and on the POS the dish of the day sits at the top of the menu so you ring it up with one tap. The price is simply the product price. Tomorrow at 5 am the mark expires automatically; \"No dish of the day today\" removes them right away."
         }
       },
       "copyLink": "Copy link",

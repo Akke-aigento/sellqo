@@ -2541,6 +2541,18 @@
         "staff_reservations_menu": {
           "title": "Personeel en Reservaties hebben een eigen plek in het menu",
           "description": "Met enkel het horecapakket staan je medewerkers met hun pincode, hun uren en je beheerders samen onder Personeel, met tabs bovenaan. Reservaties staat als eigen item in je menu, naast Bestellingen. Betalingen heet nu Transacties en staat onder Rapporten."
+        },
+        "now_panel": {
+          "title": "Het Nu-paneel: schakelaars voor tijdens de dienst",
+          "description": "Bovenaan Vandaag staat voor horecazaken een paneel met grote tegels die je met één tik omzet: online bestellen, bestellen via de QR aan tafel, de keuken even pauzeren, wat uitverkocht is, vandaag uitzonderlijk dicht, je zones en de dagschotel. Elke tegel toont de stand en bevestigt kort wat je wijzigde. Je ziet enkel wat je zaak gebruikt en wat je rol mag. \"Op voor vandaag\" zit nu in de tegel Uitverkocht vandaag, met zoeken over je hele kaart. In de kassa vind je uitverkocht, keuken pauzeren, de zones en de dagschotel onder ⋯ › Nu; een eigenaar of verantwoordelijke keurt goed met zijn PIN."
+        },
+        "zone_closed": {
+          "title": "Terras of andere zone tijdelijk dicht",
+          "description": "Heb je meer dan één zone op je zaalplan, dan zet je er een tijdelijk dicht vanuit het Nu-paneel of de kassa, bijvoorbeeld het terras als het regent. Gasten aan een tafel in die zone zien bovenaan het QR-menu dat de zone gesloten is en kunnen er niet bestellen of de bediening roepen. Je personeel kan er wel gewoon op werken: op het zaalplan in de kassa en onder Zaal staat de zone gedimd met \"dicht\". Online reserveren verandert niet: gasten kiezen daar geen zone."
+        },
+        "daily_special": {
+          "title": "Dagschotel",
+          "description": "Duid in het Nu-paneel of in de kassa een of meer gerechten van je kaart aan als dagschotel, of maak er snel een nieuw aan met naam, prijs en categorie. Je menukaart toont bovenaan \"Vandaag\" met je dagschotel, de homepage van een horecathema een kleine banner, en in de kassa staat de dagschotel bovenaan de kaart zodat je hem met één tik aanslaat. De prijs is gewoon die van het product. Morgen om 5 uur vervalt de aanduiding vanzelf; met \"Geen dagschotel vandaag\" haal je ze meteen weg."
         }
       },
       "copyLink": "Kopieer link",

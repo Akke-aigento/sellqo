@@ -2541,6 +2541,18 @@
         "staff_reservations_menu": {
           "title": "Personnel et Réservations ont leur propre place dans le menu",
           "description": "Avec uniquement le pack horeca, ton personnel avec son code PIN, ses heures et tes gestionnaires sont réunis sous Personnel, avec des onglets en haut. Réservations est un élément à part dans ton menu, à côté de Commandes. Paiements s’appelle désormais Transactions et se trouve sous Rapports."
+        },
+        "now_panel": {
+          "title": "Le panneau Maintenant : des interrupteurs pendant le service",
+          "description": "En haut d'Aujourd'hui, les établissements horeca ont un panneau avec de grandes tuiles que tu changes en un geste : commande en ligne, commande via le QR à table, mettre la cuisine en pause, ce qui est épuisé, fermeture exceptionnelle aujourd'hui, tes zones et le plat du jour. Chaque tuile montre son état et confirme brièvement ce que tu as changé. Tu ne vois que ce que ton établissement utilise et ce que ton rôle permet. « Épuisé aujourd'hui » se trouve maintenant dans la tuile du même nom, avec une recherche sur toute ta carte. À la caisse, tu trouves épuisé, pause cuisine, les zones et le plat du jour sous ⋯ › Maintenant ; un propriétaire ou un responsable approuve avec son code PIN."
+        },
+        "zone_closed": {
+          "title": "Terrasse ou autre zone fermée temporairement",
+          "description": "Si ton plan de salle compte plus d'une zone, tu peux en fermer une temporairement depuis le panneau Maintenant ou la caisse, par exemple la terrasse quand il pleut. Les clients à une table de cette zone voient en haut du menu QR que la zone est fermée et ne peuvent pas y commander ni appeler le service. Ton personnel peut toujours y travailler : sur le plan de salle de la caisse et sous Salle, la zone apparaît atténuée avec « fermé ». La réservation en ligne ne change pas : les clients n'y choisissent pas de zone."
+        },
+        "daily_special": {
+          "title": "Plat du jour",
+          "description": "Dans le panneau Maintenant ou à la caisse, marque un ou plusieurs plats de ta carte comme plat du jour, ou crée-en rapidement un nouveau avec un nom, un prix et une catégorie. Ta carte affiche « Aujourd'hui » en haut avec ton plat du jour, la page d'accueil d'un thème horeca une petite bannière, et à la caisse le plat du jour se trouve en haut de la carte pour l'encoder en un geste. Le prix est simplement celui du produit. Demain à 5 h, le marquage expire automatiquement ; « Pas de plat du jour aujourd'hui » les retire tout de suite."
         }
       },
       "copyLink": "Copier le lien",

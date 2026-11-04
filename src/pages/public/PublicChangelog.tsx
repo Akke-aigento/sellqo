@@ -14,6 +14,11 @@ const changelogEntries: Array<{
   dateKey: string;
   changes: Array<{ id: string; type: 'feature' | 'improvement' | 'bugfix' | 'security' }>;
 }> = [
+  { version: '2026.15g', dateKey: 'nov_2026', changes: [
+    { id: 'now_panel', type: 'feature' },
+    { id: 'zone_closed', type: 'feature' },
+    { id: 'daily_special', type: 'feature' },
+  ] },
   { version: '2026.15f', dateKey: 'nov_2026', changes: [
     { id: 'my_business_settings', type: 'feature' },
     { id: 'settings_search', type: 'feature' },

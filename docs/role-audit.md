@@ -1,3 +1,66 @@
+## HORECA-NU-1 + HORECA-NU-2 — het Nu-paneel, zone open/dicht en de dagschotel (2026.15g) — 4 november 2026
+
+Branch `horeca-nu-1` (sellqo, vanaf `5473d87`) en `horeca-nu-1` (sellqo-storefront, vanaf `f3693d2`). Niets live, niets gepusht.
+
+**Root cause (nieuw):** de schakelaars die een cafébaas tijdens de dienst nodig heeft, zaten verspreid over vier schermen (Website › Winkel openen, Kaart › QR-menu, het keukenscherm, de Kaart) en de kassa had er geen enkele. Een zone (terras) dichtzetten en een dagschotel aanduiden bestond niet.
+
+**Plan-scope:** spoor horeca; geen nieuwe feature-sleutel (horeca-basis, gating via `useHorecaModule`: Horeca Small `horeca` en Horeca Big `horeca_big`, live nagetrokken); prijzenpagina: geen nieuwe regel nodig (`landing.pricing.feat_horeca` "Bestelsite, QR-menu, keukenscherm en reservaties" blijft waar); geen grandfathering.
+
+**Samenhang (inventaris vóór het plan):**
+
+| Plek | Doet nu | Wat verandert | Voorstel / gedaan |
+|---|---|---|---|
+| `SoldOutCard` (Vandaag, kaart "Op voor vandaag", `HorecaCards.tsx`) | 5 producten (op + toppers 14 d) op/terug | weg; de tegel **Uitverkocht vandaag** zoekt over de hele kaart | kaart `menu` uit `COCKPIT_CARDS`, `SoldOutCard` + `useCockpitMenuState` verwijderd; bewaarde volgordes met `menu` vallen stil weg (`isCardId`), test erbij |
+| Kaart › product (`KaartProductSheet`, lijst "Beschikbaar") | op voor vandaag per product | ongewijzigd | zelfde bron (`useSoldOutToday` / `set_product_sold_out_today`) |
+| Kassa lang drukken (`ProductQuickEdit`) | op/terug + prijs met PIN | ongewijzigd | ⋯ › Nu is de lijstversie; zelfde kolom en reset (`sold_out_reset_at`) |
+| `KitchenPauseControl` (keukenscherm) | pauze 15/30/60/vandaag | logica naar `useKitchenPause.ts` (gedeeld) | knop blijft op het keukenscherm (daar hoort hij); tegel = tweede ingang naar dezelfde bron |
+| `ShopOpenCard` (Website) | website online + online bestellen | logica naar `useShopOpen.ts` (gedeeld) | instellen blijft daar; de tegel zet enkel online bestellen om, met de reden + link als het niet kan |
+| `QrModeSettings` (Kaart › QR-menu) | alles van de QR | regel "geen betaalwijze" naar `qrModeRules.ts` (gedeeld) | tegel wisselt enkel order ↔ view; uit = geen tegel |
+| Openingsuren (`BusinessHoursCard`) | sluitingsdagen | ongewijzigd | tegel schrijft dezelfde `business_hours.closures` via `business_hours_close_today`; een periode blijft daar (tegel grijs + link) |
+| Zaal (`FloorPlanView`, Live, kassa `TablesScreen`) | zaalplan | dichte zone gedimd + label "dicht" | geen schakelaar daar (één plek: Nu-paneel/kassa ⋯ › Nu) |
+| Reservaties | per slot, geen zone/tafel online | niets | nagetrokken: `reservation_settings` heeft geen zone, gasten kiezen geen tafel → niets te doen |
+| Helpartikels | cockpit, kassa-product, keuken, zaalplan, zaal live | bijgewerkt + nieuw `nu-paneel` | `20261104140100_horeca_nu_1_docs.sql` |
+
+**Uitgevoerd:**
+- Migratie `20261104140000_horeca_nu_1.sql`: `dining_areas.is_open boolean not null default true`; `products.daily_special_until timestamptz` (+ partiële index); `set_product_daily_special`, `clear_daily_specials`, `business_hours_close_today` (security invoker); `kassa_now_state`, `kassa_now_apply` (security definer); snapshot `snapshots.sellqo_20261104_horeca_nu_1_dining_areas`.
+- Dagschotel-model: kolom op `products` met een einde-tijdstip (`sold_out_reset_at()`, volgende 05:00 Brussel), precies zoals `sold_out_until`. Geen eigen tabel: RLS en kanalen van `products` gelden vanzelf, geen tweede prijsbron.
+- "Vroeger dicht" **niet** gebouwd: `closures` kent geen uur en wordt gelezen door `_shared/businessHours.ts`, `fulfillmentSlots.ts` (`withBusinessHours`, `openState`, `computeSlots`), `reservation_slots` (SQL), storefront `hours.ts`, én via `get_config.business_hours` door eigen frontends. Een `close_at` in een closure-object zou door elke oudere lezer als een volledige sluitingsdag gelezen worden (eerste wet). Enkel "vandaag dicht" (één dag, `{from,to,reason}` zoals het urenscherm). Voorstel vervolg: een aparte sleutel naast `closures` (bv. `early_close`), in één batch door de vijf lezers.
+- `_shared/diningTables.ts`: `area.is_open` (additief), `areaIsOpen` (apart gelezen, fout of 42703 = open), `zoneClosedError` → `ZONE_CLOSED`.
+- `storefront-api/index.ts`: `ZONE_CLOSED` in `checkoutTable`, `tableRequestPlace`, `tableCall`; `get_products` optioneel `daily_special: true` (filter `daily_special_until > now`, antwoord krijgt `daily_special: true`); stempel `HORECA-NU-1` / `horeca-nu-1`. `table_check_*` (rekening bekijken/betalen) bewust niet: wie al aan tafel zat, moet kunnen afrekenen.
+- Beheer: `src/components/horeca/now/{NowPanel,NowTile,NowSheets,useNowData}.tsx|ts`, `src/lib/horeca/nowPanel.ts`; `Dashboard.tsx` toont `<NowPanel>` boven de ochtendbrief; `useFloorPlan` leest `is_open` apart; `FloorPlanView` dimt een dichte zone.
+- Kassa (fiscale kern, geen fiscaal bericht): `horeca/nowActions.ts`, `screens/NowScreen.tsx`, ⋯ › Nu in `KassaHome.tsx`, dagschotelstrook bovenaan `CheckScreen.tsx`, `useCatalog` `daily_special` (apart gelezen), zone gedimd in `TablesScreen.tsx`; `KASSA_SW_VERSION` 0.22.0 → **0.23.0**.
+- i18n: 98 nieuwe app-keys × 5 talen (`admin.now.*`, `admin.floorPlan.zone_closed*`, `kassa.now.*`, `kassa.home.tab.now`); changelog 2026.15g (3 ids) × 5 talen.
+
+**Security-keuzes:**
+- Tegels volgen de RLS, zodat er nooit een tegel is die faalt: `tenant_theme_settings`, `fulfillment_settings`, `business_hours` schrijven = tenant_admin (tegels online bestellen, QR, pauze, vandaag dicht enkel voor de beheerder); `dining_areas` = tenant_admin/staff (zones); `products` = `useCan('write','products')` (uitverkocht, dagschotel); nieuw gerecht = `product_prices` (kaart_add_products). Alle schrijfacties met `.select()` of een teruggelezen stand (HONEST-SAVE-1).
+- `set_product_daily_special`, `clear_daily_specials`, `business_hours_close_today`: security invoker, `search_path public, pg_temp`, execute enkel authenticated/service_role (getest: anon geen execute; andere zaak → 42501 of 0 rijen; staff → RLS-fout op vandaag dicht).
+- Kassatoestel heeft enkel leesrechten (KASSA-ACCOUNT-1). `kassa_now_apply` (definer, `search_path public, extensions`): `kassa_can_operate(zaak, toestel)` + eigenaar/verantwoordelijke via `kassa_staff_session_valid` (token van precies die medewerker) of goedkeurder + PIN met dezelfde lockout als `kassa_product_quick_edit`; elke lookup filtert op `p_tenant_id` (product/ruimte van een andere zaak → 22023); acties beperkt tot pause (0/15/30/60), area, special, special_clear, sold_out; elke handeling + elke foute PIN in `fiscal_audit_log` (enkel insert). `kassa_now_state` (definer, stable) geeft enkel `online` en `paused_until`, na `kassa_can_operate`.
+- Geen kolom op `tenant_theme_settings`. `products.daily_special_until` en `dining_areas.is_open` zijn niet gevoelig.
+
+**Gedeelde-paden-waarschuwing:** `storefront-api` (alle winkels): enkel additief. `resolve_table.area` krijgt `is_open`; `ZONE_CLOSED` kan enkel bij `is_open = false`, wat niemand heeft tot een zaak het zelf zet (default true; leesfout = open). `get_products` verandert niets zonder de nieuwe parameter (rooktest). Eerste wet: de zes eigen frontends (live nagetrokken: Astra Sleep, Benny Rich, Loveke, Mancini Milano, VanXcel, Zona Dorata) roepen geen tafel-acties aan met zaalplan en zien enkel een nieuwe sleutel. `_shared/diningTables.ts` wordt enkel door `storefront-api` gebundeld (grep).
+
+**Verificatie:**
+- `run.sh` (PG16, alle migraties 2×): exit 0; `test_horeca_nu.sql` 55/55 t; docs-migratie 2× zelfde md5 voor 6 artikels, `test_horeca_nu_docs.sql` 9/9 t.
+- tsc `-p tsconfig.app.json` exit 0 (leeg log); `npm run build` exit 0 (sitemap teruggezet); lint-baseline "beter dan de baseline" 1457 → 1454; i18n-parity en used-keys groen.
+- vitest CI-stap (met `nowPanel.test.ts`, `now.test.ts`, `cockpitLayout.test.ts` erbij) 42 bestanden / 475 groen; `npx vitest run src/kassa` 23 bestanden / 366 groen.
+- deno check `storefront-api` 0; deno `_shared` CI-lijst 261 groen (3 bestanden met een `deno.land/std`-import overgeslagen: geen netwerk in de sandbox, niet geraakt); promo-compare CI-lijst + qrStatus 236 groen (nieuwe test ZONE_CLOSED); rooktest groen (nieuwe check `daily_special`).
+- Harnas `nu-paneel` (390/1280, geen fouten, 0 px overloop): tegels per rol (beheerder 8, medewerker 4, marketing 2), lijsten, bevestiging, pauzemenu, Engels, kassa als eigenaar (token) en ober (akkoordblok).
+- Storefront: zie role-audit sellqo-storefront.
+
+**Uitrolvolgorde:**
+1. Migratie `20261104140000_horeca_nu_1.sql`; natrekken: kolommen in `information_schema.columns`, de vijf functies in `pg_proc`.
+2. Deploy `storefront-api` (enige functie; `_shared/diningTables.ts` zit enkel daarin); vingerafdruk GET → `HORECA-NU-1`. Vooraf: live stempel moet `UREN-1` zijn (anders gaan andere batches mee).
+3. Push + deploy sellqo-storefront (zie role-audit daar); de site werkt ook met een oudere API (geen Vandaag, geen melding).
+4. Push sellqo, CI groen, publish sellqo.app; nieuwe string in de bundel (bv. `kassa_now_apply`).
+5. Docs `20261104140100_horeca_nu_1_docs.sql`; md5 per artikel natrekken.
+6. Native kassa-build (KASSA 0.23.0): de app draait gebundelde code.
+
+**Bewust ongemoeid / Vervolg:**
+- "Vroeger dicht": zie hierboven, apart batchvoorstel.
+- Pauze en QR: de pauze geldt (code PAUSE-1) niet voor bestellen aan tafel; daarom toont de pauzetegel enkel als online bestellen aanstaat of er al een pauze loopt (afwijking van de opdracht, die "of QR-bestellen" vroeg: dat zou een dode tegel geven).
+- `table_check_*` weigert niet bij een dichte zone (afrekenen moet kunnen).
+- Dagschotel in `get_config` niet toegevoegd: `/menu` haalt hem rechtstreeks via `get_products` (cache 60 s i.p.v. 300 s).
+- Op de kassa gaat uitverkocht via `kassa_now_apply` (token of PIN) én blijft `kassa_product_quick_edit` (lang drukken, altijd PIN) bestaan: zelfde kolom, zelfde reset.
 ## HORECA-INSTELLINGEN-1 — Mijn zaak: instellingen zoals een cafébaas denkt, met zoekbalk (2026.15f) — 4 november 2026
 
 Branch `horeca-inst-1` (worktree `sellqo-inst`, vanaf `5473d87`), nog niets live.

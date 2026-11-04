@@ -4,6 +4,21 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.15g — Het Nu-paneel: alles voor tijdens de dienst met één tik (feature, 04-11-2026)
+Bovenaan Vandaag staat een paneel met grote tegels: online bestellen, bestellen via de QR aan tafel, de keuken pauzeren, uitverkocht vandaag, vandaag uitzonderlijk dicht, je zones en de dagschotel. Elke tegel toont de stand en wijzigt met één tik. In de kassa vind je de tegels voor op de vloer onder ⋯ › Nu.
+Beschikbaar vanaf: Horeca Small en Horeca Big.
+i18n: `public.changelog.changes.now_panel`
+
+### 2026.15g — Terras even dicht? Gasten zien het meteen (feature, 04-11-2026)
+Zet een zone van je zaalplan tijdelijk dicht, bijvoorbeeld het terras als het regent. Gasten aan een tafel daar zien het bovenaan het QR-menu en kunnen er niet bestellen of de bediening roepen; je personeel werkt er gewoon op verder.
+Beschikbaar vanaf: Horeca Small en Horeca Big.
+i18n: `public.changelog.changes.zone_closed`
+
+### 2026.15g — Dagschotel bovenaan je menukaart en op de kassa (feature, 04-11-2026)
+Duid een gerecht van je kaart aan als dagschotel, of maak er snel een aan. Het staat bovenaan je menukaart onder "Vandaag", als banner op de homepage van een horecathema en bovenaan de kaart in de kassa, aan de gewone prijs. Morgen om 5 uur vervalt het vanzelf.
+Beschikbaar vanaf: Horeca Small en Horeca Big.
+i18n: `public.changelog.changes.daily_special`
+
 ### 2026.15f — Mijn zaak: al je horeca-instellingen op één plek (feature, 04-11-2026)
 Heb je enkel het horecapakket, dan heet Instellingen nu Mijn zaak: bovenaan een checklist "Je zaak inrichten" met een knop per stap, daaronder zes groepen met tabs (Je zaak, Je gasten, Betalen, Zaal & keuken, Kassa's & toestellen, Geld & boekhouding). Oude links brengen je vanzelf naar de nieuwe plek.
 i18n: `public.changelog.changes.my_business_settings`
