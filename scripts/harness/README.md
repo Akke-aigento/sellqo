@@ -31,6 +31,9 @@ het zaalplan en de kaart van Café De Wissel: tafel, tikken, rekening, toog, ⋯
 `uren` (UREN-1 / WEBSITE-HORECA-1: Instellingen › Bedrijfsgegevens met de openingsuren — ook als lezer en leeg —, afhalen/leveren en online reserveren met "Zelfde als openingsuren", de horeca-zijbalk met Website, de Website-pagina als horeca, de sectiekiezer in Aanpassen, Instellingen › Horeca; klikt openingsuren en een sluitingsdag in en controleert wat er bewaard wordt; UREN-1b: Branding, QR aan tafel, afhalen zonder tijdsloten, themagalerij met horeca vooraan — het themaschema komt uit `mocks/schemaData.ts`, de presets van sellqo-storefront).
 `qr-aan-tafel` (QR-MODULES-1: "QR aan tafel" per variant — op de tafelrekening, elke bestelling apart, zonder Stripe,
 met FDM, enkel bekijken, databank zonder de oproep-kolommen, Engels — en Kassa › Betalen; controleert ook wat er bewaard wordt).
+`mijn-zaak` (HORECA-INSTELLINGEN-1: horeca-only-zijbalk met Transacties onder Rapporten, Mijn zaak met de checklist, elke groep
+met tabs, Betalen › Fooi, oude `?section=`-links die doorsturen, staff-rol, Personeel, Reservaties, de zoekbalk met "fooi",
+⌘K in de kop met "printer" + Enter, en als bewijs een webshopzaak: zijbalk en klassieke Instellingen).
 
 Lessen: mock het spoorfilter (`isItemBlocked`) bewust, anders zie je items die de echte app verbergt.
 Nooit `pkill -f` op de vite-server; `shoot.mjs` stopt hem zelf.

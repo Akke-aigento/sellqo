@@ -22,5 +22,6 @@
   "@/hooks/useUsageLimits": "mocks/usage.ts",
   "@/hooks/useOdooConnection": "mocks/odoo.ts",
   "@/hooks/useTenantOdooSettings": "mocks/odoo.ts",
-  "@/hooks/useHorecaReports": "mocks/horecaReports.ts"
+  "@/hooks/useHorecaReports": "mocks/horecaReports.ts",
+  "@/kassa/app/kassaSupabase": "mocks/kassaSupabase.ts"
 }
