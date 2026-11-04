@@ -3788,6 +3788,48 @@ export type Database = {
           },
         ]
       }
+      business_hours: {
+        Row: {
+          closures: Json
+          created_at: string
+          tenant_id: string
+          timezone: string
+          updated_at: string
+          week: Json
+        }
+        Insert: {
+          closures?: Json
+          created_at?: string
+          tenant_id: string
+          timezone?: string
+          updated_at?: string
+          week?: Json
+        }
+        Update: {
+          closures?: Json
+          created_at?: string
+          tenant_id?: string
+          timezone?: string
+          updated_at?: string
+          week?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "business_hours_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenant_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "business_hours_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       campaign_link_clicks: {
         Row: {
           campaign_id: string
@@ -8085,13 +8127,17 @@ export type Database = {
           closed_dates: string[]
           created_at: string
           days_ahead: number
+          delivery_hours_mode: string | null
           hours: Json
           max_orders_per_slot: number | null
           notify_ready: boolean
+          online_block_outside_hours: boolean
           paused_until: string | null
           pay_on_pickup: boolean
+          pickup_hours_mode: string | null
           prep_minutes: number
           qr_auto_accept: boolean
+          qr_block_outside_hours: boolean
           qr_call_bill: boolean
           qr_call_waiter: boolean
           qr_flow: string
@@ -8108,13 +8154,17 @@ export type Database = {
           closed_dates?: string[]
           created_at?: string
           days_ahead?: number
+          delivery_hours_mode?: string | null
           hours?: Json
           max_orders_per_slot?: number | null
           notify_ready?: boolean
+          online_block_outside_hours?: boolean
           paused_until?: string | null
           pay_on_pickup?: boolean
+          pickup_hours_mode?: string | null
           prep_minutes?: number
           qr_auto_accept?: boolean
+          qr_block_outside_hours?: boolean
           qr_call_bill?: boolean
           qr_call_waiter?: boolean
           qr_flow?: string
@@ -8131,13 +8181,17 @@ export type Database = {
           closed_dates?: string[]
           created_at?: string
           days_ahead?: number
+          delivery_hours_mode?: string | null
           hours?: Json
           max_orders_per_slot?: number | null
           notify_ready?: boolean
+          online_block_outside_hours?: boolean
           paused_until?: string | null
           pay_on_pickup?: boolean
+          pickup_hours_mode?: string | null
           prep_minutes?: number
           qr_auto_accept?: boolean
+          qr_block_outside_hours?: boolean
           qr_call_bill?: boolean
           qr_call_waiter?: boolean
           qr_flow?: string
@@ -16417,6 +16471,8 @@ export type Database = {
           min_notice_minutes: number
           online_enabled: boolean
           online_hours: Json
+          online_hours_mode: string | null
+          online_last_arrival_minutes: number
           slot_minutes: number
           tenant_id: string
           updated_at: string
@@ -16430,6 +16486,8 @@ export type Database = {
           min_notice_minutes?: number
           online_enabled?: boolean
           online_hours?: Json
+          online_hours_mode?: string | null
+          online_last_arrival_minutes?: number
           slot_minutes?: number
           tenant_id: string
           updated_at?: string
@@ -16443,6 +16501,8 @@ export type Database = {
           min_notice_minutes?: number
           online_enabled?: boolean
           online_hours?: Json
+          online_hours_mode?: string | null
+          online_last_arrival_minutes?: number
           slot_minutes?: number
           tenant_id?: string
           updated_at?: string
@@ -25086,6 +25146,8 @@ export type Database = {
         }
         Returns: number
       }
+      business_closures_valid: { Args: { p: Json }; Returns: boolean }
+      business_hours_week_valid: { Args: { p: Json }; Returns: boolean }
       calculate_session_expected_cash: {
         Args: { p_session_id: string }
         Returns: number
@@ -25265,6 +25327,18 @@ export type Database = {
       delete_email: {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
+      }
+      device_token_claim: {
+        Args: {
+          p_auth?: string
+          p_device_name?: string
+          p_install_id?: string
+          p_os?: string
+          p_p256dh?: string
+          p_platform: string
+          p_token: string
+        }
+        Returns: Json
       }
       downgrade_expired_trials: { Args: never; Returns: number }
       email_queue_dispatch: { Args: never; Returns: undefined }
@@ -25524,6 +25598,7 @@ export type Database = {
       }
       horeca_tenant_fiscal: { Args: { p_tenant_id: string }; Returns: boolean }
       horeca_vat_label: { Args: { p_rate: number }; Returns: string }
+      hours_week_has_ranges: { Args: { p: Json }; Returns: boolean }
       increment_campaign_bounced: {
         Args: { p_campaign_id: string }
         Returns: undefined
