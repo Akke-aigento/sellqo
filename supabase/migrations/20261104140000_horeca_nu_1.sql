@@ -183,10 +183,18 @@ declare
   v_until timestamptz;
   v_n integer;
   v_details jsonb;
+  v_dev text;
 begin
   if not public.kassa_can_operate(p_tenant_id, p_device_id) then
     raise exception 'geen toegang' using errcode = '42501';
   end if;
+  -- HORECA-NU-1b — device_id voor het auditspoor: bij een kassatoestel (niet-ingetrokken rij in
+  -- kassa_device_accounts voor auth.uid()) zijn device_uuid, precies wat de insert-policy van KASSA-ACCOUNT-1
+  -- voor een toestel eist; anders genormaliseerd (lower). Deze definer-functie omzeilt RLS, dus de waarde
+  -- moet hier zelf kloppen.
+  select a.device_uuid into v_dev from public.kassa_device_accounts a
+   where a.user_id = auth.uid() and a.revoked_at is null and a.tenant_id = p_tenant_id;
+  v_dev := coalesce(v_dev, left(lower(coalesce(p_device_id, '')), 120));
   if jsonb_typeof(coalesce(p, 'null'::jsonb)) <> 'object' or v_kind not in ('pause', 'area', 'special', 'special_clear', 'sold_out') then
     raise exception 'onbekende handeling' using errcode = '22023';
   end if;
@@ -219,7 +227,7 @@ begin
         locked_until = case when c.failed_pin_attempts + 1 >= 5 then now() + interval '5 minutes' else null end
       where id = c.id;
       insert into public.fiscal_audit_log (tenant_id, actor_id, device_id, action, details)
-        values (p_tenant_id, auth.uid(), left(coalesce(p_device_id, ''), 120), 'pin_failed',
+        values (p_tenant_id, auth.uid(), v_dev, 'pin_failed',
                 jsonb_build_object('staff_id', c.id, 'attempt', c.failed_pin_attempts + 1, 'context', 'kassa_now'));
       return jsonb_build_object('ok', false, 'reason', case when c.failed_pin_attempts + 1 >= 5 then 'locked' else 'wrong_pin' end);
     end if;
@@ -235,7 +243,7 @@ begin
     on conflict (tenant_id) do update set paused_until = excluded.paused_until, updated_at = now();
     v_details := jsonb_build_object('paused_until', v_until);
   elsif v_kind = 'area' then
-    if coalesce(p ->> 'area_id', '') !~ '^[0-9a-f-]{36}$' or jsonb_typeof(p -> 'open') <> 'boolean' then
+    if coalesce(p ->> 'area_id', '') !~ '^[0-9a-f-]{36}$' or coalesce(jsonb_typeof(p -> 'open'), '') <> 'boolean' then
       raise exception 'zone en open zijn verplicht' using errcode = '22023';
     end if;
     update public.dining_areas set is_open = (p ->> 'open')::boolean
@@ -245,8 +253,8 @@ begin
     v_details := jsonb_build_object('area_id', v_id, 'open', (p ->> 'open')::boolean);
   elsif v_kind in ('special', 'sold_out') then
     if coalesce(p ->> 'product_id', '') !~ '^[0-9a-f-]{36}$' then raise exception 'product is verplicht' using errcode = '22023'; end if;
-    if v_kind = 'special' and jsonb_typeof(p -> 'on') <> 'boolean' then raise exception 'on: waar of onwaar' using errcode = '22023'; end if;
-    if v_kind = 'sold_out' and jsonb_typeof(p -> 'sold_out') <> 'boolean' then raise exception 'sold_out: waar of onwaar' using errcode = '22023'; end if;
+    if v_kind = 'special' and coalesce(jsonb_typeof(p -> 'on'), '') <> 'boolean' then raise exception 'on: waar of onwaar' using errcode = '22023'; end if;
+    if v_kind = 'sold_out' and coalesce(jsonb_typeof(p -> 'sold_out'), '') <> 'boolean' then raise exception 'sold_out: waar of onwaar' using errcode = '22023'; end if;
     -- Tenant van de eigen rij: nooit een product van een andere zaak.
     if v_kind = 'special' then
       update public.products
@@ -268,7 +276,7 @@ begin
   end if;
 
   insert into public.fiscal_audit_log (tenant_id, actor_id, device_id, action, details)
-    values (p_tenant_id, auth.uid(), left(coalesce(p_device_id, ''), 120), 'kassa_now',
+    values (p_tenant_id, auth.uid(), v_dev, 'kassa_now',
             v_details || jsonb_build_object('kind', v_kind, 'approver_id', v_staff, 'staff_id', coalesce(v_by, v_staff)));
   return jsonb_build_object('ok', true, 'kind', v_kind) || v_details;
 end;

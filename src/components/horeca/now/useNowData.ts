@@ -13,7 +13,8 @@ import { floorPlanKey } from '@/hooks/useFloorPlan';
 import { kaartKey } from '@/components/admin/horeca/kaart/useKaart';
 import type { QrMode } from '@/components/admin/storefront/food/qrModes';
 import { qrOrderHasNoPayWay } from '@/components/admin/storefront/food/qrModeRules';
-import { closedToday, localYmd } from '@/lib/horeca/nowPanel';
+import { closedToday, fetchActiveDailySpecials, localYmd, withMenuChannels, type SpecialsClient } from '@/lib/horeca/nowPanel';
+import { CHANNELS } from '@/components/admin/storefront/food/ProductChannelsCard';
 import { businessHoursKey, useBusinessHours } from '@/hooks/useBusinessHours';
 
 type Rpc = (fn: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string; code?: string } | null }>;
@@ -145,16 +146,8 @@ export function useNowSpecials() {
     queryKey: nowSpecialsKey(tenantId),
     enabled: !!tenantId,
     refetchInterval: 60_000,
-    queryFn: async (): Promise<{ id: string; until: string }[] | null> => {
-      const { data, error } = await supabase.from('products').select('id, daily_special_until' as 'id')
-        .eq('tenant_id', tenantId!).not('daily_special_until' as 'id', 'is', null).limit(50);
-      if (isMissingColumn(error)) return null;
-      if (error) throw error;
-      const now = Date.now();
-      return ((data ?? []) as unknown as { id: string; daily_special_until: string }[])
-        .filter((r) => new Date(r.daily_special_until).getTime() > now)
-        .map((r) => ({ id: r.id, until: r.daily_special_until }));
-    },
+    // HORECA-NU-1b — de databank filtert op daily_special_until > nu (zoals useCatalog in de kassa).
+    queryFn: () => fetchActiveDailySpecials(supabase as unknown as SpecialsClient, tenantId!, Date.now()),
   });
   const refresh = () => Promise.all([
     qc.invalidateQueries({ queryKey: nowSpecialsKey(tenantId) }),
@@ -162,7 +155,19 @@ export function useNowSpecials() {
     qc.invalidateQueries({ queryKey: ['kassa-catalog', tenantId] }),
   ]);
   const set = useMutation({
-    mutationFn: async ({ productId, on }: { productId: string; on: boolean }) => {
+    mutationFn: async ({ productId, on, ensureMenu }: { productId: string; on: boolean; ensureMenu?: boolean }) => {
+      // HORECA-NU-1b — een net gemaakt gerecht krijgt de kanalen menu en table (de databankstandaard geeft ze
+      // al; dit vangt een afwijkende standaard op). Teruggelezen (HONEST-SAVE-1).
+      if (on && ensureMenu) {
+        const { data: row, error: readErr } = await supabase.from('products').select('channels').eq('id', productId).maybeSingle();
+        if (readErr) throw readErr;
+        const next = withMenuChannels((row as { channels?: string[] | null } | null)?.channels, CHANNELS);
+        if (next) {
+          const { data: upd, error: updErr } = await supabase.from('products').update({ channels: next } as never).eq('id', productId).select('id');
+          if (updErr) throw updErr;
+          if (!upd?.length) throw new Error('channels_not_saved');
+        }
+      }
       const { error } = await rpc('set_product_daily_special', { p_product_id: productId, p_on: on });
       if (error) throw error;
       return on;

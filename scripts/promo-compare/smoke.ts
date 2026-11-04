@@ -228,6 +228,30 @@ await check('tafel uit het zaalplan via QR-token (ZAAL-H1)', async () => {
   db.tables.dining_areas = [];
 });
 
+await check('checkout_complete: tafelmandje in een zone die intussen dicht is → ZONE_CLOSED (HORECA-NU-1b)', async () => {
+  db.tables.dining_areas = [{ id: 'da1', tenant_id: T, name: 'Terras', is_active: true, is_open: false }];
+  db.tables.dining_tables = [{ id: 'dt1', tenant_id: T, area_id: 'da1', label: 'Ter-1', is_active: true, qr_token: 'a1b2c3d4e5f6a1b2c3d4e5f6' }];
+  db.tables.storefront_carts.push({ id: 'cart-eat', tenant_id: T, session_id: 'se', currency: 'EUR', discount_codes: [], expires_at: '2999-01-01T00:00:00Z',
+    checkout_status: 'checkout', service_type: 'eat_in', table_label: 'Ter-1', dining_table_id: 'dt1', shipping_cost: 0 });
+  db.tables.storefront_cart_items.push({ id: 'i-eat', cart_id: 'cart-eat', product_id: 'p1', variant_id: null, event_detail_id: null, quantity: 1, unit_price: 20,
+    addons: [], addons_total: 0, products: { id: 'p1', name: 'Tee A', price: 20, track_inventory: false, stock: 5, channels: ['online', 'table', 'menu', 'pos'], sold_out_until: null } });
+  db.tables.fulfillment_settings[0].qr_mode = 'order';
+  try {
+    const r = await S.checkoutComplete(db, T, { cart_id: 'cart-eat', payment_method_id: 'pay_on_pickup' });
+    assert(r?.success === false && r?.error?.code === 'ZONE_CLOSED' && String(r?.error?.message).startsWith('Terras is momenteel gesloten'), `dichte zone: ${JSON.stringify(r)}`);
+    db.tables.dining_areas[0].is_open = true;
+    // Open zone: voorbij de zonecontrole tot de volgende (online betalen staat aan tafel uit).
+    const ok = await S.checkoutComplete(db, T, { cart_id: 'cart-eat', payment_method_id: 'bancontact' });
+    assert(ok?.error?.code === 'PAYMENT_METHOD_NOT_AVAILABLE', `open zone: ${JSON.stringify(ok)}`);
+  } finally {
+    db.tables.fulfillment_settings[0].qr_mode = 'view';
+    db.tables.storefront_carts = db.tables.storefront_carts.filter((c: Record<string, unknown>) => c.id !== 'cart-eat');
+    db.tables.storefront_cart_items = db.tables.storefront_cart_items.filter((i: Record<string, unknown>) => i.cart_id !== 'cart-eat');
+    db.tables.dining_tables = [];
+    db.tables.dining_areas = [];
+  }
+});
+
 await check('leverzone gaat voor minimumbedrag (DEMO-1)', async () => {
   const m = { fulfillment_type: 'local_delivery', min_order_amount: 15, postal_codes: ['3000'] };
   assert(S.fulfillmentAvailability(m, { postal_code: '2000', subtotal: 5 }).unavailable_reason === 'delivery_zone', 'buiten zone en te weinig: zone eerst');

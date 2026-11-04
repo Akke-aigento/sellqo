@@ -71,6 +71,31 @@ export function zoneClosedError(table: ResolvedTable): { code: typeof ZONE_CLOSE
 }
 
 /**
+ * HORECA-NU-1b — zone van een tafel die al op het mandje staat (dining_table_id), opnieuw opgezocht
+ * vlak vóór de bestelling (checkout_complete, ook via checkout_place_order). Zo helpt het niet om eerst
+ * checkout_table te doen en pas na het dichtzetten van de zone af te rekenen. Elke lookup filtert op de
+ * winkel; een leesfout, een ontbrekende kolom of een onbekende tafel blijft "open" (zoals areaIsOpen):
+ * een dichte zone weigert enkel door een expliciete is_open = false.
+ */
+export async function cartTableZoneClosedError(
+  supabase: SupabaseLike,
+  tenantId: string,
+  tableId: string | null | undefined,
+): Promise<ReturnType<typeof zoneClosedError>> {
+  if (!tableId) return null;
+  const { data: tb, error: tbErr } = await supabase.from("dining_tables")
+    .select("id, label, area_id")
+    .eq("tenant_id", tenantId).eq("id", String(tableId)).maybeSingle();
+  if (tbErr || !tb?.area_id) return null;
+  const { data: area, error: areaErr } = await supabase.from("dining_areas")
+    .select("id, name")
+    .eq("tenant_id", tenantId).eq("id", String(tb.area_id)).maybeSingle();
+  if (areaErr || !area) return null;
+  const isOpen = await areaIsOpen(supabase, tenantId, String(area.id));
+  return zoneClosedError({ table_id: String(tb.id), label: String(tb.label ?? ""), area: { id: String(area.id), name: String(area.name), is_open: isOpen } });
+}
+
+/**
  * Wat de storefront (of checkout_table) meegeeft → tafel.
  *  - `table_token`: altijd via het zaalplan.
  *  - `table` (vrij nummer): enkel als de winkel géén zaalplan heeft (oud gedrag).

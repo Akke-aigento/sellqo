@@ -1,6 +1,6 @@
 // ZAAL-H1 — deno test --no-lock --node-modules-dir=none supabase/functions/_shared/diningTables.test.ts
 import { deepStrictEqual as assertEquals, rejects as assertRejects } from "node:assert/strict";
-import { areaIsOpen, resolveTableInput, resolveTableToken, tenantHasFloorPlan, zoneClosedError } from "./diningTables.ts";
+import { areaIsOpen, cartTableZoneClosedError, resolveTableInput, resolveTableToken, tenantHasFloorPlan, zoneClosedError } from "./diningTables.ts";
 
 type Row = Record<string, unknown>;
 // Kleine nep-databank: thenable builder met select/eq/maybeSingle, zoals supabase-js.
@@ -79,4 +79,19 @@ Deno.test("open zone, vrij nummer of kolom nog niet gemigreerd: nooit ZONE_CLOSE
   // 42703 (kolom bestaat niet) of een andere leesfout: open, zoals vroeger.
   assertEquals(await areaIsOpen(fakeDb({}, { code: "42703", message: "column does not exist" }), T, "a1"), true);
   assertEquals(await areaIsOpen(fakeDb({ dining_areas: [] }), T, "a1"), true);
+});
+
+// HORECA-NU-1b — tafel die al op het mandje staat: zone opnieuw nakijken vlak vóór checkout_complete.
+Deno.test("mandje met tafel: dichte zone → ZONE_CLOSED; open, onbekend, andere winkel of leesfout → null", async () => {
+  const closed = fakeDb({
+    dining_areas: [{ id: "a1", tenant_id: T, name: "Terras", is_active: true, is_open: false }],
+    dining_tables: [{ id: "tb1", tenant_id: T, area_id: "a1", label: "Ter-1", is_active: true, qr_token: TOKEN }],
+  });
+  assertEquals(await cartTableZoneClosedError(closed, T, "tb1"), { code: "ZONE_CLOSED", message: "Terras is momenteel gesloten. Bestellen of de bediening roepen kan hier nu niet." });
+  // Tafel van een andere winkel: niet gevonden (tenant-filter) → geen oordeel.
+  assertEquals(await cartTableZoneClosedError(closed, "t2", "tb1"), null);
+  assertEquals(await cartTableZoneClosedError(closed, T, "bestaat-niet"), null);
+  assertEquals(await cartTableZoneClosedError(closed, T, null), null);
+  assertEquals(await cartTableZoneClosedError(db, T, "tb1"), null);
+  assertEquals(await cartTableZoneClosedError(fakeDb({}, { code: "42703", message: "column does not exist" }), T, "tb1"), null);
 });

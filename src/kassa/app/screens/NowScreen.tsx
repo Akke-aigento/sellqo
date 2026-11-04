@@ -1,12 +1,13 @@
 // HORECA-NU-1 — "Nu" in de kassa (⋯ › Nu): de schakelaars uit het Nu-paneel die op de vloer thuishoren:
 // uitverkocht, keuken pauzeren, zone (terras) open/dicht en de dagschotel. Elke handeling vraagt een
 // eigenaar/verantwoordelijke: wie dat zelf is (met sessietoken), tikt meteen; anders kiest de medewerker een
-// goedkeurder en tikt die zijn PIN één keer in (blijft enkel in dit scherm, tot je het verlaat). De server
+// goedkeurder en tikt die zijn PIN één keer in (blijft enkel in dit scherm, tot je het verlaat of op
+// "Vergrendelen" tikt, HORECA-NU-1b). De server
 // (kassa_now_apply) controleert alles opnieuw. Geen fiscaal bericht, geen prijs.
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { CalendarX, ChefHat, PauseCircle, Search, ShieldCheck, Soup, Sun } from 'lucide-react';
+import { CalendarX, ChefHat, Lock, PauseCircle, Search, ShieldCheck, Soup, Sun } from 'lucide-react';
 import { toast } from 'sonner';
 // KASSA-MOBIEL-1: de kassa-client (eigen sessie van het toestel), niet de beheer-sessie.
 import { kassaSupabase as supabase } from '@/kassa/app/kassaSupabase';
@@ -113,6 +114,14 @@ export function NowScreen({ ctx }: { ctx: ActionCtx }) {
               placeholder={t('kassa.productEdit.pin')} aria-label={t('kassa.productEdit.pin')} className="h-11 w-full rounded-md border bg-background px-3 text-center text-lg tracking-widest" />
           </div>
           {approvers && !approvers.length ? <p className="text-xs text-destructive">{t('kassa.productEdit.noApprovers')}</p> : null}
+          {/* HORECA-NU-1b — één goedkeuring geldt voor meerdere tikken in dit scherm; Vergrendelen wist de PIN meteen. */}
+          {pin ? (
+            <button type="button" data-testid="kassa-now-lock"
+              onClick={() => { setPin(''); setApproverId(''); toast.success(t('kassa.now.lockedToast')); }}
+              className="flex h-11 w-full items-center justify-center gap-2 rounded-md border px-3 text-sm font-semibold">
+              <Lock className="h-4 w-4" aria-hidden />{t('kassa.now.lock')}
+            </button>
+          ) : null}
         </section>
       ) : null}
 

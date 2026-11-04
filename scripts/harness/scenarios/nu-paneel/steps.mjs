@@ -12,6 +12,8 @@ export async function run(page, { width, shot, log }) {
   await shot('beheer-uitverkocht');
   await page.keyboard.press('Escape'); await page.waitForTimeout(300);
   await page.getByTestId('now-special').click(); await page.waitForTimeout(400);
+  // HORECA-NU-1b: de keuzelijst toont enkel wat op het menu of aan tafel staat (niet p9 kassa-only, niet p10 verborgen).
+  log('dagschotel keuzelijst', JSON.stringify(await page.getByTestId('now-special-list').locator('li span.font-semibold').allTextContents()));
   await page.getByRole('button', { name: 'Nieuw gerecht als dagschotel' }).click(); await page.waitForTimeout(200);
   await shot('beheer-dagschotel');
   await page.keyboard.press('Escape'); await page.waitForTimeout(300);
@@ -43,4 +45,11 @@ export async function run(page, { width, shot, log }) {
   await go('screen=kassa&v=rustig&role=waiter');
   log('kassa ober: akkoordblok', await page.getByTestId('kassa-now-approval').count(), 'overflow', await overflow(page));
   await shot('kassa-ober');
+  // HORECA-NU-1b: Vergrendelen verschijnt zodra er een PIN staat en wist hem meteen.
+  log('kassa ober: vergrendelen vóór PIN', await page.getByTestId('kassa-now-lock').count());
+  await page.getByTestId('kassa-now-approval').locator('input[type=password]').fill('1234'); await page.waitForTimeout(200);
+  log('kassa ober: vergrendelen na PIN', await page.getByTestId('kassa-now-lock').count());
+  await shot('kassa-ober-pin');
+  await page.getByTestId('kassa-now-lock').click(); await page.waitForTimeout(200);
+  log('kassa ober: PIN na vergrendelen', JSON.stringify(await page.getByTestId('kassa-now-approval').locator('input[type=password]').inputValue()), 'knop', await page.getByTestId('kassa-now-lock').count());
 }

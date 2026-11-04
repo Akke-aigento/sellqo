@@ -10096,7 +10096,7 @@
         "period": "Vandaag valt in een sluitingsperiode.",
         "period_toast": "Vandaag valt in een sluitingsperiode. Pas die aan bij je openingsuren.",
         "confirm_title": "Vandaag uitzonderlijk dicht?",
-        "confirm_desc": "Je website toont vandaag \"gesloten\", online reserveren voor vandaag kan niet meer en afhalen of leveren vandaag ook niet. Morgen ben je weer open volgens je openingsuren.",
+        "confirm_desc": "Je website toont vandaag \"gesloten\", online reserveren voor vandaag kan niet meer en afhalen of leveren vandaag ook niet. Morgen ben je weer open volgens je openingsuren. Bestellen via de QR aan tafel blijft wel mogelijk; zet daarvoor ook \"Bestellen via QR aan tafel\" uit.",
         "reason": "Reden (optioneel)",
         "reason_placeholder": "Bv. personeel ziek",
         "confirm": "Vandaag dicht",
@@ -12320,7 +12320,9 @@
         "closed": "DICHT",
         "openToast": "{{name}} is open",
         "closedToast": "{{name}} is dicht: gasten kunnen er niet bestellen via de QR"
-      }
+      },
+      "lock": "Vergrendelen",
+      "lockedToast": "Vergrendeld: de PIN is gewist"
     }
   },
   "deviceAlerts": {

@@ -8,7 +8,7 @@ import { submitContactForm, isContactFormAlias, normalizeContactAlias } from "..
 import { resolveCustomerContactEmail } from "../_shared/customerContact.ts";
 import { computeCartPromotions, round2 as promoRound2, type PromotionResult } from "../_shared/promotionEngine.ts";
 import { parseOptionFilter, productMatches, buildOptionFacets, buildTagFacets, type DbRow, type SupabaseLike } from "../_shared/catalogFilters.ts";
-import { resolveTableInput, tenantHasFloorPlan, zoneClosedError } from "../_shared/diningTables.ts";
+import { cartTableZoneClosedError, resolveTableInput, tenantHasFloorPlan, zoneClosedError } from "../_shared/diningTables.ts";
 import { refundReasonText, settleTableCheckPayment, type RefundClient, type SettleRpcClient } from "../_shared/tableCheckPay.ts";
 import { AddonError, addonsLabel, applicableGroups, resolveAddonSelection, type AddonGroup } from "../_shared/productAddons.ts";
 import { closedMessage, computeSlots, openState, orderingBlocked, postalCodeAllowed, withBusinessHours, type FulfillmentSettings, type ServiceType } from "../_shared/fulfillmentSlots.ts";
@@ -5006,6 +5006,10 @@ async function checkoutComplete(supabase: any, tenantId: string, params: Record<
     // UREN-1b — buiten de openingsuren, als de zaak dat niet toestaat.
     const closedC = await tableClosedError(supabase, tenantId);
     if (closedC) return { success: false, error: closedC };
+    // HORECA-NU-1b — de zone van de tafel op het mandje opnieuw nakijken: checkout_table kan gebeurd zijn
+    // vóór de zaak het terras dichtzette. Zelfde code en melding als bij checkout_table.
+    const zoneK = await cartTableZoneClosedError(supabase, tenantId, cart.dining_table_id as string | null | undefined);
+    if (zoneK) return { success: false, error: zoneK };
     // ZAAL-H1 — zaak met zaalplan: enkel een tafel die via een geldige QR-token gekozen is.
     if (!cart.dining_table_id && await tenantHasFloorPlan(supabase, tenantId)) return { success: false, error: { code: 'TABLE_TOKEN_REQUIRED', message: 'Scan de QR-code op je tafel opnieuw' } };
     if (paymentMethodId !== 'pay_on_pickup' && !fsT.qr_pay_online) return { success: false, error: { code: 'PAYMENT_METHOD_NOT_AVAILABLE', message: 'Online betalen kan niet aan tafel; betaal aan de toog' } };

@@ -134,5 +134,55 @@ select count(*) = :audit_before + 6 from public.fiscal_audit_log where action = 
 select details ->> 'kind' = 'area' and details ->> 'approver_id' = '99999999-0000-0000-0000-0000000000b1' and details ->> 'staff_id' = '99999999-0000-0000-0000-0000000000b2'
   from public.fiscal_audit_log where action = 'kassa_now' and details ->> 'kind' = 'area' order by created_at desc limit 1;
 select count(*) >= 1 from public.fiscal_audit_log where action = 'pin_failed' and details ->> 'context' = 'kassa_now';
+
+-- ── 5. HORECA-NU-1b: ontbrekende sleutel = nette fout, geen wijziging ─────────────────────────────────────
+-- Vroeger gaf jsonb_typeof(NULL) <> 'boolean' NULL (geen fout): een special zonder "on" wiste dan stil de
+-- dagschotel, een area zonder "open" botste op NOT NULL. Nu 22023 en niets gewijzigd.
+update public.products set daily_special_until = public.sold_out_reset_at(), sold_out_until = public.sold_out_reset_at()
+ where id = 'eeeeeeee-0000-0000-0000-0000000000b3';
+update public.pos_cashiers set failed_pin_attempts = 0, locked_until = null where id = '99999999-0000-0000-0000-0000000000b1';
+set role authenticated; set request.jwt.claim.sub = 'ac000000-0000-0000-0000-0000000000a0';
+select pg_temp.try($$select pg_temp.now_b('{"kind":"special","product_id":"eeeeeeee-0000-0000-0000-0000000000b3","approver_id":"99999999-0000-0000-0000-0000000000b1","pin":"1234"}')$$) = '22023';
+select pg_temp.try($$select pg_temp.now_b('{"kind":"sold_out","product_id":"eeeeeeee-0000-0000-0000-0000000000b3","approver_id":"99999999-0000-0000-0000-0000000000b1","pin":"1234"}')$$) = '22023';
+select pg_temp.try($$select pg_temp.now_b('{"kind":"area","area_id":"a7000000-0000-0000-0000-0000000000b1","approver_id":"99999999-0000-0000-0000-0000000000b1","pin":"1234"}')$$) = '22023';
+-- Ook een JSON-null of een tekst "true" is geen boolean.
+select pg_temp.try($$select pg_temp.now_b('{"kind":"special","product_id":"eeeeeeee-0000-0000-0000-0000000000b3","on":null,"approver_id":"99999999-0000-0000-0000-0000000000b1","pin":"1234"}')$$) = '22023';
+select pg_temp.try($$select pg_temp.now_b('{"kind":"area","area_id":"a7000000-0000-0000-0000-0000000000b1","open":"false","approver_id":"99999999-0000-0000-0000-0000000000b1","pin":"1234"}')$$) = '22023';
+reset role;
+select daily_special_until = public.sold_out_reset_at() and sold_out_until = public.sold_out_reset_at() from public.products where id = 'eeeeeeee-0000-0000-0000-0000000000b3';
+select is_open from public.dining_areas where id = 'a7000000-0000-0000-0000-0000000000b1';
+select count(*) = :audit_before + 6 from public.fiscal_audit_log where action = 'kassa_now';
+
+-- ── 6. HORECA-NU-1b: device_id in het auditspoor ─────────────────────────────────────────────────────────
+-- Een kassatoestel dat zijn ID in hoofdletters doorgeeft (kassa_can_operate vergelijkt lower): het spoor krijgt
+-- de device_uuid uit kassa_device_accounts, precies wat de insert-policy van KASSA-ACCOUNT-1 voor een toestel eist.
+set role authenticated; set request.jwt.claim.sub = 'ac000000-0000-0000-0000-0000000000a0';
+select (public.kassa_now_apply('22222222-2222-2222-2222-222222222222', 'AAAAAAAA-BBBB-4CCC-8DDD-0000000000A0',
+  '{"kind":"special","product_id":"eeeeeeee-0000-0000-0000-0000000000b3","on":false,"approver_id":"99999999-0000-0000-0000-0000000000b1","pin":"1234"}') ->> 'ok')::boolean;
+-- Foute PIN van een toestel: ook het pin_failed-spoor met de device_uuid.
+select public.kassa_now_apply('22222222-2222-2222-2222-222222222222', 'AAAAAAAA-BBBB-4CCC-8DDD-0000000000A0',
+  '{"kind":"special_clear","approver_id":"99999999-0000-0000-0000-0000000000b1","pin":"9999"}') ->> 'reason' = 'wrong_pin';
+reset role;
+select device_id = 'aaaaaaaa-bbbb-4ccc-8ddd-0000000000a0' and actor_id = 'ac000000-0000-0000-0000-0000000000a0'
+  from public.fiscal_audit_log where action = 'kassa_now' order by created_at desc, id desc limit 1;
+select device_id = 'aaaaaaaa-bbbb-4ccc-8ddd-0000000000a0'
+  from public.fiscal_audit_log where action = 'pin_failed' and details ->> 'context' = 'kassa_now' order by created_at desc limit 1;
+-- Dezelfde rij zou ook als gewone client-insert van het toestel door de policy komen (RLS, geen definer).
+set role authenticated; set request.jwt.claim.sub = 'ac000000-0000-0000-0000-0000000000a0';
+select pg_temp.try($$insert into public.fiscal_audit_log (tenant_id, actor_id, device_id, action, details)
+  values ('22222222-2222-2222-2222-222222222222', auth.uid(), 'aaaaaaaa-bbbb-4ccc-8ddd-0000000000a0', 'nu_policy_probe', '{}')$$) = 'ok';
+-- Met de ruwe hoofdletter-ID had de policy de rij geweigerd: dat is wat de normalisatie voorkomt.
+select pg_temp.try($$insert into public.fiscal_audit_log (tenant_id, actor_id, device_id, action, details)
+  values ('22222222-2222-2222-2222-222222222222', auth.uid(), 'AAAAAAAA-BBBB-4CCC-8DDD-0000000000A0', 'nu_policy_probe', '{}')$$) = '42501';
+reset role;
+-- Een beheerder (geen toestelaccount) met een toestel-ID in hoofdletters: genormaliseerd naar lower.
+set role authenticated; set request.jwt.claim.sub = 'aaaaaaaa-0000-0000-0000-000000000002';
+select (public.kassa_now_apply('22222222-2222-2222-2222-222222222222', 'ABCDEF01-0000-4000-8000-0000000000FF',
+  '{"kind":"special","product_id":"eeeeeeee-0000-0000-0000-0000000000b3","on":false,"approver_id":"99999999-0000-0000-0000-0000000000b1","pin":"1234"}') ->> 'ok')::boolean;
+reset role;
+select device_id = 'abcdef01-0000-4000-8000-0000000000ff' and actor_id = 'aaaaaaaa-0000-0000-0000-000000000002'
+  from public.fiscal_audit_log where action = 'kassa_now' order by created_at desc, id desc limit 1;
+update public.products set daily_special_until = null, sold_out_until = null where id = 'eeeeeeee-0000-0000-0000-0000000000b3';
+update public.pos_cashiers set failed_pin_attempts = 0, locked_until = null where id = '99999999-0000-0000-0000-0000000000b1';
 update public.dining_areas set is_open = true;
 select 'HORECA-NU-1/2: alle tests geslaagd';

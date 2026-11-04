@@ -9751,7 +9751,7 @@
         "period": "Heute liegt in einem Schließzeitraum.",
         "period_toast": "Heute liegt in einem Schließzeitraum. Ändere ihn bei deinen Öffnungszeiten.",
         "confirm_title": "Heute ausnahmsweise geschlossen?",
-        "confirm_desc": "Deine Website zeigt heute „geschlossen“; Online-Reservierungen für heute sind nicht mehr möglich, Abholung und Lieferung heute auch nicht. Morgen hast du wieder laut deinen Öffnungszeiten geöffnet.",
+        "confirm_desc": "Deine Website zeigt heute „geschlossen“; Online-Reservierungen für heute sind nicht mehr möglich, Abholung und Lieferung heute auch nicht. Morgen hast du wieder laut deinen Öffnungszeiten geöffnet. Bestellen per QR am Tisch bleibt aber möglich; schalte dafür auch „Bestellen per QR am Tisch“ aus.",
         "reason": "Grund (optional)",
         "reason_placeholder": "Z. B. Personal krank",
         "confirm": "Heute schließen",
@@ -12318,7 +12318,9 @@
         "closed": "ZU",
         "openToast": "{{name}} ist offen",
         "closedToast": "{{name}} ist zu: Gäste können dort nicht per QR bestellen"
-      }
+      },
+      "lock": "Sperren",
+      "lockedToast": "Gesperrt: die PIN wurde gelöscht"
     }
   },
   "deviceAlerts": {

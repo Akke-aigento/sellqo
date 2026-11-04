@@ -47,3 +47,56 @@ export function zoneTiles<T extends { is_active: boolean }>(areas: T[] | null | 
  * niet voor bestellen aan tafel (PAUSE-1, storefront-api). Een lopende pauze blijft altijd te hervatten.
  */
 export const pauseTileVisible = (s: { onlineOrdering: boolean; paused: boolean }) => s.onlineOrdering || s.paused;
+
+/** Minimale vorm van de supabase-querybuilder die fetchActiveDailySpecials gebruikt (testbaar zonder client). */
+interface SpecialsQuery extends PromiseLike<{ data: unknown; error: { code?: string; message: string } | null }> {
+  eq(col: string, v: unknown): SpecialsQuery;
+  gt(col: string, v: unknown): SpecialsQuery;
+  order(col: string, opts?: { ascending?: boolean }): SpecialsQuery;
+  limit(n: number): SpecialsQuery;
+}
+export interface SpecialsClient { from(table: string): { select(cols: string): SpecialsQuery } }
+
+/**
+ * HORECA-NU-1b — de dagschotels die nu lopen (products.daily_special_until > nu), zoals useCatalog in de
+ * kassa. De databank filtert al op de toekomst: zonder die filter vulden vervallen dagschotels van vorige
+ * dagen de limiet en vielen actieve weg. De client-filter blijft als vangnet (klok, cache).
+ * `null` = de kolom bestaat nog niet (vóór de migratie): geen tegel.
+ */
+export async function fetchActiveDailySpecials(client: SpecialsClient, tenantId: string, nowMs: number): Promise<{ id: string; until: string }[] | null> {
+  const { data, error } = await client.from('products').select('id, daily_special_until')
+    .eq('tenant_id', tenantId)
+    .gt('daily_special_until', new Date(nowMs).toISOString())
+    .order('daily_special_until', { ascending: true })
+    .limit(50);
+  if (error?.code === '42703' || error?.code === 'PGRST204') return null;
+  if (error) throw error;
+  return ((data ?? []) as { id: string; daily_special_until: string | null }[])
+    .filter((r) => activeUntil(r.daily_special_until, nowMs))
+    .map((r) => ({ id: r.id, until: r.daily_special_until as string }));
+}
+
+/**
+ * HORECA-NU-1b — staat dit product op het QR-menu of is het aan tafel te bestellen? Zelfde regel als
+ * storefront-api `channelAllows(p, 'menu')` (menu óf table; geen lijst = alle kanalen, oud gedrag).
+ */
+export const onMenuChannel = (channels: readonly string[] | null | undefined) =>
+  !Array.isArray(channels) || channels.includes('menu') || channels.includes('table');
+
+/**
+ * HORECA-NU-1b — mag dit product dagschotel worden? Actief, niet verborgen op de site en op het menu of aan
+ * tafel. Een dagschotel die de gast nergens ziet, is een dode keuze.
+ */
+export const specialEligible = (p: { is_active: boolean | null; hide_from_storefront?: boolean | null; channels?: readonly string[] | null }) =>
+  p.is_active === true && p.hide_from_storefront !== true && onMenuChannel(p.channels);
+
+/**
+ * HORECA-NU-1b — kanalen na "nieuw gerecht als dagschotel": menu en table erbij als ze ontbreken (in de vaste
+ * volgorde `order`, de CHANNELS van ProductChannelsCard). `null` = niets te doen.
+ */
+export function withMenuChannels(channels: readonly string[] | null | undefined, order: readonly string[]): string[] | null {
+  if (!Array.isArray(channels)) return null;
+  if (channels.includes('menu') && channels.includes('table')) return null;
+  const next = new Set([...channels, 'menu', 'table']);
+  return order.filter((c) => next.has(c));
+}

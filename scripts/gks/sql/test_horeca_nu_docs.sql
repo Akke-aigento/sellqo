@@ -14,6 +14,8 @@ select pg_temp.n('zaalplan-en-qr-per-tafel', 'Een ruimte tijdelijk dicht') = 1 a
 select pg_temp.n('zaal-live-overzicht', 'tijdelijk dicht zette') = 1 as ok_zaal_live;
 -- Eerlijk: geen belofte over vroeger sluiten of over reserveren per zone.
 select position('Vroeger sluiten (een ander sluitingsuur voor vandaag) kan hier nog niet' in content) > 0
-   and position('gasten kiezen daar geen ruimte' in content) > 0 as ok_eerlijk
+   and position('gasten kiezen daar geen ruimte' in content) > 0
+   -- HORECA-NU-1b: vandaag dicht sluit de QR aan tafel niet; het artikel zegt dat en hoe je die ook stopt.
+   and position('Bestellen via de QR aan tafel blijft wel mogelijk; zet daarvoor ook <strong>Bestellen via QR aan tafel</strong> uit.' in content) > 0 as ok_eerlijk
   from public.doc_articles where doc_level = 'tenant' and slug = 'nu-paneel';
 select 'HORECA-NU-1 docs: alle controles gedraaid' as klaar;

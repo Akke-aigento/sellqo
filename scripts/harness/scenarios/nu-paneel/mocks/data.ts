@@ -16,6 +16,9 @@ export const products = [
   p('p6', 'Pils 25 cl', 2.8, 'c3', 1),
   p('p7', 'Duvel', 4.8, 'c3', 2),
   p('p8', 'Dame blanche', 7.5, 'c4', 1),
+  // HORECA-NU-1b: enkel aan de kassa (geen menu/table) en verborgen op de site → nooit dagschotel te kiezen.
+  p('p9', 'Personeelsmaaltijd', 6, 'c2', 5, { channels: ['pos'] }),
+  p('p10', 'Oude wafel', 3, 'c4', 2, { hide_from_storefront: true }),
 ];
 export const categories = [
   { id: 'c1', name: 'Soepen', sort_order: 0, is_active: true, default_vat_rate_id: null, default_takeaway_vat_rate_id: null },

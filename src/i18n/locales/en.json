@@ -10082,7 +10082,7 @@
         "period": "Today falls within a closing period.",
         "period_toast": "Today falls within a closing period. Change it in your opening hours.",
         "confirm_title": "Closed today?",
-        "confirm_desc": "Your website shows \"closed\" today; online booking for today is no longer possible, and neither is pickup or delivery today. Tomorrow you are open again according to your opening hours.",
+        "confirm_desc": "Your website shows \"closed\" today; online booking for today is no longer possible, and neither is pickup or delivery today. Tomorrow you are open again according to your opening hours. Ordering via the table QR is still possible; to stop that too, also turn off \"Ordering via table QR\".",
         "reason": "Reason (optional)",
         "reason_placeholder": "E.g. staff ill",
         "confirm": "Close today",
@@ -12318,7 +12318,9 @@
         "closed": "CLOSED",
         "openToast": "{{name}} is open",
         "closedToast": "{{name}} is closed: guests cannot order there via the QR"
-      }
+      },
+      "lock": "Lock",
+      "lockedToast": "Locked: the PIN has been cleared"
     }
   },
   "deviceAlerts": {

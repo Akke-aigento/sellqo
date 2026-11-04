@@ -9751,7 +9751,7 @@
         "period": "Aujourd’hui fait partie d’une période de fermeture.",
         "period_toast": "Aujourd’hui fait partie d’une période de fermeture. Modifiez-la dans vos heures d’ouverture.",
         "confirm_title": "Fermer exceptionnellement aujourd’hui ?",
-        "confirm_desc": "Votre site affiche « fermé » aujourd’hui ; la réservation en ligne pour aujourd’hui n’est plus possible, ni le retrait ou la livraison aujourd’hui. Demain, vous rouvrez selon vos heures d’ouverture.",
+        "confirm_desc": "Votre site affiche « fermé » aujourd’hui ; la réservation en ligne pour aujourd’hui n’est plus possible, ni le retrait ou la livraison aujourd’hui. Demain, vous rouvrez selon vos heures d’ouverture. La commande via le QR à table reste possible ; pour l’arrêter aussi, désactivez également « Commande via QR à table ».",
         "reason": "Raison (facultatif)",
         "reason_placeholder": "Ex. personnel malade",
         "confirm": "Fermer aujourd’hui",
@@ -12318,7 +12318,9 @@
         "closed": "FERMÉ",
         "openToast": "{{name}} est ouvert",
         "closedToast": "{{name}} est fermé : les clients ne peuvent pas y commander via le QR"
-      }
+      },
+      "lock": "Verrouiller",
+      "lockedToast": "Verrouillé : le code PIN est effacé"
     }
   },
   "deviceAlerts": {

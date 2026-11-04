@@ -277,6 +277,44 @@ Deno.test('HORECA-NU-2a: tafel in een dichte zone → ZONE_CLOSED voor oproepen,
   assert(ok.success === true, JSON.stringify(ok));
 });
 
+// --- HORECA-NU-1b ---------------------------------------------------------------------------------
+// checkout_table gebeurde toen de zone nog open stond; daarna gaat het terras dicht. checkout_complete
+// (en dus ook checkout_place_order / checkout_create_session, die erdoor lopen) zoekt de tafel van het
+// mandje opnieuw op en weigert met ZONE_CLOSED.
+Deno.test('HORECA-NU-1b: checkout_complete op een tafelmandje in een zone die intussen dicht is → ZONE_CLOSED', async () => {
+  const CART_EAT = u(6);
+  const t = (db as any).tables;
+  t.storefront_carts.push({ id: CART_EAT, tenant_id: T, checkout_status: 'checkout', currency: 'EUR', expires_at: '2099-01-01T00:00:00Z',
+    service_type: 'eat_in', table_label: 'Blauw 1', dining_table_id: TABLE, discount_codes: [], shipping_cost: 0, subtotal: 4.5 });
+  t.storefront_cart_items.push({ id: 'li-eat', cart_id: CART_EAT, product_id: 'p-eat', variant_id: null, event_detail_id: null, quantity: 1, unit_price: 4.5,
+    addons: [], addons_total: 0, products: { id: 'p-eat', name: 'Koffie', price: 4.5, track_inventory: false, stock: null, channels: ['table', 'menu'], sold_out_until: null } });
+  t.products = [{ id: 'p-eat', tenant_id: T, name: 'Koffie', price: 4.5, track_inventory: false, channels: ['table', 'menu'], is_active: true }];
+  const area = t.dining_areas[0];
+  fs0().qr_mode = 'order';
+  try {
+    area.is_open = false;
+    const d = (await complete(CART_EAT)).json.data;
+    assert(d.success === false && d.error.code === 'ZONE_CLOSED' && d.error.message.startsWith('Binnen is momenteel gesloten'), JSON.stringify(d));
+    // Zone van een tafel van een andere zaak telt niet: de lookup filtert op de winkel.
+    t.dining_tables.push({ id: 'tb-other', tenant_id: OTHER, area_id: 'a-other', label: 'X', is_active: true, qr_token: 'c'.repeat(24) });
+    t.dining_areas.push({ id: 'a-other', tenant_id: OTHER, name: 'Elders', is_open: false });
+    area.is_open = true;
+    t.storefront_carts.find((c: any) => c.id === CART_EAT).dining_table_id = 'tb-other';
+    const o = (await complete(CART_EAT)).json.data;
+    assert(!(o?.error?.code === 'ZONE_CLOSED'), `andere zaak: ${JSON.stringify(o)}`);
+    // Zone weer open (of de kolom bestaat nog niet): geen ZONE_CLOSED.
+    t.storefront_carts.find((c: any) => c.id === CART_EAT).dining_table_id = TABLE;
+    delete area.is_open;
+    const ok = (await complete(CART_EAT)).json.data;
+    assert(!(ok?.error?.code === 'ZONE_CLOSED'), `open: ${JSON.stringify(ok)}`);
+  } finally {
+    delete area.is_open; fs0().qr_mode = 'view';
+    t.storefront_carts.splice(t.storefront_carts.findIndex((c: any) => c.id === CART_EAT), 1);
+    t.storefront_cart_items.length = 0;
+    t.dining_tables.splice(1); t.dining_areas.splice(1);
+  }
+});
+
 Deno.test('GET-stempel HORECA-NU-1', async () => {
   const r = await handler(new Request('https://f/storefront-api', { method: 'GET' }));
   assert((await r.json()).version === 'HORECA-NU-1' && r.headers.get('X-SellQo-Api-Rev') === 'horeca-nu-1', 'stempel');

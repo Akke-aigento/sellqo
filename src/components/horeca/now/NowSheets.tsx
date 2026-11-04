@@ -17,6 +17,7 @@ import { useTenant } from '@/hooks/useTenant';
 import { byMenuOrder, kaartErrorKey, useKaartMutations, type KaartCategory, type KaartProduct } from '@/components/admin/horeca/kaart/useKaart';
 import { isSoldOutNow, useSoldOutToday } from '@/components/admin/storefront/food/useSoldOutToday';
 import { priceFromInput } from '@/components/admin/horeca/kaart/parseKaart';
+import { specialEligible } from '@/lib/horeca/nowPanel';
 import { useNowSpecials } from './useNowData';
 
 const norm = (s: string) => s.toLocaleLowerCase('nl').normalize('NFD').replace(/[̀-ͯ]/g, '');
@@ -96,11 +97,14 @@ export function SpecialSheet({ open, onClose, products, categories, specialIds, 
   const [price, setPrice] = useState('');
   const [cat, setCat] = useState('');
   const active = products.filter((p) => p.is_active);
+  // De huidige dagschotels altijd tonen (om ze weg te halen); kiezen enkel uit wat de gast op het menu of
+  // aan tafel ziet (HORECA-NU-1b: actief, niet verborgen, kanaal menu/table).
   const current = active.filter((p) => specialIds.has(p.id));
+  const eligible = useMemo(() => products.filter(specialEligible), [products]);
   const list = useMemo(() => {
     const term = norm(q.trim());
-    return active.filter((p) => !specialIds.has(p.id) && (!term || norm(p.name).includes(term))).sort(byMenuOrder).slice(0, 60);
-  }, [active, q, specialIds]);
+    return eligible.filter((p) => !specialIds.has(p.id) && (!term || norm(p.name).includes(term))).sort(byMenuOrder).slice(0, 60);
+  }, [eligible, q, specialIds]);
 
   const mark = (p: KaartProduct, on: boolean) => specials.set.mutate({ productId: p.id, on }, {
     onSuccess: () => toast.success(t(on ? 'admin.now.special.on_toast' : 'admin.now.special.off_toast', { name: p.name })),
@@ -118,7 +122,7 @@ export function SpecialSheet({ open, onClose, products, categories, specialIds, 
       const made = await add.mutateAsync([{ name: name.trim(), price: p, category_id: cat || null }]);
       const id = made[0]?.id;
       if (!id) throw new Error('none');
-      await specials.set.mutateAsync({ productId: id, on: true });
+      await specials.set.mutateAsync({ productId: id, on: true, ensureMenu: true });
       toast.success(t('admin.now.special.on_toast', { name: name.trim() }));
       setName(''); setPrice(''); setCreating(false);
     } catch (e) {
