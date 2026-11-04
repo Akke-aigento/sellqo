@@ -2529,6 +2529,18 @@
         "menu_info_view_only": {
           "title": "Ta carte sans commande en ligne est plus claire",
           "description": "Si la commande en ligne est désactivée, ton site affiche les choix d'un plat ou d'une boisson (p. ex. 25, 33 ou 50 cl) sous forme de liste avec le supplément, sans rien à cocher. Sur un thème horeca, il n'est plus écrit « Commande en ligne bientôt disponible » mais « Tu commandes auprès du personnel ou au comptoir ». Et le format de base n'affiche plus « gratuit » ; les extras, si."
+        },
+        "my_business_settings": {
+          "title": "Mon établissement : tous tes paramètres horeca au même endroit",
+          "description": "Si tu as uniquement le pack horeca, Paramètres s’appelle désormais Mon établissement. En haut, tu vois combien d’étapes de configuration de ton établissement sont terminées, avec un bouton par étape. En dessous, six groupes avec onglets : Votre établissement, Vos clients, Paiements, Salle & cuisine, Caisses & appareils et Argent & comptabilité. QR à table, à emporter et livraison, postes, imprimantes, moyens de paiement et délai de verrouillage de la caisse ne sont plus dispersés entre Carte et Caisse. Les anciens liens t’amènent automatiquement au nouvel endroit."
+        },
+        "settings_search": {
+          "title": "Cherche un paramètre : tape « pourboire » ou « imprimante »",
+          "description": "En haut de Mon établissement se trouve une barre de recherche, et sur chaque page tu l’ouvres avec la loupe en haut ou avec ⌘K / Ctrl+K. Utilise des mots simples comme pourboire, imprimante, ticket, pin, terrasse ou vacances : tu arrives directement au bon onglet. Tu ne vois que ce que ton rôle permet d’ouvrir."
+        },
+        "staff_reservations_menu": {
+          "title": "Personnel et Réservations ont leur propre place dans le menu",
+          "description": "Avec uniquement le pack horeca, ton personnel avec son code PIN, ses heures et tes gestionnaires sont réunis sous Personnel, avec des onglets en haut. Réservations est un élément à part dans ton menu, à côté de Commandes. Paiements s’appelle désormais Transactions et se trouve sous Rapports."
         }
       },
       "copyLink": "Copier le lien",

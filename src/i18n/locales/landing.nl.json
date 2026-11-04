@@ -2529,6 +2529,18 @@
         "menu_info_view_only": {
           "title": "Je menukaart zonder online bestellen is duidelijker",
           "description": "Staat online bestellen uit, dan toont je website bij een gerecht of drankje de keuzes (bv. 25, 33 of 50 cl) als lijst met de meerprijs, zonder iets aan te duiden. Op een horecathema staat er niet meer \"Online bestellen kan binnenkort\" maar \"Bestellen doe je bij de bediening of aan de toog\". En het basisformaat krijgt geen \"gratis\" meer; bij extra's blijft dat wel staan."
+        },
+        "my_business_settings": {
+          "title": "Mijn zaak: al je horeca-instellingen op één plek",
+          "description": "Heb je enkel het horecapakket, dan heet Instellingen nu Mijn zaak. Bovenaan zie je hoeveel stappen van het inrichten van je zaak klaar zijn, met een knop per stap. Daaronder staan zes groepen met tabs: Je zaak, Je gasten, Betalen, Zaal & keuken, Kassa’s & toestellen en Geld & boekhouding. QR aan tafel, afhalen en leveren, posten, printers, betaalwijzen en de vergrendeltijd van de kassa staan niet meer verspreid over Kaart en Kassa. Oude links brengen je vanzelf naar de nieuwe plek."
+        },
+        "settings_search": {
+          "title": "Zoek een instelling: tik \"fooi\" of \"printer\"",
+          "description": "Bovenaan Mijn zaak staat een zoekbalk, en op elke pagina vind je hem via het vergrootglas bovenaan of met ⌘K / Ctrl+K. Je mag gewone woorden gebruiken, zoals fooi, drinkgeld, printer, bon, pin, terras of vakantie: je komt meteen op de juiste tab. Je ziet enkel wat je met jouw rol mag openen."
+        },
+        "staff_reservations_menu": {
+          "title": "Personeel en Reservaties hebben een eigen plek in het menu",
+          "description": "Met enkel het horecapakket staan je medewerkers met hun pincode, hun uren en je beheerders samen onder Personeel, met tabs bovenaan. Reservaties staat als eigen item in je menu, naast Bestellingen. Betalingen heet nu Transacties en staat onder Rapporten."
         }
       },
       "copyLink": "Kopieer link",

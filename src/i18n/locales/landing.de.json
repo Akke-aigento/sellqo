@@ -2529,6 +2529,18 @@
         "menu_info_view_only": {
           "title": "Deine Speisekarte ohne Online-Bestellung ist klarer",
           "description": "Ist die Online-Bestellung aus, zeigt deine Website bei einem Gericht oder Getränk die Auswahl (z. B. 25, 33 oder 50 cl) als Liste mit Aufpreis, ohne etwas auszuwählen. Bei einem Gastro-Theme steht dort nicht mehr „Online bestellen bald möglich“, sondern „Bestellen geht beim Personal oder an der Theke“. Und die Grundgröße zeigt kein „gratis“ mehr; bei Extras bleibt es."
+        },
+        "my_business_settings": {
+          "title": "Mein Betrieb: alle Gastro-Einstellungen an einem Ort",
+          "description": "Hast du nur das Gastro-Paket, heißen die Einstellungen jetzt Mein Betrieb. Oben siehst du, wie viele Schritte zur Einrichtung deines Betriebs erledigt sind, mit einer Schaltfläche pro Schritt. Darunter stehen sechs Gruppen mit Tabs: Dein Betrieb, Deine Gäste, Bezahlen, Gastraum & Küche, Kassen & Geräte sowie Geld & Buchhaltung. QR am Tisch, Abholung und Lieferung, Stationen, Drucker, Zahlungsarten und die Sperrzeit der Kasse sind nicht mehr über Karte und Kasse verteilt. Alte Links bringen dich automatisch an den neuen Ort."
+        },
+        "settings_search": {
+          "title": "Einstellung suchen: tippe „Trinkgeld“ oder „Drucker“",
+          "description": "Oben in Mein Betrieb steht eine Suchleiste, und auf jeder Seite öffnest du sie mit der Lupe oben oder mit ⌘K / Strg+K. Nutze ganz normale Wörter wie Trinkgeld, Drucker, Beleg, PIN, Terrasse oder Urlaub: Du landest direkt im richtigen Tab. Du siehst nur, was deine Rolle öffnen darf."
+        },
+        "staff_reservations_menu": {
+          "title": "Personal und Reservierungen haben einen eigenen Platz im Menü",
+          "description": "Mit nur dem Gastro-Paket stehen deine Mitarbeitenden mit PIN, ihre Stunden und deine Verwalter gemeinsam unter Personal, mit Tabs oben. Reservierungen ist ein eigener Punkt in deinem Menü, neben Bestellungen. Zahlungen heißt jetzt Transaktionen und steht unter Berichte."
         }
       },
       "copyLink": "Link kopieren",

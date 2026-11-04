@@ -1,3 +1,64 @@
+## HORECA-INSTELLINGEN-1 — Mijn zaak: instellingen zoals een cafébaas denkt, met zoekbalk (2026.15f) — 4 november 2026
+
+Branch `horeca-inst-1` (worktree `sellqo-inst`, vanaf `5473d87`), nog niets live.
+
+**Root cause:** Akke vond zijn instellingen niet. Inventaris (grep + code): Kassabeheer (`/admin/pos`: Kassa's, Personeel, Betalen, Bon & printers) had bij horeca-only geen menu-item, want "Kassa-app" opent `/kassa` (`bottomNav.ts` `bottomNavUrl`). Reservaties zat onder Kaart (`/admin/bestellen?tab=reservaties`). "Betal…" betekende drie dingen (zijbalk Betalingen = transacties, Kassa › Betalen, Instellingen › Betalingen = Stripe). Fooi stond op twee plekken (`kassa_tip` in Kassa › Betalen, `online_tip` in QR aan tafel). Personeel op twee plekken (Instellingen › Teamleden en Kassa › Personeel). QR, posten/gangen en afhalen & leveren zaten onder Kaart › Instellen; de vergrendeltijd van de kassa onder Personeel. Twee overzichten (`HorecaSettingsHub`, Kaart › Overzicht) met elk een eigen telling (tafels: `dining_tables` vs. `useFloorPlan`) en zonder "klaar/niet klaar". Geen zoekfunctie.
+
+**Uitgevoerd (enkel horeca-only = horeca zonder webshop/events, `isHorecaOnly` in `src/lib/tracks.ts`)**
+- Zijbalk (`sidebarConfig.ts` `horecaOnlyItems`, `HORECA_ONLY_LAYOUT`, `horecaOnlyItemsFor`): Dagelijks Vandaag · Kassa-app · Zaal · Keuken · Bestellingen · **Reservaties**; Beheer Kaart · **Personeel** · Website · Rapporten (kind **Transacties** = het item `payments`) · Inkoop; Systeem **Mijn zaak** · Help. Nieuwe vlag `horecaOnly` (menu enkel horeca-only; `useNavItemVisibility.isItemBlocked`), labels in `bottomNav.ts`. Onderbalk-standaard ongewijzigd.
+- Mijn zaak (`src/components/admin/mijnzaak/`, `src/lib/mijnZaak.ts`): `Settings.tsx` rendert `MijnZaak` voor horeca-only, anders `ClassicSettings` (ongewijzigd). Checklist (`horecaSetup.ts` + `useHorecaStatus`), zes groepen + Jij met tabs bovenaan (`?section=&tab=`), GKS-uitleg (`GksNotice`, ook in `HorecaSettingsHub`), Meer onderdelen (`#meer`).
+- Personeel `/admin/personeel` (`Staff.tsx`, tabs pin/uren/beheerders; route `requireRead="pos"`, beheerders `adminOnly`), Reservaties `/admin/reservaties` (`Reservations.tsx`, `requireRead="orders"`).
+- Zoeken: `settingsIndex.ts` (register uit `ZAAK_GROUPS` + Personeel, Reservaties, extra's, allergenen; synoniemen `settingsSearch.syn.*` in 5 talen; rechten via `useZaakAccess`), `SettingsSearch` (cmdk, eigen zoekregel zonder fuzzy) inline bovenaan Mijn zaak en `SettingsSearchButton` (vergrootglas + ⌘K/Ctrl-K) in `AdminHeader`.
+- Eén bron: `useHorecaStatus` (key `horeca-settings-hub`) voedt de checklist, `HorecaSettingsHub` en Kaart › Overzicht; tafels uit `useFloorPlan`. `HorecaPaySettings` invalideert nu die key i.p.v. `ordering-hub`.
+- Hergebruik zonder nieuwe logica: `HorecaPaySettings({ parts })`, `ReservationsManager({ part })`, `BusinessSettings({ showHours })`, `PosTerminalsPanel` (letterlijk uit `POS.tsx` gehaald). `useSettingsFeatureVisible` = de plan-regel uit Settings.tsx, nu gedeeld.
+- Gedeelde schermen linken via `useHorecaHref` (`resolveLegacyHref`) meteen naar de nieuwe plek; voor elke andere zaak blijft de link gelijk.
+- Opgeruimd (grep: nergens geïmporteerd): `LaunchChecklist`, `useLaunchChecklist`, `studio/DesignPanel`, `widgets/ShopHealthWidget` en wat daardoor verweesde (`LiveThemePreview`, `studio/TemplateGallery`, `HealthTrendChart`, `HealthAchievements`).
+- Paper trail: changelog 2026.15f (3 ids, 5 talen), nieuwsbrief, docs-migratie `20261104150000_horeca_instellingen_1_docs.sql`.
+
+**Samenhang — inventaris en redirects**
+
+| Plek | Doet nu | Wat verandert (horeca-only) | Voorstel/redirect |
+|---|---|---|---|
+| Zijbalk "Instellingen" | Klassieke instellingen | Heet **Mijn zaak** | — |
+| Zijbalk "Betalingen" (`/admin/payments`) | Transacties/uitbetalingen | Kind **Transacties** onder Rapporten | zelfde URL |
+| Kassabeheer `/admin/pos` (geen menu-item) | Kassa's, Personeel, Betalen, Bon & printers | Weg voor horeca-only | `/admin/pos` → `?section=toestellen&tab=kassas`; `?tab=personeel` → `/admin/personeel`; `?tab=betalen` → `?section=betalen&tab=kassa`; `?tab=printers` → `?section=zaal-keuken&tab=printers` |
+| Kaart › Reservaties | Dagelijst + instellingen | Dagelijst → **Reservaties**; instellingen → Je gasten › Reserveren | `?tab=reservaties` → `/admin/reservaties` |
+| Kaart › Instellen › QR-menu | QR aan tafel + QR-codes | → Je gasten › QR aan tafel | `?tab=qr` → `?section=gasten&tab=qr` |
+| Kaart › Instellen › Webshop: afhalen & leveren | FulfillmentSettings | → Je gasten › Afhalen & leveren | `?tab=webshop` → `?section=gasten&tab=afhalen` |
+| Kaart › Instellen › Posten | Posten + gangen | → Zaal & keuken › Posten & gangen | `?tab=posten` → `?section=zaal-keuken&tab=posten` |
+| Kaart › Instellen › Extra's, Allergenen | Inhoud | Blijft (Instellen = enkel deze twee) | — |
+| Kaart › Overzicht | Status + instel-knoppen | Status blijft; knoppen weg, één link naar Mijn zaak › Je gasten | — |
+| Instellingen › Horeca (`HorecaSettingsHub`) | Overzicht met links | Wordt Mijn zaak (checklist) | `?section=horeca` → `/admin/settings` |
+| Instellingen › Bedrijfsgegevens (+ uren) | Gegevens en openingsuren | Gegevens / Openingsuren apart in Je zaak | `?section=company` → `zaak/gegevens`; `#openingsuren` → `zaak/uren` |
+| Instellingen › Branding | Logo & kleuren | Je zaak › Logo & kleuren | `?section=branding` → `zaak/merk` |
+| Instellingen › Teamleden | TeamSettings | Personeel › Beheerders | `?section=team` → `/admin/personeel?tab=beheerders` |
+| Instellingen › Betalingsmethoden / Transacties & kosten | Stripe / betaalmethoden checkout | Betalen › Online betalen | `?section=payments|transactions` → `betalen/online` |
+| Kassa › Betalen (kassa_tip) + QR aan tafel (online_tip) | Fooi op twee plekken | Betalen › **Fooi**: kassafooi-schakelaar + stand online fooi met link naar QR aan tafel | — |
+| Kassa › Personeel (HorecaLockSetting) | Vergrendeltijd | Kassa's & toestellen › Vergrendeltijd (link vanaf Personeel) | — |
+| Instellingen › BTW/Tarieven, Facturatie/Peppol/Compliance, Boekhouding, Modules | Financieel | Geld & boekhouding (Btw · Facturen & Peppol · Boekhouding · SellQo-plan) | `?section=tax|vat_rates` → `geld/btw`; `invoicing|peppol|compliance` → `geld/facturen`; `accounting` → `geld/boekhouding`; `modules` → `geld/plan` |
+| Winkelmeldingen, Klantcommunicatie | Meldingen & communicatie | Kassa's & toestellen › Meldingen per toestel; Je gasten › Berichten aan gasten | `shop-notifications` → `toestellen/meldingen`; `customer-communication` → `gasten/berichten` |
+| Mijn profiel, Mijn meldingen, Mijn onderbalk | Account | Groep **Jij** onderaan Mijn zaak + profielmenu "Mijn account" | `profile|my-notifications|bottom-nav` → `jij/…` |
+| Meer onderdelen | Lijst | Onderaan het overzicht (`#meer`) | `more-tools` → `/admin/settings#meer` |
+| Edge functions (`horecaPush.ts`, `tableCheckPay.ts`, `notificationRoutes.ts`) | Links naar `/admin/pos`, `/admin/pos?tab=betalen`, `/admin/bestellen?tab=reservaties`, `?section=team` | Niet gewijzigd: de pagina's sturen horeca-only door, combinaties blijven kloppen | geen deploy |
+
+Elk gedeeld component dat naar een oude plek linkt (HorecaPaySettings, HorecaPrinters, PrepStationsManager, ProductStationCard, QrModeSettings, HoursModeChoice, BusinessSettings, HorecaNotifyDevices, Kitchen, SidebarCustomizeDialog, Kaart › Overzicht) linkt horeca-only meteen naar de nieuwe plek. De redirects blijven het vangnet.
+
+**Keuzes:** Reservaties eigen route `/admin/reservaties` (eigen item licht correct op; dezelfde `ReservationsManager`). "Jij" als kleine groep onderaan Mijn zaak én "Mijn account" in het profielmenu. Fooi: scheiden zonder logica te wijzigen kan niet voor `online_tip` (hangt aan online afrekenen in QrModeSettings), dus de tab toont de kassafooi-schakelaar (zelfde opslag als Kassa › Betalen, enkel dat deel) en de stand van online fooi met een link. Zaalplan = linkkaart naar de editor (geen tweede editor). Keukenschermen = uitleg + links (er bestaat geen per-toestel-instelling buiten het scherm). Zoeken enkel voor horeca-only (het register beschrijft de horeca-indeling; webshop/events blijven exact zoals nu). Checklist enkel met `settings_general` (een ober ziet hem niet).
+
+**Security-keuzes:** geen tabellen, policies of grants geraakt. Rechten per tab = die van de oude plek (`ZAAK_GROUPS[].tabs[].requiredRead/adminOnly`, `useZaakAccess` op `useScopedRoles` + `canWithRoles`); de zoekbalk toont enkel wat de rol mag openen. Routes: `/admin/personeel` `requireRead="pos"`, `/admin/reservaties` `requireRead="orders"`, en TrackGate via `tracks: ['horeca']`. Docs-migratie: enkel `doc_articles` (tenant), snapshot `snapshots.sellqo_20261104_doc_articles_horecainst1` zonder rechten voor anon/authenticated. Geen platforminfo in tenant-artikels.
+
+**Gedeelde-paden-waarschuwing:** `POS.tsx`, `OrderingHub.tsx`, `Settings.tsx`, `HorecaPaySettings`, `ReservationsManager`, `BusinessSettings`, `AdminSidebar` worden ook door webshop/events/combinaties gebruikt. Elke wijziging zit achter `isHorecaOnly` of achter een prop met de oude standaard (`parts` = alles, `part='all'`, `showHours=true`). Bewijs: bestaande tests (`horecaMenu.test.ts` webshop/events/combinatie, `bottomNav.test.ts`, `tracks.test.ts`) ongewijzigd groen; harnas webshopzaak (zijbalk + klassieke Instellingen) en horeca + webshop (zijbalk) identiek. Geen edge function, geen `storefront-api`, geen gedeelde tabel.
+
+**Verificatie:** tsc exit 0 (leeg log); `npm run build` exit 0 (sitemap teruggezet); lint "beter dan de baseline" 1457 → 1452; `npm run ci:local -- --full` exit 0 (incl. typecheck en build) (vitest CI-stap 42 bestanden / 488 tests, i18n-pariteit 11553 keys × 5, gebruikte keys, mailadressen, customer_messages, meldingsbronnen, knoppen zonder werking, pins, capacitor, skills-sync). Harnas `mijn-zaak` en `horeca-beheer` 390/1280 exit 0 (screenshots `/tmp/harness/mijn-zaak-*.png`). Docs-migratie: alle 46 ankers live (read-only) precies één keer; op een wegwerpdatabank (PG16) 2× gedraaid → zelfde md5 voor alle 21 rijen; geen anker over, alle nieuwe teksten aanwezig, `pos-gebruiken` ongemoeid; met een ontbrekend anker stopt de migratie met een fout.
+
+**Bewust ongemoeid / Vervolg:**
+- `src/kassa/` niet aangeraakt (enkel `normalizePaySettings` gelezen). Nu-paneel in de kassa = HORECA-NU-1.
+- `Payments.tsx` (Transacties) is nog volledig hardcoded Nederlands en zegt "Instellingen → Betalingsmethoden"; eigen i18n-batch.
+- `TaxSettings` (Btw-beslisboom-tabel) loopt op 390 px 98 px over de rand; bestaand, ook op de oude plek.
+- `DashboardGrid` + drie health-widgets en `studio/StudioHeader`/`TemplatePreview` zijn ook verweesd, maar bewust bewaard (fase 4) of buiten de opdracht.
+- Edge-links (`horecaPush.ts`, `tableCheckPay.ts`, `notificationRoutes.ts`) lopen via de redirects; aanpassen zou combinaties breken zolang de push niet weet of een zaak horeca-only is.
+- Blog-concept (spoor 4) niet geschreven.
+
 ## UREN-1c — review-fixes op UREN-1 + UREN-1b + WEBSITE-HORECA-1 (2026.15d) — 4 november 2026
 
 Zelfde branch `uren-1` (sellqo) en `uren-1` (sellqo-storefront), nog niets live. Review-punten en hoe ze opgelost zijn.

@@ -2529,6 +2529,18 @@
         "menu_info_view_only": {
           "title": "Your menu without online ordering is clearer",
           "description": "When online ordering is off, your website shows the choices for a dish or drink (e.g. 25, 33 or 50 cl) as a list with the extra price, with nothing to select. On a hospitality theme it no longer says \"Online ordering coming soon\" but \"You order from our staff or at the bar\". And the base size no longer says \"free\"; extras still do."
+        },
+        "my_business_settings": {
+          "title": "My venue: all your hospitality settings in one place",
+          "description": "If you only have the hospitality package, Settings is now called My venue. At the top you see how many setup steps for your venue are done, with a button per step. Below are six groups with tabs: Your venue, Your guests, Payments, Floor & kitchen, Tills & devices and Money & accounting. QR at the table, pickup and delivery, stations, printers, payment methods and the till lock time are no longer spread over Menu and Till. Old links take you to the new place automatically."
+        },
+        "settings_search": {
+          "title": "Search a setting: type \"tip\" or \"printer\"",
+          "description": "There is a search bar at the top of My venue, and on every page you can open it with the magnifier at the top or with ⌘K / Ctrl+K. Use everyday words like tip, printer, receipt, pin, terrace or holiday: you go straight to the right tab. You only see what your role is allowed to open."
+        },
+        "staff_reservations_menu": {
+          "title": "Staff and Reservations have their own place in the menu",
+          "description": "With only the hospitality package, your staff with their PIN, their hours and your managers are together under Staff, with tabs at the top. Reservations is its own item in your menu, next to Orders. Payments is now called Transactions and sits under Reports."
         }
       },
       "copyLink": "Copy link",

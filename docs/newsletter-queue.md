@@ -4,6 +4,18 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.15f — Mijn zaak: al je horeca-instellingen op één plek (feature, 04-11-2026)
+Heb je enkel het horecapakket, dan heet Instellingen nu Mijn zaak: bovenaan een checklist "Je zaak inrichten" met een knop per stap, daaronder zes groepen met tabs (Je zaak, Je gasten, Betalen, Zaal & keuken, Kassa's & toestellen, Geld & boekhouding). Oude links brengen je vanzelf naar de nieuwe plek.
+i18n: `public.changelog.changes.my_business_settings`
+
+### 2026.15f — Zoek een instelling: tik "fooi" of "printer" (feature, 04-11-2026)
+Bovenaan Mijn zaak, en op elke pagina met het vergrootglas of ⌘K / Ctrl+K, zoek je met gewone woorden (fooi, printer, pin, terras, vakantie) en kom je meteen op de juiste tab.
+i18n: `public.changelog.changes.settings_search`
+
+### 2026.15f — Personeel en Reservaties hebben een eigen plek in het menu (improvement, 04-11-2026)
+Medewerkers met hun pincode, hun uren en je beheerders staan samen onder Personeel; Reservaties is een eigen menu-item. Betalingen heet nu Transacties en staat onder Rapporten.
+i18n: `public.changelog.changes.staff_reservations_menu`
+
 ### 2026.15e — Je menukaart zonder online bestellen is duidelijker (bugfix, 04-11-2026)
 Staat online bestellen uit, dan toont je website de keuzes van een gerecht of drankje als lijst met de meerprijs, zonder iets aan te duiden. Op een horecathema staat er "Bestellen doe je bij de bediening of aan de toog" in plaats van "binnenkort", en het basisformaat krijgt geen "gratis" meer.
 i18n: `public.changelog.changes.menu_info_view_only`
