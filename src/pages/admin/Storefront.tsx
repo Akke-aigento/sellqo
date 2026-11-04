@@ -147,6 +147,8 @@ function ShopOverview({ slug, onNavigate, site }: { slug: string; onNavigate: (s
           <ChevronRight className="mt-0.5 h-4 w-4 text-muted-foreground" />
         </Link>
       </div>
+      {/* HORECA-INSTELLINGEN-1b: waar de domeintegel voor horeca-only verborgen is, één regel uitleg. */}
+      {site ? <p className="flex items-center gap-2 text-sm text-muted-foreground"><Link2 className="h-4 w-4 shrink-0" aria-hidden />{t('mijnZaak.website.domain_soon')}</p> : null}
     </div>
   );
 }

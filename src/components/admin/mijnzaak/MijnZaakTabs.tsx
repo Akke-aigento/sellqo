@@ -4,7 +4,7 @@
 import type { ReactNode } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ChefHat, ChevronRight, ExternalLink, Globe, LayoutGrid, Monitor, Plus, Receipt } from 'lucide-react';
+import { ChefHat, ChevronRight, ExternalLink, Globe, LayoutGrid, Link2, Monitor, Plus, Receipt } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -72,10 +72,14 @@ function WebsiteTab() {
   const { data } = useHorecaStatus();
   const domain = `${currentTenant?.slug ?? ''}.sellqo.shop`;
   return (
+    <div className="space-y-3">
     <LinkCard icon={<Globe className="h-5 w-5" aria-hidden />} title={t('mijnZaak.website.title')} desc={t('mijnZaak.website.desc')}
       status={<span className="flex flex-wrap items-center gap-2"><span className="font-medium">{domain}</span>
         {data ? <Badge variant={data.shopLive ? 'default' : 'secondary'}>{data.shopLive ? t('mijnZaak.website.live') : t('mijnZaak.website.offline')}</Badge> : null}</span>}
       actions={[{ to: '/admin/storefront', label: t('mijnZaak.website.open'), primary: true }, { to: `https://${domain}`, label: t('mijnZaak.website.view'), external: true }]} />
+    {/* 1b: ?section=domain komt hier uit; een eigen domein op het SellQo-thema is nog niet bewezen (UREN-1c). */}
+    <p className="flex items-center gap-2 text-sm text-muted-foreground"><Link2 className="h-4 w-4 shrink-0" aria-hidden />{t('mijnZaak.website.domain_soon')}</p>
+    </div>
   );
 }
 

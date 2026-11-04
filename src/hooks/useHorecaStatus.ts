@@ -27,6 +27,8 @@ export function useHorecaStatus(): { data: HorecaStatus | undefined; isLoading: 
   const { data: raw, isLoading } = useQuery({
     queryKey: horecaStatusKey(tenantId),
     enabled: !!tenantId,
+    // 1b: na een actie elders (kassa koppelen, tafel tekenen, …) en terug naar Mijn zaak meteen de echte stand.
+    refetchOnMount: 'always',
     queryFn: async () => {
       const id = tenantId!;
       // Telling zonder rijen; `table` als string omdat niet elke tabel in types.ts staat.

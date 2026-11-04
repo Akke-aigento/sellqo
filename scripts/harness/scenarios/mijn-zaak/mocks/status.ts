@@ -1,4 +1,4 @@
-// De stand van Café De Wissel: 7 van 11 klaar (geen logo, geen gekoppeld toestel, geen post, website offline),
+// De stand van Café De Wissel: 5 van 9 klaar (geen logo, geen gekoppeld toestel, geen post, website offline),
 // QR-bestellen met online afrekenen, dus "online betalen" telt mee.
 export const horecaStatusKey = (id?: string) => ['horeca-settings-hub', id];
 export function useHorecaStatus() {

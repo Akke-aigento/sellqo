@@ -114,6 +114,8 @@ Deno.test('afronden: klopt niet meer → terugstorten op het connected account, 
   assert(o.status === 'refunded' && seen[0].params.payment_intent === 'pi_1' && seen[0].params.refund_application_fee === true && seen[0].opts.stripeAccount === 'acct_x' && seen[0].opts.idempotencyKey === `table_check_refund_${PAY}`, JSON.stringify(seen));
   assert(d.calls.some((c) => c.fn === 'table_check_pay_mark' && c.args.p_status === 'refunded' && c.args.p_refund_id === 're_9'), JSON.stringify(d.calls));
   assert(d.inserts[0]?.category === 'payments' && d.inserts[0]?.type === 'table_check_refunded', JSON.stringify(d.inserts));
+  // HORECA-INSTELLINGEN-1b: de melding opent Transacties (bestaat voor elk spoor), niet de kassa-instellingen.
+  assert(d.inserts[0]?.action_url === '/admin/payments', JSON.stringify(d.inserts));
 });
 
 Deno.test('afronden: terugstorten mislukt → refund_needed blijft, melding met hoge prioriteit', async () => {

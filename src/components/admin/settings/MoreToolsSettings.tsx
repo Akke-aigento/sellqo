@@ -8,11 +8,12 @@ import { useTracks } from '@/hooks/useBusinessModules';
 import { moreNavItems } from '@/components/admin/sidebar/sidebarConfig';
 import { useNavItemVisibility } from '@/components/admin/sidebar/useNavItemVisibility';
 
-export function MoreToolsSettings() {
+/** `exclude`: item-id's die op deze pagina al een eigen plek hebben (Mijn zaak: 'billing' = Geld › SellQo-plan). */
+export function MoreToolsSettings({ exclude = [] }: { exclude?: string[] } = {}) {
   const { t } = useTranslation();
   const { hasTrack } = useTracks();
   const { isItemBlocked } = useNavItemVisibility();
-  const items = moreNavItems(hasTrack).filter((i) => !isItemBlocked(i));
+  const items = moreNavItems(hasTrack).filter((i) => !isItemBlocked(i) && !exclude.includes(i.id));
   return (
     <Card>
       <CardHeader>

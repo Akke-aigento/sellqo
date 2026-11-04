@@ -11,9 +11,10 @@ import { SettingsSearch } from './SettingsSearch';
 
 export function SettingsSearchButton() {
   const { t } = useTranslation();
-  const { hasTrack } = useTracks();
+  const { hasTrack, ready } = useTracks();
   const [open, setOpen] = useState(false);
-  const enabled = settingsIndexFor(hasTrack).length > 0;
+  // 1b: pas na `ready` (de sporencache is per toestel, niet per winkel).
+  const enabled = ready && settingsIndexFor(hasTrack).length > 0;
 
   useEffect(() => {
     if (!enabled) return;

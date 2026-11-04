@@ -1,7 +1,7 @@
 // HORECA-INSTELLINGEN-1 — Mijn zaak: de indeling, de redirects van de oude plekken en dat elke tab inhoud heeft.
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { KAART_TABS_HORECA_ONLY, STAFF_TABS, ZAAK_GROUPS, legacyKaartTarget, legacyPosTarget, legacySettingsTarget, mijnZaakUrl, resolveLegacyHref } from './mijnZaak';
+import { KAART_TABS_HORECA_ONLY, STAFF_TABS, ZAAK_GROUPS, legacyKaartTarget, legacyPosTarget, legacySettingsTarget, legacyStaffTarget, mijnZaakUrl, resolveLegacyHref } from './mijnZaak';
 
 describe('Mijn zaak — indeling', () => {
   it('zes groepen en Jij, in de afgesproken volgorde, met unieke tabs', () => {
@@ -20,12 +20,30 @@ describe('Mijn zaak — indeling', () => {
     expect(STAFF_TABS.find((t) => t.id === 'beheerders')!.adminOnly).toBe(true);
   });
 
+  it('1b: Je gasten, Betalen, Zaal & keuken en Kassa’s & toestellen enkel voor de zaakvoerder (volgt de RLS)', () => {
+    for (const id of ['gasten', 'betalen', 'zaal-keuken', 'toestellen']) {
+      for (const t of ZAAK_GROUPS.find((g) => g.id === id)!.tabs) expect(t.adminOnly, `${id}/${t.id}`).toBe(true);
+    }
+    // Je zaak (website = themes), Geld (settings_financial) en Jij: niet enkel de zaakvoerder.
+    for (const id of ['zaak', 'geld', 'jij']) {
+      for (const t of ZAAK_GROUPS.find((g) => g.id === id)!.tabs) expect(t.adminOnly, `${id}/${t.id}`).toBeFalsy();
+    }
+    expect(ZAAK_GROUPS.find((g) => g.id === 'zaak')!.tabs.find((t) => t.id === 'website')!.requiredRead).toBe('themes');
+  });
+
   it('de Kaart houdt enkel inhoud', () => {
     expect([...KAART_TABS_HORECA_ONLY]).toEqual(['kaart', 'overview', 'extras', 'allergens']);
   });
 });
 
 describe('Mijn zaak — oude links gaan door', () => {
+  it('1b: Personeel en Reservaties voor een combinatiezaak → de klassieke plek', () => {
+    expect(legacyStaffTarget(null)).toBe('/admin/pos?tab=personeel');
+    expect(legacyStaffTarget('uren')).toBe('/admin/pos?tab=personeel');
+    expect(legacyStaffTarget('beheerders')).toBe('/admin/settings?section=team');
+    expect(legacySettingsTarget('domain')).toBe(mijnZaakUrl('zaak', 'website'));
+  });
+
   it('Instellingen ?section=', () => {
     expect(legacySettingsTarget('company')).toBe(mijnZaakUrl('zaak', 'gegevens'));
     expect(legacySettingsTarget('company', '#openingsuren')).toBe(mijnZaakUrl('zaak', 'uren'));

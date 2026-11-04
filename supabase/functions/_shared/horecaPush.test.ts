@@ -42,6 +42,9 @@ Deno.test("links per soort toestel: kassa → /kassa, post → keuken, gsm → a
   for (const e of ["qr_request", "ticket_ready", "paid_online"]) assert(buildHorecaPush(e, {}, "nl", null, "kassa")!.url === "/kassa", `kassa ${e}`);
   assert(buildHorecaPush("ticket_ready", {}, "nl", null, "station")!.url === "/admin/keuken", "post");
   for (const e of ["qr_request", "paid_online"]) assert(!buildHorecaPush(e, {}, "nl", null, "phone")!.url.startsWith("/kassa"), `gsm ${e}`);
+  // HORECA-INSTELLINGEN-1b: QR-bestelling, ober/rekening roepen en online betaald → het zaaloverzicht (elk spoor met horeca).
+  for (const e of ["qr_request", "paid_online"]) assert(buildHorecaPush(e, {}, "nl", null, "phone")!.url === "/admin/zaal", `gsm ${e} → zaal`);
+  assert(buildHorecaPush("qr_request", { call: "waiter", table: "4" }, "nl", null, "phone")!.url === "/admin/zaal", "ober roepen → zaal");
 });
 
 Deno.test("klantnaam zonder het woord tafel", () => {

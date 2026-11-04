@@ -12468,7 +12468,7 @@
       "gegevens": "Details",
       "uren": "Opening hours & closing days",
       "merk": "Logo & colours",
-      "website": "Website & domain",
+      "website": "Website",
       "qr": "QR at the table",
       "afhalen": "Pickup & delivery",
       "reserveren": "Reservations",
@@ -12517,8 +12517,6 @@
       "floor": "Floor plan with tables",
       "station": "At least one station (kitchen, bar …)",
       "printer": "Printer connected",
-      "qr": "QR menu on",
-      "pay": "Payment method at the till chosen",
       "stripe": "Online payments connected (Stripe), needed for QR payments or online ordering",
       "website": "Website live"
     },
@@ -12528,7 +12526,8 @@
       "live": "Live",
       "offline": "Offline",
       "open": "Go to Website",
-      "view": "View"
+      "view": "View",
+      "domain_soon": "Your own domain name is coming soon."
     },
     "floor": {
       "title": "Floor plan",
@@ -12559,7 +12558,8 @@
     "reservations": {
       "settings_link": "Purple from, late after and online booking: My venue › Your guests › Reservations",
       "intro": "Your reservations per day and the online requests waiting for an answer."
-    }
+    },
+    "owner_note": "Your venue’s settings are managed by the owner."
   },
   "settingsSearch": {
     "label": "Search settings",
@@ -12573,7 +12573,7 @@
       "zaak_gegevens": "company, business, name, address, vat number, company number, iban, bank account, phone, email",
       "zaak_uren": "hours, open, closed, opening hours, closing day, holiday, public holiday, vacation",
       "zaak_merk": "logo, colour, color, colours, brand, branding, favicon",
-      "zaak_website": "website, site, domain, theme, homepage, online",
+      "zaak_website": "website, site, theme, homepage, online",
       "gasten_qr": "qr, sticker, qr code, menu, order at the table, call waiter, ask for the bill",
       "gasten_afhalen": "pickup, takeaway, delivery, deliver, time slots, online ordering",
       "gasten_reserveren": "reserve, reservation, booking, purple, late, online booking",

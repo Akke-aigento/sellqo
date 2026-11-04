@@ -185,7 +185,10 @@ function urlFor(event: string, kind: string | null | undefined): string {
   if (event === "ticket_new") return "/admin/keuken";
   if (kind === "kassa") return "/kassa";
   if (kind === "station") return "/admin/keuken";
-  return event === "ticket_ready" ? "/admin/keuken" : "/admin/pos";
+  // HORECA-INSTELLINGEN-1b: een QR-bestelling, ober/rekening roepen of een online betaling aan tafel op een
+  // gsm opent het live zaaloverzicht (/admin/zaal bestaat voor elke zaak met horeca, horeca-only of niet).
+  // Vroeger /admin/pos = Kassabeheer: daar staat niets over die tafel, en horeca-only stuurde het door.
+  return event === "ticket_ready" ? "/admin/keuken" : "/admin/zaal";
 }
 
 /** Tekst, link en tag voor één toestel. Geeft null bij een onbekend event. */

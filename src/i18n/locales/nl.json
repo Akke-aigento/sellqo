@@ -12470,7 +12470,7 @@
       "gegevens": "Gegevens",
       "uren": "Openingsuren & sluitingsdagen",
       "merk": "Logo & kleuren",
-      "website": "Website & domein",
+      "website": "Website",
       "qr": "QR aan tafel",
       "afhalen": "Afhalen & leveren",
       "reserveren": "Reserveren",
@@ -12519,8 +12519,6 @@
       "floor": "Zaalplan met tafels",
       "station": "Minstens één post (keuken, bar …)",
       "printer": "Printer gekoppeld",
-      "qr": "QR-menu aan",
-      "pay": "Betaalwijze aan de kassa gekozen",
       "stripe": "Online betalen gekoppeld (Stripe), nodig voor QR-betalen of online bestellen",
       "website": "Website live"
     },
@@ -12530,7 +12528,8 @@
       "live": "Live",
       "offline": "Offline",
       "open": "Naar Website",
-      "view": "Bekijken"
+      "view": "Bekijken",
+      "domain_soon": "Een eigen domeinnaam komt binnenkort."
     },
     "floor": {
       "title": "Zaalplan",
@@ -12561,7 +12560,8 @@
     "reservations": {
       "settings_link": "Paars vanaf, te laat na en online reserveren: Mijn zaak › Je gasten › Reserveren",
       "intro": "Je reservaties per dag en de online aanvragen die op een antwoord wachten."
-    }
+    },
+    "owner_note": "De instellingen van je zaak beheert de zaakvoerder."
   },
   "settingsSearch": {
     "label": "Instellingen zoeken",
@@ -12575,7 +12575,7 @@
       "zaak_gegevens": "bedrijf, naam, adres, btw-nummer, ondernemingsnummer, iban, rekeningnummer, telefoon, e-mail",
       "zaak_uren": "uren, open, gesloten, openingsuren, sluitingsdag, vakantie, feestdag, verlof",
       "zaak_merk": "logo, kleur, kleuren, huisstijl, branding, favicon",
-      "zaak_website": "website, site, domein, thema, homepage, webshop, online",
+      "zaak_website": "website, site, thema, homepage, webshop, online",
       "gasten_qr": "qr, sticker, qr-code, menukaart, bestellen aan tafel, ober roepen, rekening vragen",
       "gasten_afhalen": "afhalen, leveren, levering, takeaway, bezorgen, tijdsloten, webshop, thuis bestellen",
       "gasten_reserveren": "reserveren, reservatie, reservering, booking, paars, te laat, online reserveren",

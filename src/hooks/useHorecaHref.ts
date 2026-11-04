@@ -7,7 +7,8 @@ import { isHorecaOnly } from '@/lib/tracks';
 import { resolveLegacyHref } from '@/lib/mijnZaak';
 
 export function useHorecaHref(): (href: string) => string {
-  const { hasTrack } = useTracks();
-  const only = isHorecaOnly(hasTrack);
+  const { hasTrack, ready } = useTracks();
+  // 1b: enkel na `ready` — tijdens het laden komen de sporen uit de toestelcache (niet per winkel).
+  const only = ready && isHorecaOnly(hasTrack);
   return useCallback((href: string) => (only ? resolveLegacyHref(href) : href), [only]);
 }

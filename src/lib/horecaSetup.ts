@@ -62,8 +62,12 @@ export function setupSteps(s: HorecaStatus): SetupStep[] {
     { id: 'floor', labelKey: 'mijnZaak.setup.floor', done: s.tables > 0, to: FLOOR_EDIT_PATH },
     { id: 'station', labelKey: 'mijnZaak.setup.station', done: s.stations > 0, to: mijnZaakUrl('zaal-keuken', 'posten') },
     { id: 'printer', labelKey: 'mijnZaak.setup.printer', done: s.printers > 0, optional: true, to: mijnZaakUrl('zaal-keuken', 'printers') },
-    { id: 'qr', labelKey: 'mijnZaak.setup.qr', done: s.qrMode !== 'off', to: mijnZaakUrl('gasten', 'qr') },
-    { id: 'pay', labelKey: 'mijnZaak.setup.pay', done: s.payMethods > 0, to: mijnZaakUrl('betalen', 'kassa') },
+    // 1b: geen stappen "QR-menu aan" en "Betaalwijze aan de kassa" meer. Die stonden groen zonder dat de
+    // zaak iets koos: qr_mode staat standaard op 'view' (elke tafel heeft vanzelf een qr_token), en
+    // horeca_pay_settings valt zonder rij terug op contant + overschrijving. Een eigen keuze is niet
+    // aan te tonen: een fulfillment_settings-rij ontstaat ook via pauze, afhalen of de shopschakelaar, en
+    // een horeca_pay_settings-rij ook via printers, gangen of de vergrendeltijd (geen eigen tijdstempel
+    // per veld). Een checklist die vanzelf groen staat, liegt; dus geschrapt.
   ];
   // Online betalen is enkel een stap als de zaak het nodig heeft.
   if (needsOnlinePay(s)) steps.push({ id: 'stripe', labelKey: 'mijnZaak.setup.stripe', done: s.stripe, to: mijnZaakUrl('betalen', 'online') });

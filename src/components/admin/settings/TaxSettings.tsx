@@ -927,7 +927,8 @@ const [formData, setFormData] = useState({
               </Button>
             </CollapsibleTrigger>
             <CollapsibleContent className="pt-4">
-              <div className="border rounded-lg overflow-hidden">
+              {/* HORECA-INSTELLINGEN-1b: overflow-x-auto i.p.v. overflow-hidden, anders valt "Voorbeeld" op de gsm weg. */}
+              <div className="border rounded-lg overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead className="bg-muted/50">
                     <tr className="border-b">

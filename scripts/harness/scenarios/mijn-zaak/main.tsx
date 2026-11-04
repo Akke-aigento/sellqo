@@ -25,12 +25,21 @@ const Header = lazy(async () => {
 });
 /** Toont de huidige route, zodat de stappen een doorverwijzing kunnen nakijken. */
 function Where() { const l = useLocation(); return <p data-testid="where" className="p-4 text-xs text-muted-foreground">{l.pathname}{l.search}{l.hash}</p>; }
+const own: Record<string, string> = { staff: '/admin/personeel', reservations: '/admin/reservaties' };
 const Screen = { sidebar: Sidebar, settings: Settings, staff: Staff, reservations: Reservations, header: Header }[H.screen] ?? Settings;
 
 createRoot(document.getElementById('root')!).render(
   <QueryClientProvider client={qc}>
     <MemoryRouter initialEntries={[H.path ?? entry[H.screen] ?? '/admin/settings']}>
-      <Routes><Route path="*" element={<Suspense fallback={null}><Screen />{H.screen !== 'header' ? <Where /> : null}</Suspense>} /></Routes>
+      {/* 1b: Personeel en Reservaties sturen een combinatiezaak door; elders enkel de route tonen (geen lus). */}
+      {own[H.screen] ? (
+        <Routes>
+          <Route path={own[H.screen]} element={<Suspense fallback={null}><Screen /><Where /></Suspense>} />
+          <Route path="*" element={<Where />} />
+        </Routes>
+      ) : (
+        <Routes><Route path="*" element={<Suspense fallback={null}><Screen />{H.screen !== 'header' ? <Where /> : null}</Suspense>} /></Routes>
+      )}
       <Toaster />
     </MemoryRouter>
   </QueryClientProvider>,

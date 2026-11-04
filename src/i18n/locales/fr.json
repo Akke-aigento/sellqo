@@ -12468,7 +12468,7 @@
       "gegevens": "Coordonnées",
       "uren": "Heures d’ouverture & jours de fermeture",
       "merk": "Logo & couleurs",
-      "website": "Site web & domaine",
+      "website": "Site web",
       "qr": "QR à table",
       "afhalen": "À emporter & livraison",
       "reserveren": "Réservations",
@@ -12517,8 +12517,6 @@
       "floor": "Plan de salle avec tables",
       "station": "Au moins un poste (cuisine, bar …)",
       "printer": "Imprimante connectée",
-      "qr": "Menu QR activé",
-      "pay": "Moyen de paiement en caisse choisi",
       "stripe": "Paiement en ligne connecté (Stripe), nécessaire pour le paiement QR ou la commande en ligne",
       "website": "Site web en ligne"
     },
@@ -12528,7 +12526,8 @@
       "live": "En ligne",
       "offline": "Hors ligne",
       "open": "Aller au site web",
-      "view": "Voir"
+      "view": "Voir",
+      "domain_soon": "Un nom de domaine personnalisé arrive bientôt."
     },
     "floor": {
       "title": "Plan de salle",
@@ -12559,7 +12558,8 @@
     "reservations": {
       "settings_link": "Violet à partir de, en retard après et réservation en ligne : Mon établissement › Vos clients › Réservations",
       "intro": "Vos réservations par jour et les demandes en ligne en attente de réponse."
-    }
+    },
+    "owner_note": "Les réglages de votre établissement sont gérés par le gérant."
   },
   "settingsSearch": {
     "label": "Rechercher dans les paramètres",
@@ -12573,7 +12573,7 @@
       "zaak_gegevens": "entreprise, nom, adresse, numéro de tva, numéro d’entreprise, iban, compte bancaire, téléphone, e-mail",
       "zaak_uren": "heures, ouvert, fermé, horaires, jour de fermeture, vacances, jour férié, congé",
       "zaak_merk": "logo, couleur, couleurs, charte, marque, favicon",
-      "zaak_website": "site web, site, domaine, thème, page d’accueil, en ligne",
+      "zaak_website": "site web, site, thème, page d’accueil, en ligne",
       "gasten_qr": "qr, autocollant, code qr, carte, commander à table, appeler le serveur, demander l’addition",
       "gasten_afhalen": "à emporter, livraison, livrer, créneaux, commande en ligne",
       "gasten_reserveren": "réserver, réservation, violet, retard, réservation en ligne",

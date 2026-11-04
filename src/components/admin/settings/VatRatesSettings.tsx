@@ -139,14 +139,16 @@ export function VatRatesSettings() {
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
+        {/* HORECA-INSTELLINGEN-1b: op 390 px liep deze kop (landkeuze + knop naast de titel) 98 px over de rand;
+            op smalle schermen nu onder elkaar. Geldt voor elke zaak. */}
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <CardTitle>{t("vat_rates.title")}</CardTitle>
             <CardDescription>
               {t("vat_rates.description", "Beheer BTW-tarieven per land voor correcte facturatie")}
             </CardDescription>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Select value={selectedCountry} onValueChange={setSelectedCountry}>
               <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder={t("vat_rates.country")} />

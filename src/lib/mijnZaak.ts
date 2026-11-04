@@ -19,7 +19,11 @@ export interface ZaakTab {
   labelKey: string;
   /** Leesrecht dat nodig is (zelfde als op de oude plek). Leeg = iedereen die Instellingen opent. */
   requiredRead?: Resource;
-  /** Enkel zaakvoerders (tenant_admin of platform_admin), zoals de oude sectie. */
+  /**
+   * Enkel zaakvoerders (tenant_admin of platform_admin). 1b: ook alles van Je gasten, Betalen, Zaal & keuken
+   * en Kassa's & toestellen — dat volgt de RLS (horeca_pay_settings, printers, prep_stations,
+   * fulfillment_settings, reservation_settings en pos_terminals/pos_cashiers schrijft enkel tenant_admin).
+   */
   adminOnly?: boolean;
 }
 
@@ -45,37 +49,37 @@ export const ZAAK_GROUPS: ZaakGroup[] = [
     id: 'gasten', titleKey: 'mijnZaak.groups.gasten.title', descKey: 'mijnZaak.groups.gasten.desc',
     tabs: [
       // Zelfde recht als de oude plek (Kaart › Instellen, route /admin/bestellen = orders).
-      { id: 'qr', labelKey: 'mijnZaak.tabs.qr', requiredRead: 'orders' },
-      { id: 'afhalen', labelKey: 'mijnZaak.tabs.afhalen', requiredRead: 'orders' },
-      { id: 'reserveren', labelKey: 'mijnZaak.tabs.reserveren', requiredRead: 'orders' },
-      { id: 'berichten', labelKey: 'mijnZaak.tabs.berichten', requiredRead: 'settings_general' },
+      { id: 'qr', labelKey: 'mijnZaak.tabs.qr', requiredRead: 'orders', adminOnly: true },
+      { id: 'afhalen', labelKey: 'mijnZaak.tabs.afhalen', requiredRead: 'orders', adminOnly: true },
+      { id: 'reserveren', labelKey: 'mijnZaak.tabs.reserveren', requiredRead: 'orders', adminOnly: true },
+      { id: 'berichten', labelKey: 'mijnZaak.tabs.berichten', requiredRead: 'settings_general', adminOnly: true },
     ],
   },
   {
     id: 'betalen', titleKey: 'mijnZaak.groups.betalen.title', descKey: 'mijnZaak.groups.betalen.desc',
     tabs: [
       // Kassa › Betalen stond op /admin/pos (pos); Stripe op Instellingen › Betalingen (settings_financial).
-      { id: 'kassa', labelKey: 'mijnZaak.tabs.kassa', requiredRead: 'pos' },
-      { id: 'online', labelKey: 'mijnZaak.tabs.online', requiredRead: 'settings_financial' },
-      { id: 'fooi', labelKey: 'mijnZaak.tabs.fooi', requiredRead: 'pos' },
-      { id: 'terminal', labelKey: 'mijnZaak.tabs.terminal', requiredRead: 'pos' },
+      { id: 'kassa', labelKey: 'mijnZaak.tabs.kassa', requiredRead: 'pos', adminOnly: true },
+      { id: 'online', labelKey: 'mijnZaak.tabs.online', requiredRead: 'settings_financial', adminOnly: true },
+      { id: 'fooi', labelKey: 'mijnZaak.tabs.fooi', requiredRead: 'pos', adminOnly: true },
+      { id: 'terminal', labelKey: 'mijnZaak.tabs.terminal', requiredRead: 'pos', adminOnly: true },
     ],
   },
   {
     id: 'zaal-keuken', titleKey: 'mijnZaak.groups.zaalKeuken.title', descKey: 'mijnZaak.groups.zaalKeuken.desc',
     tabs: [
-      { id: 'zaalplan', labelKey: 'mijnZaak.tabs.zaalplan', requiredRead: 'orders' },
-      { id: 'posten', labelKey: 'mijnZaak.tabs.posten', requiredRead: 'orders' },
-      { id: 'printers', labelKey: 'mijnZaak.tabs.printers', requiredRead: 'pos' },
-      { id: 'keukenschermen', labelKey: 'mijnZaak.tabs.keukenschermen', requiredRead: 'orders' },
+      { id: 'zaalplan', labelKey: 'mijnZaak.tabs.zaalplan', requiredRead: 'orders', adminOnly: true },
+      { id: 'posten', labelKey: 'mijnZaak.tabs.posten', requiredRead: 'orders', adminOnly: true },
+      { id: 'printers', labelKey: 'mijnZaak.tabs.printers', requiredRead: 'pos', adminOnly: true },
+      { id: 'keukenschermen', labelKey: 'mijnZaak.tabs.keukenschermen', requiredRead: 'orders', adminOnly: true },
     ],
   },
   {
     id: 'toestellen', titleKey: 'mijnZaak.groups.toestellen.title', descKey: 'mijnZaak.groups.toestellen.desc',
     tabs: [
-      { id: 'kassas', labelKey: 'mijnZaak.tabs.kassas', requiredRead: 'pos' },
-      { id: 'vergrendeling', labelKey: 'mijnZaak.tabs.vergrendeling', requiredRead: 'pos' },
-      { id: 'meldingen', labelKey: 'mijnZaak.tabs.meldingen', requiredRead: 'pos' },
+      { id: 'kassas', labelKey: 'mijnZaak.tabs.kassas', requiredRead: 'pos', adminOnly: true },
+      { id: 'vergrendeling', labelKey: 'mijnZaak.tabs.vergrendeling', requiredRead: 'pos', adminOnly: true },
+      { id: 'meldingen', labelKey: 'mijnZaak.tabs.meldingen', requiredRead: 'pos', adminOnly: true },
     ],
   },
   {
@@ -163,6 +167,14 @@ export function legacyPosTarget(tab: string | null): string {
     case 'printers': return mijnZaakUrl('zaal-keuken', 'printers');
     default: return mijnZaakUrl('toestellen', 'kassas');
   }
+}
+
+/**
+ * 1b: /admin/personeel?tab=… voor een zaak die NIET horeca-only is (combinatie met webshop/events):
+ * die heeft Personeel nog in Kassabeheer en de beheerders in Instellingen › Teamleden.
+ */
+export function legacyStaffTarget(tab: string | null): string {
+  return tab === 'beheerders' ? `${SETTINGS_PATH}?section=team` : '/admin/pos?tab=personeel';
 }
 
 /** Oude /admin/bestellen?tab=… die verhuisd zijn (horeca-only); null = blijft op de Kaart. */

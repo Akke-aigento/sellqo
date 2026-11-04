@@ -10,6 +10,17 @@ const screens = [
   ['settings', enc('/admin/settings?section=company#openingsuren'), 'oud-company-uren'],
   ['settings', enc('/admin/settings?section=payments'), 'oud-payments'],
   ['settings', '&role=staff', 'staff-overzicht'],
+  // 1b: enkel de zaakvoerder ziet de checklist en de groepen van de zaak; viewer ziet Je zaak (lezen) en Jij.
+  ['settings', '&role=viewer', 'viewer-overzicht'],
+  ['settings', '&role=staff' + enc('/admin/settings?section=betalen'), 'staff-betalen-diep'],
+  ['settings', enc('/admin/settings?section=domain'), 'oud-domain'],
+  ['settings', enc('/admin/settings?section=geld&tab=btw'), 'geld-btw'],
+  // 1b: combinatiezaak met een verouderde cache die "horeca-only" zegt: blijft op Betalingen (klassiek).
+  ['settings', '&tracks=horeca,webshop&cache=horeca' + enc('/admin/settings?section=payments'), 'combi-cache-payments'],
+  ['sidebar', '&tracks=horeca,webshop', 'combi-zijbalk'],
+  ['staff', '&tracks=horeca,webshop', 'combi-personeel'],
+  ['staff', '&tracks=horeca,webshop' + enc('/admin/personeel?tab=beheerders'), 'combi-personeel-beheerders'],
+  ['reservations', '&tracks=horeca,webshop', 'combi-reservaties'],
   ['settings', '&tracks=webshop', 'webshop-instellingen'],
   ['staff', ''],
   ['staff', enc('/admin/personeel?tab=uren'), 'personeel-uren'],
@@ -57,11 +68,27 @@ export async function run(page, { width, log }) {
     } else {
       log(name, 'route:', await where());
       log(name, 'tabs:', (await p.locator('[role="tab"]').allInnerTexts()).join(' | '), '| actief:', (await p.locator('[role="tab"][aria-selected="true"]').allInnerTexts()).join(''));
+      if (['settings', 'staff-overzicht', 'viewer-overzicht', 'staff-betalen-diep'].includes(name)) {
+        const owner = (await p.locator('[data-testid="owner-note"]').allInnerTexts()).join('');
+        const groupsSeen = (await p.locator('ul.grid li').allInnerTexts()).map((x) => x.replace(/\n/g, ': ')).join(' | ');
+        log(name, 'checklist-stappen:', await p.locator('[data-step]').count(), '| uitleg:', owner || '-', '| groepen:', groupsSeen);
+        if (name !== 'settings' && ((await p.locator('[data-step]').count()) > 0 || !owner)) errors.push(`[${width} ${name}] niet-beheerder ziet checklist of geen uitleg`);
+        if (name !== 'settings' && /Je gasten|Betalen|Zaal & keuken|Kassa’s & toestellen/.test(groupsSeen)) errors.push(`[${width} ${name}] niet-beheerder ziet een groep van de zaakvoerder`);
+      }
+      const expect = {
+        'combi-cache-payments': '/admin/settings?section=payments',
+        'combi-personeel': '/admin/pos?tab=personeel',
+        'combi-personeel-beheerders': '/admin/settings?section=team',
+        'combi-reservaties': '/admin/bestellen?tab=reservaties',
+        'oud-domain': '/admin/settings?section=zaak&tab=website',
+      }[name];
+      if (expect && (await where()) !== expect) errors.push(`[${width} ${name}] route ${await where()} ≠ ${expect}`);
+      if (name === 'oud-domain') log(name, 'domeinregel:', (await p.getByText('Een eigen domeinnaam komt binnenkort.').count()));
       if (name === 'settings') log(name, 'checklist:', (await p.locator('[data-step]').evaluateAll((li) => li.map((x) => `${x.getAttribute('data-step')}=${x.getAttribute('data-done')}`))).join(' '));
       log(name, 'kop:', (await p.locator('h1, h2').allInnerTexts()).slice(0, 4).join(' | '));
     }
     const over = await p.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
-    if (over > 0) log(name, 'HORIZONTALE OVERLOOP', over);
+    if (over > 0) { log(name, 'HORIZONTALE OVERLOOP', over); errors.push(`[${width} ${name}] horizontale overloop ${over}px`); }
     await shot(name);
     await p.close();
   }

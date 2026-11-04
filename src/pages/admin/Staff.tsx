@@ -1,7 +1,7 @@
 // HORECA-INSTELLINGEN-1 — "Personeel" (horeca): wie werkt hier, op één plek. Vroeger stond dit op twee
 // plekken (Kassa › Personeel en Instellingen › Teamleden). Tabs bovenaan, deeplinkbaar (?tab=pin|uren|beheerders).
 // Rechten zoals ze waren: kassapersoneel en uren met het kassarecht (route: pos), beheerders enkel de zaakvoerder.
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, Navigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ChevronRight, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -12,12 +12,13 @@ import { ModuleGateLoading, ModuleOffCard } from '@/components/admin/ModuleOffCa
 import { useHorecaModule } from '@/hooks/useHorecaModule';
 import { useTracks } from '@/hooks/useBusinessModules';
 import { useZaakAccess } from '@/hooks/useZaakAccess';
-import { STAFF_TABS, mijnZaakUrl } from '@/lib/mijnZaak';
+import { STAFF_TABS, legacyStaffTarget, mijnZaakUrl } from '@/lib/mijnZaak';
+import { isHorecaOnly } from '@/lib/tracks';
 
 export default function StaffPage() {
   const { t } = useTranslation();
   const horeca = useHorecaModule();
-  const { ready } = useTracks();
+  const { ready, hasTrack } = useTracks();
   const canOpen = useZaakAccess();
   const [params, setParams] = useSearchParams();
   const tabs = STAFF_TABS.filter((tb) => canOpen(tb));
@@ -26,6 +27,9 @@ export default function StaffPage() {
 
   if (!ready) return <ModuleGateLoading />;
   if (!horeca) return <ModuleOffCard module="horeca" />;
+  // 1b: combinaties met webshop of events houden Kassabeheer › Personeel en Instellingen › Teamleden;
+  // een rechtstreekse URL hierheen gaat daar naartoe (pas na `ready`, zie Settings.tsx).
+  if (!isHorecaOnly(hasTrack)) return <Navigate to={legacyStaffTarget(params.get('tab'))} replace />;
 
   return (
     <div className="space-y-6 p-4 sm:p-6">

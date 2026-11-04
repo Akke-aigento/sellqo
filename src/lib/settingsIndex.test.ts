@@ -77,6 +77,14 @@ describe('zoeken (nl)', () => {
     expect(first(q)).toBe(id);
   });
 
+  it('1b: "domein" vindt horeca-only niets (eigen domein komt binnenkort); het label heet Website in elke taal', () => {
+    expect(searchSettings(resolved, 'domein')).toEqual([]);
+    for (const f of locales) {
+      expect(String(lookup(dict(f), 'mijnZaak.tabs.website')), f).not.toMatch(/&|domain|domein|domaine|домен/i);
+      expect(String(lookup(dict(f), 'settingsSearch.syn.zaak_website')), f).not.toMatch(/domain|domein|domaine|домен/i);
+    }
+  });
+
   it('accenten en hoofdletters maken niet uit; niets gevonden = lege lijst', () => {
     expect(first('FOOI')).toBe('betalen.fooi');
     expect(searchSettings(resolved, 'xyzzy')).toEqual([]);

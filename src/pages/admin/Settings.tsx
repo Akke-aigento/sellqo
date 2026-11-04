@@ -69,6 +69,7 @@ import { MoreToolsSettings } from '@/components/admin/settings/MoreToolsSettings
 import { AccountingSettings } from '@/components/admin/settings/AccountingSettings';
 import { BusinessModulesSettings } from '@/components/admin/settings/BusinessModulesSettings';
 import { useTracks } from '@/hooks/useBusinessModules';
+import { ModuleGateLoading } from '@/components/admin/ModuleOffCard';
 import { isHorecaOnly, tracksAllow, type Track } from '@/lib/tracks';
 import { MijnZaak } from '@/components/admin/mijnzaak/MijnZaak';
 
@@ -210,9 +211,12 @@ const settingsGroups: SettingsGroup[] = [
 ];
 
 export default function SettingsPage() {
-  const { hasTrack } = useTracks();
+  const { hasTrack, ready } = useTracks();
   // HORECA-INSTELLINGEN-1: een horecazaak zonder webshop of events krijgt "Mijn zaak" (checklist, zes
   // groepen met tabs, zoekbalk). Oude ?section=-links stuurt Mijn zaak zelf door. Andere zaken: ongewijzigd.
+  // 1b: pas kiezen na `ready`. Tijdens het laden geeft useTracks de sporen uit localStorage (per toestel,
+  // niet per winkel); een webshop- of combinatiezaak met een verouderde cache werd zo stil doorverwezen.
+  if (!ready) return <ModuleGateLoading />;
   if (isHorecaOnly(hasTrack)) return <MijnZaak />;
   return <ClassicSettings />;
 }

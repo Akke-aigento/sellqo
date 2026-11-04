@@ -15,6 +15,7 @@ import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useHorecaStatus } from '@/hooks/useHorecaStatus';
 import { useZaakAccess } from '@/hooks/useZaakAccess';
+import { useScopedRoles } from '@/hooks/useCan';
 import { useEmailLogoAutoBackfill } from '@/hooks/useEmailLogoBackfill';
 import { SETTINGS_PATH, ZAAK_GROUPS, findGroup, legacySettingsTarget, mijnZaakUrl, type ZaakGroup } from '@/lib/mijnZaak';
 import { MoreToolsSettings } from '@/components/admin/settings/MoreToolsSettings';
@@ -35,6 +36,7 @@ export function MijnZaak() {
   const location = useLocation();
   const isMobile = useIsMobile();
   const canOpen = useZaakAccess();
+  const rolesKnown = useScopedRoles() !== null;
   const status = useHorecaStatus();
 
   const section = params.get('section');
@@ -57,15 +59,29 @@ export function MijnZaak() {
     if (to) return <Navigate to={to} replace />;
   }
 
+  // 1b: de beschrijving volgt de tabs die deze rol ziet. Ziet hij ze allemaal, dan de uitgeschreven zin;
+  // anders de labels van wat hij wél ziet (zo belooft een kaart nooit iets dat er niet achter staat).
+  const descFor = (g: ZaakGroup) => {
+    const seen = visibleTabs(g);
+    return seen.length === g.tabs.length ? t(g.descKey) : seen.map((tb) => t(tb.labelKey)).join(' · ');
+  };
+  // Een groep met één zichtbare tab linkt meteen naar die tab.
+  const groupUrl = (g: ZaakGroup) => {
+    const seen = visibleTabs(g);
+    return seen.length === 1 ? mijnZaakUrl(g.id, seen[0].id) : mijnZaakUrl(g.id);
+  };
+
   const setTab = (id: string) => setParams((p) => { const n = new URLSearchParams(p); n.set('tab', id); return n; }, { replace: true });
   const showOverview = !group;
-  const canSetup = canOpen({ requiredRead: 'settings_general' });
+  // 1b: "Mijn zaak blijft voor de beheerder": de checklist en de groepen van de zaak enkel voor
+  // tenant_admin/platform_admin (zoals de RLS). Iedereen ziet wat hij mag, plus één regel uitleg.
+  const isOwner = canOpen({ adminOnly: true });
 
   const nav = (
     <nav aria-label={t('mijnZaak.title')} className="space-y-1">
       <NavButton to={SETTINGS_PATH} active={showOverview} icon={LayoutDashboard} label={t('mijnZaak.overview')} />
       {groups.filter((g) => g.id !== 'jij').map((g) => (
-        <NavButton key={g.id} to={mijnZaakUrl(g.id)} active={group?.id === g.id} icon={GROUP_ICONS[g.id]} label={t(g.titleKey)} />
+        <NavButton key={g.id} to={groupUrl(g)} active={group?.id === g.id} icon={GROUP_ICONS[g.id]} label={t(g.titleKey)} />
       ))}
       {groups.some((g) => g.id === 'jij') ? (
         <div className="mt-3 border-t pt-3">
@@ -104,7 +120,9 @@ export function MijnZaak() {
         <div className="min-w-0 flex-1 space-y-6">
           {showOverview ? (
             <>
-              {canSetup ? <SetupChecklist status={status.data} isLoading={status.isLoading} /> : null}
+              {isOwner ? <SetupChecklist status={status.data} isLoading={status.isLoading} /> : rolesKnown ? (
+                <p data-testid="owner-note" className="rounded-lg border bg-muted/40 p-3 text-sm text-muted-foreground">{t('mijnZaak.owner_note')}</p>
+              ) : null}
               <section className="space-y-2">
                 <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t('mijnZaak.groups_heading')}</h2>
                 <ul className="grid gap-3 sm:grid-cols-2">
@@ -112,11 +130,11 @@ export function MijnZaak() {
                     const Icon = GROUP_ICONS[g.id];
                     return (
                       <li key={g.id}>
-                        <Link to={mijnZaakUrl(g.id)} className="flex h-full min-h-[72px] items-start gap-3 rounded-lg border bg-card p-4 hover:bg-muted/50 hover:no-underline">
+                        <Link to={groupUrl(g)} className="flex h-full min-h-[72px] items-start gap-3 rounded-lg border bg-card p-4 hover:bg-muted/50 hover:no-underline">
                           <Icon className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground" aria-hidden />
                           <span className="min-w-0 flex-1">
                             <span className="block font-medium">{t(g.titleKey)}</span>
-                            <span className="block text-sm text-muted-foreground">{t(g.descKey)}</span>
+                            <span className="block text-sm text-muted-foreground">{descFor(g)}</span>
                           </span>
                           <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
                         </Link>
@@ -125,14 +143,15 @@ export function MijnZaak() {
                   })}
                 </ul>
               </section>
-              <GksNotice />
-              <div id="meer"><MoreToolsSettings /></div>
+              {isOwner ? <GksNotice /> : null}
+              {/* 1b: het SellQo-plan staat al onder Geld › SellQo-plan; niet nog eens onderaan. */}
+              <div id="meer"><MoreToolsSettings exclude={['billing']} /></div>
             </>
           ) : (
             <section className="space-y-4" aria-labelledby="mijnzaak-group-title">
               <div>
                 <h2 id="mijnzaak-group-title" className="text-2xl font-semibold">{t(group.titleKey)}</h2>
-                <p className="text-sm text-muted-foreground">{t(group.descKey)}</p>
+                <p className="text-sm text-muted-foreground">{descFor(group)}</p>
               </div>
               <div role="tablist" aria-label={t(group.titleKey)} className="flex gap-1 overflow-x-auto border-b">
                 {tabs.map((tb) => (

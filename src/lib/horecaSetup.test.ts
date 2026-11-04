@@ -16,22 +16,23 @@ const ready: HorecaStatus = {
 };
 
 describe('checklist', () => {
-  it('lege zaak: enkel betaalwijze (standaard) en QR (bekijken) zijn klaar; printer telt niet mee', () => {
+  it('lege zaak: niets staat vanzelf groen (1b: geen QR- en betaalwijze-stap op standaardwaarden); printer telt niet mee', () => {
     const steps = setupSteps(empty);
-    expect(steps.filter((s) => s.done).map((s) => s.id)).toEqual(['qr', 'pay']);
+    expect(steps.filter((s) => s.done).map((s) => s.id)).toEqual([]);
+    expect(steps.some((s) => s.id === 'qr' || s.id === 'pay')).toBe(false);
     expect(steps.find((s) => s.id === 'printer')!.optional).toBe(true);
-    expect(setupProgress(steps)).toEqual({ done: 2, total: 10 });
+    expect(setupProgress(steps)).toEqual({ done: 0, total: 8 });
   });
 
   it('volledig ingerichte zaak zonder printer: alles klaar', () => {
-    expect(setupProgress(setupSteps(ready))).toEqual({ done: 10, total: 10 });
+    expect(setupProgress(setupSteps(ready))).toEqual({ done: 8, total: 8 });
   });
 
   it('online betalen is pas een stap als QR-betalen of online bestellen aanstaat', () => {
     expect(setupSteps(ready).some((s) => s.id === 'stripe')).toBe(false);
     const qrOnline = setupSteps({ ...ready, qrMode: 'order', qrPayOnline: true });
     expect(qrOnline.find((s) => s.id === 'stripe')!.done).toBe(false);
-    expect(setupProgress(qrOnline)).toEqual({ done: 10, total: 11 });
+    expect(setupProgress(qrOnline)).toEqual({ done: 8, total: 9 });
     expect(setupSteps({ ...ready, qrMode: 'order', qrFlow: 'check', checkOnline: true, stripe: true }).find((s) => s.id === 'stripe')!.done).toBe(true);
     expect(setupSteps({ ...ready, shopOrdering: true }).some((s) => s.id === 'stripe')).toBe(true);
   });

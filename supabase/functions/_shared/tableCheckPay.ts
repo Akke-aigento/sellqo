@@ -96,7 +96,8 @@ export async function settleTableCheckPayment(db: SettleRpcClient, stripe: Refun
       ? `${input.tableLabel ? `Tafel ${input.tableLabel}: ` : ''}${euro(input.amountTotalCents)} werd teruggestort omdat ${refundReasonText(r.reason)}.`
       : `${input.tableLabel ? `Tafel ${input.tableLabel}: ` : ''}${euro(input.amountTotalCents)} kon niet op de rekening en ook niet automatisch teruggestort worden. Stort terug via Stripe.`,
     priority: ok ? 'medium' : 'high',
-    action_url: '/admin/pos?tab=betalen',
+    // HORECA-INSTELLINGEN-1b: naar Transacties (bestaat voor elk spoor), niet naar de kassa-instellingen.
+    action_url: '/admin/payments',
     data: { payment_id: input.paymentId, payment_intent: input.paymentIntent, reason: r.reason ?? null, refund_id: refundId || null, error: refundError || null },
   });
   if (nErr) console.error('[tableCheckPay] notification failed:', nErr.message);

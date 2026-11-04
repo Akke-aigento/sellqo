@@ -12468,7 +12468,7 @@
       "gegevens": "Daten",
       "uren": "Öffnungszeiten & Ruhetage",
       "merk": "Logo & Farben",
-      "website": "Website & Domain",
+      "website": "Website",
       "qr": "QR am Tisch",
       "afhalen": "Abholung & Lieferung",
       "reserveren": "Reservieren",
@@ -12517,8 +12517,6 @@
       "floor": "Raumplan mit Tischen",
       "station": "Mindestens eine Station (Küche, Bar …)",
       "printer": "Drucker verbunden",
-      "qr": "QR-Menü an",
-      "pay": "Zahlungsart an der Kasse gewählt",
       "stripe": "Online-Zahlung verbunden (Stripe), nötig für QR-Zahlung oder Online-Bestellung",
       "website": "Website online"
     },
@@ -12528,7 +12526,8 @@
       "live": "Online",
       "offline": "Offline",
       "open": "Zur Website",
-      "view": "Ansehen"
+      "view": "Ansehen",
+      "domain_soon": "Eine eigene Domain kommt bald."
     },
     "floor": {
       "title": "Raumplan",
@@ -12559,7 +12558,8 @@
     "reservations": {
       "settings_link": "Lila ab, zu spät nach und Online-Reservierung: Mein Betrieb › Deine Gäste › Reservieren",
       "intro": "Deine Reservierungen pro Tag und die Online-Anfragen, die auf Antwort warten."
-    }
+    },
+    "owner_note": "Die Einstellungen deines Betriebs verwaltet die Betriebsleitung."
   },
   "settingsSearch": {
     "label": "Einstellungen suchen",
@@ -12573,7 +12573,7 @@
       "zaak_gegevens": "Firma, Unternehmen, Name, Adresse, USt-IdNr, Handelsregister, IBAN, Bankkonto, Telefon, E-Mail",
       "zaak_uren": "Stunden, offen, geschlossen, Öffnungszeiten, Ruhetag, Urlaub, Feiertag, Betriebsferien",
       "zaak_merk": "Logo, Farbe, Farben, Marke, Branding, Favicon",
-      "zaak_website": "Website, Seite, Domain, Theme, Startseite, online",
+      "zaak_website": "Website, Seite, Theme, Startseite, online",
       "gasten_qr": "QR, Aufkleber, QR-Code, Speisekarte, am Tisch bestellen, Kellner rufen, Rechnung",
       "gasten_afhalen": "Abholung, Lieferung, liefern, Takeaway, Zeitfenster, Online-Bestellung",
       "gasten_reserveren": "reservieren, Reservierung, Buchung, lila, zu spät, Online-Reservierung",
