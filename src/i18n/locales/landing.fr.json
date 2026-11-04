@@ -2525,6 +2525,10 @@
         "branding_one_place": {
           "title": "Logo et couleur de marque au même endroit",
           "description": "Tu définis désormais ton logo, ton favicon et ta couleur de marque uniquement dans Paramètres › Image de marque. Ils valent pour ton site, tes e-mails, factures et tickets de caisse. Dans Site web › Personnaliser et dans les données de l'entreprise, tu les vois avec un lien vers Branding. Si tes factures ou e-mails utilisent aujourd'hui un autre logo ou une autre couleur, Image de marque te le signale ; à l'enregistrement, tout devient identique."
+        },
+        "menu_info_view_only": {
+          "title": "Ta carte sans commande en ligne est plus claire",
+          "description": "Si la commande en ligne est désactivée, ton site affiche les choix d'un plat ou d'une boisson (p. ex. 25, 33 ou 50 cl) sous forme de liste avec le supplément, sans rien à cocher. Sur un thème horeca, il n'est plus écrit « Commande en ligne bientôt disponible » mais « Tu commandes auprès du personnel ou au comptoir ». Et le format de base n'affiche plus « gratuit » ; les extras, si."
         }
       },
       "copyLink": "Copier le lien",

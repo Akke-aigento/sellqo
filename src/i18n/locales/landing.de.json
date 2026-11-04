@@ -2525,6 +2525,10 @@
         "branding_one_place": {
           "title": "Logo und Markenfarbe an einem Ort",
           "description": "Logo, Favicon und Markenfarbe stellst du jetzt nur noch unter Einstellungen › Branding ein. Sie gelten für deine Website, deine E-Mails, Rechnungen und Kassenbons. Unter Website › Anpassen und bei den Unternehmensdaten siehst du sie, mit einem Link zu Branding. Nutzen deine Rechnungen oder E-Mails heute ein anderes Logo oder eine andere Farbe, meldet Branding das; beim Speichern bekommen alle dasselbe."
+        },
+        "menu_info_view_only": {
+          "title": "Deine Speisekarte ohne Online-Bestellung ist klarer",
+          "description": "Ist die Online-Bestellung aus, zeigt deine Website bei einem Gericht oder Getränk die Auswahl (z. B. 25, 33 oder 50 cl) als Liste mit Aufpreis, ohne etwas auszuwählen. Bei einem Gastro-Theme steht dort nicht mehr „Online bestellen bald möglich“, sondern „Bestellen geht beim Personal oder an der Theke“. Und die Grundgröße zeigt kein „gratis“ mehr; bei Extras bleibt es."
         }
       },
       "copyLink": "Link kopieren",

@@ -2525,6 +2525,10 @@
         "branding_one_place": {
           "title": "Logo and brand colour in one place",
           "description": "You now set your logo, favicon and brand colour only under Settings › Branding. They apply to your website, your emails, invoices and receipts. In Website › Customise and in your company details you see them, with a link to Branding. If your invoices or emails currently use a different logo or colour, Branding tells you; when you save, they all get the same."
+        },
+        "menu_info_view_only": {
+          "title": "Your menu without online ordering is clearer",
+          "description": "When online ordering is off, your website shows the choices for a dish or drink (e.g. 25, 33 or 50 cl) as a list with the extra price, with nothing to select. On a hospitality theme it no longer says \"Online ordering coming soon\" but \"You order from our staff or at the bar\". And the base size no longer says \"free\"; extras still do."
         }
       },
       "copyLink": "Copy link",

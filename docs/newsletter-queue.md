@@ -4,6 +4,10 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.15e — Je menukaart zonder online bestellen is duidelijker (bugfix, 04-11-2026)
+Staat online bestellen uit, dan toont je website de keuzes van een gerecht of drankje als lijst met de meerprijs, zonder iets aan te duiden. Op een horecathema staat er "Bestellen doe je bij de bediening of aan de toog" in plaats van "binnenkort", en het basisformaat krijgt geen "gratis" meer.
+i18n: `public.changelog.changes.menu_info_view_only`
+
 ### 2026.15d — Zelf kiezen of er buiten je openingsuren besteld kan worden (feature, 04-11-2026)
 Bij QR aan tafel en bij afhalen en leveren zonder tijdsloten kies je met één schakelaar of gasten ook buiten je openingsuren kunnen bestellen; je gast ziet dan wanneer het weer kan. Bij online reserveren kies je ook tot hoe lang vóór sluiting de laatste gast kan aankomen. Standaard verandert er niets.
 i18n: `public.changelog.changes.ordering_outside_hours`

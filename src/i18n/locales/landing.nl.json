@@ -2525,6 +2525,10 @@
         "branding_one_place": {
           "title": "Logo en merkkleur op één plek",
           "description": "Je logo, favicon en merkkleur stel je voortaan enkel in onder Instellingen › Branding. Ze gelden voor je website, je mails, facturen en kassabonnen. In Website › Aanpassen en bij je bedrijfsgegevens zie je ze, met een link naar Branding. Gebruiken je facturen of mails vandaag een ander logo of een andere kleur, dan meldt Branding dat; bij opslaan krijgen ze allemaal hetzelfde."
+        },
+        "menu_info_view_only": {
+          "title": "Je menukaart zonder online bestellen is duidelijker",
+          "description": "Staat online bestellen uit, dan toont je website bij een gerecht of drankje de keuzes (bv. 25, 33 of 50 cl) als lijst met de meerprijs, zonder iets aan te duiden. Op een horecathema staat er niet meer \"Online bestellen kan binnenkort\" maar \"Bestellen doe je bij de bediening of aan de toog\". En het basisformaat krijgt geen \"gratis\" meer; bij extra's blijft dat wel staan."
         }
       },
       "copyLink": "Kopieer link",
