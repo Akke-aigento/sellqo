@@ -4,6 +4,5 @@ export { AIMarketingWidget } from './AIMarketingWidget';
 export { POSOverviewWidget } from './POSOverviewWidget';
 export { MarketplaceWidget } from './MarketplaceWidget';
 export { LowStockWidget } from './LowStockWidget';
-export { ShopHealthWidget } from './ShopHealthWidget';
 export { TodayWidget } from './TodayWidget';
 export { BadgesWidget } from './BadgesWidget';
