@@ -6,7 +6,7 @@
 //   - zonder tabel business_hours (fout van de databank): het oude gedrag;
 //   - UREN-1b: "buiten de openingsuren niet toestaan" voor afhalen/leveren zonder tijdsloten (outside_hours,
 //     OUTSIDE_HOURS) en voor QR aan tafel (checkout_table, table_request_place); standaard toegestaan;
-//   - GET-stempel UREN-1.
+//   - GET-stempel HORECA-NU-1.
 // Run (vanuit de repo-root, netwerkloos):
 //   DENO_NO_PACKAGE_JSON=1 deno test --allow-env --no-lock --node-modules-dir=none \
 //     --import-map=scripts/promo-compare/import_map.resolve.json scripts/promo-compare/businessHours.test.ts
@@ -141,9 +141,9 @@ Deno.test('UREN-1b QR aan tafel: standaard toegestaan, met de schakelaar OUTSIDE
   } finally { bh0().week = saved; delete fs0().qr_block_outside_hours; delete fs0().qr_mode; }
 });
 
-Deno.test('GET-stempel UREN-1', async () => {
+Deno.test('GET-stempel HORECA-NU-1', async () => {
   const r = await handler(new Request('https://f/storefront-api', { method: 'GET' }));
-  assert((await r.json()).version === 'UREN-1' && r.headers.get('X-SellQo-Api-Rev') === 'uren-1', 'stempel');
+  assert((await r.json()).version === 'HORECA-NU-1' && r.headers.get('X-SellQo-Api-Rev') === 'horeca-nu-1', 'stempel');
 });
 
 // --- UREN-1c: sluitingsdag rond middernacht — een blok hoort bij zijn startdag ------------------------

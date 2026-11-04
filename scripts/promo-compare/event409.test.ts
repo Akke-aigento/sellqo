@@ -51,7 +51,7 @@ const body = (err: Record<string, unknown>) => JSON.stringify({ success: false, 
 Deno.test('GET geeft de versiestempel (UREN-1)', async () => {
   const r = await handler(new Request('https://f/storefront-api'));
   const j = await r.json();
-  assert(r.status === 200 && j.version === 'UREN-1', JSON.stringify(j));
+  assert(r.status === 200 && j.version === 'HORECA-NU-1', JSON.stringify(j));
 });
 
 Deno.test('tickettype volzet → 409, body byte-gelijk', async () => {

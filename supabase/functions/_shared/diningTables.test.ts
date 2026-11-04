@@ -1,6 +1,6 @@
 // ZAAL-H1 — deno test --no-lock --node-modules-dir=none supabase/functions/_shared/diningTables.test.ts
 import { deepStrictEqual as assertEquals, rejects as assertRejects } from "node:assert/strict";
-import { resolveTableInput, resolveTableToken, tenantHasFloorPlan } from "./diningTables.ts";
+import { areaIsOpen, resolveTableInput, resolveTableToken, tenantHasFloorPlan, zoneClosedError } from "./diningTables.ts";
 
 type Row = Record<string, unknown>;
 // Kleine nep-databank: thenable builder met select/eq/maybeSingle, zoals supabase-js.
@@ -37,7 +37,7 @@ const db = fakeDb({
 });
 
 Deno.test("token → tafel met ruimte", async () => {
-  assertEquals(await resolveTableToken(db, T, TOKEN.toUpperCase()), { ok: true, table: { table_id: "tb1", label: "Ter-1", area: { id: "a1", name: "Terras" } } });
+  assertEquals(await resolveTableToken(db, T, TOKEN.toUpperCase()), { ok: true, table: { table_id: "tb1", label: "Ter-1", area: { id: "a1", name: "Terras", is_open: true } } });
 });
 
 Deno.test("token van andere winkel, verwijderde tafel of verwijderde ruimte: niet gevonden", async () => {
@@ -57,4 +57,26 @@ Deno.test("vrij tafelnummer: enkel zonder zaalplan", async () => {
 Deno.test("tabel bestaat nog niet (vóór migratie): oud gedrag; andere fout: geen stille terugval", async () => {
   assertEquals(await tenantHasFloorPlan(fakeDb({}, { code: "PGRST205", message: "not found" }), T), false);
   await assertRejects(() => tenantHasFloorPlan(fakeDb({}, { code: "57014", message: "timeout" }), T));
+});
+
+// HORECA-NU-2a — zone open of dicht.
+Deno.test("dichte zone: tafel blijft gevonden, met is_open false en een nette fout", async () => {
+  const closed = fakeDb({
+    dining_areas: [{ id: "a1", tenant_id: T, name: "Terras", is_active: true, is_open: false }],
+    dining_tables: [{ id: "tb1", tenant_id: T, area_id: "a1", label: "Ter-1", is_active: true, qr_token: TOKEN }],
+  });
+  const r = await resolveTableToken(closed, T, TOKEN);
+  assertEquals(r, { ok: true, table: { table_id: "tb1", label: "Ter-1", area: { id: "a1", name: "Terras", is_open: false } } });
+  if (!r.ok) throw new Error("onmogelijk");
+  assertEquals(zoneClosedError(r.table), { code: "ZONE_CLOSED", message: "Terras is momenteel gesloten. Bestellen of de bediening roepen kan hier nu niet." });
+});
+
+Deno.test("open zone, vrij nummer of kolom nog niet gemigreerd: nooit ZONE_CLOSED", async () => {
+  const r = await resolveTableToken(db, T, TOKEN);
+  if (!r.ok) throw new Error("tafel");
+  assertEquals(zoneClosedError(r.table), null);
+  assertEquals(zoneClosedError({ table_id: null, label: "4", area: null }), null);
+  // 42703 (kolom bestaat niet) of een andere leesfout: open, zoals vroeger.
+  assertEquals(await areaIsOpen(fakeDb({}, { code: "42703", message: "column does not exist" }), T, "a1"), true);
+  assertEquals(await areaIsOpen(fakeDb({ dining_areas: [] }), T, "a1"), true);
 });

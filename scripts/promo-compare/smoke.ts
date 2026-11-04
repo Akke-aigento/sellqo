@@ -76,6 +76,17 @@ await check('get_products best_selling', async () => {
   const r = await S.getProducts(db, T, { sort_by: 'best_selling', per_page: 2 });
   assert(r.products.length === 2 && r.pagination.total_count === 3, 'paginering na sortering');
 });
+await check('get_products daily_special (HORECA-NU-2b)', async () => {
+  const rows = (db as any).tables.products;
+  rows[2].daily_special_until = '2999-01-01T05:00:00Z';
+  rows[1].daily_special_until = '2000-01-01T05:00:00Z'; // gisteren: vervallen
+  try {
+    const r = await S.getProducts(db, T, { daily_special: true, channel: 'menu', sort_by: 'menu' });
+    assert(r.products.length === 1 && r.products[0].id === 'p3' && r.daily_special === true, `enkel p3, kreeg ${r.products.map((p: { id: string }) => p.id)}`);
+    const all = await S.getProducts(db, T, {});
+    assert(all.products.length === 3 && !('daily_special' in all), 'zonder parameter: niets veranderd');
+  } finally { delete rows[2].daily_special_until; delete rows[1].daily_special_until; }
+});
 await check('get_products sort_by menu (KAART-5)', async () => {
   const r = await S.getProducts(db, T, { sort_by: 'menu', channel: 'menu' });
   assert(Array.isArray(r.products), 'sort_by menu geeft een lijst');

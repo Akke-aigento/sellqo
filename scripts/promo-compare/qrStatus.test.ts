@@ -253,7 +253,31 @@ Deno.test('QR-MODULES-1: QR-menu uit → call_kinds leeg', async () => {
   } finally { fs0().qr_mode = 'view'; }
 });
 
-Deno.test('GET-stempel UREN-1', async () => {
+// --- HORECA-NU-2a ---------------------------------------------------------------------------------
+Deno.test('HORECA-NU-2a: tafel in een dichte zone → ZONE_CLOSED voor oproepen, bestellen aan tafel en checkout_table', async () => {
+  const area = (db as any).tables.dining_areas[0];
+  area.is_open = false;
+  fs0().qr_mode = 'order';
+  try {
+    rpcCalls.length = 0;
+    const c = (await call('table_call', { table_token: TOKEN, kind: 'waiter' }, '7.7.7.7')).json.data;
+    assert(c.success === false && c.error.code === 'ZONE_CLOSED' && c.error.message.startsWith('Binnen is momenteel gesloten'), JSON.stringify(c));
+    const r = (await call('table_request_place', { request_id: u(81), cart_id: u(82), table_token: TOKEN }, '7.7.7.7')).json.data;
+    assert(r.success === false && r.error.code === 'ZONE_CLOSED', JSON.stringify(r));
+    const k = (await call('checkout_table', { cart_id: u(82), table_token: TOKEN }, '7.7.7.7')).json.data;
+    assert(k.success === false && k.error.code === 'ZONE_CLOSED', JSON.stringify(k));
+    assert(!rpcCalls.some((x) => x.fn === 'table_call_place' || x.fn === 'table_request_place'), JSON.stringify(rpcCalls));
+    // resolve_table: additief veld is_open in area (de site toont de melding vooraf).
+    const t = (await call('resolve_table', { token: TOKEN }, '7.7.7.7')).json.data;
+    assert(t.label === 'Blauw 1' && t.area?.is_open === false && t.area?.name === 'Binnen', JSON.stringify(t));
+  } finally { delete area.is_open; fs0().qr_mode = 'view'; }
+  // Weer open (of geen kolom, oud gedrag): de oproep gaat gewoon door.
+  rpcAnswer = { table_call_place: { data: { call_id: CALL, kind: 'waiter', status: 'open', created_at: 'x', duplicate: false, retry_after_s: 120 }, error: null } };
+  const ok = (await call('table_call', { table_token: TOKEN, kind: 'waiter', call_id: CALL }, '8.8.8.8')).json;
+  assert(ok.success === true, JSON.stringify(ok));
+});
+
+Deno.test('GET-stempel HORECA-NU-1', async () => {
   const r = await handler(new Request('https://f/storefront-api', { method: 'GET' }));
-  assert((await r.json()).version === 'UREN-1' && r.headers.get('X-SellQo-Api-Rev') === 'uren-1', 'stempel');
+  assert((await r.json()).version === 'HORECA-NU-1' && r.headers.get('X-SellQo-Api-Rev') === 'horeca-nu-1', 'stempel');
 });

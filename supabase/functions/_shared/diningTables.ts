@@ -13,7 +13,8 @@ export const FREE_TABLE_RE = /^[\w-]{1,12}$/;
 export interface ResolvedTable {
   table_id: string | null;
   label: string;
-  area: { id: string; name: string } | null;
+  /** HORECA-NU-2a: is_open (additief) = de zone staat open; false = tijdelijk dicht (bv. het terras). */
+  area: { id: string; name: string; is_open: boolean } | null;
 }
 
 export type TableResolution =
@@ -46,7 +47,27 @@ export async function resolveTableToken(supabase: SupabaseLike, tenantId: string
     .select("id, name, is_active")
     .eq("tenant_id", tenantId).eq("id", tb.area_id).maybeSingle();
   if (!area || area.is_active === false) return { ok: false, code: "TABLE_NOT_FOUND", message: "Deze QR-code hoort bij geen tafel (meer)" };
-  return { ok: true, table: { table_id: String(tb.id), label: String(tb.label), area: { id: String(area.id), name: String(area.name) } } };
+  return { ok: true, table: { table_id: String(tb.id), label: String(tb.label), area: { id: String(area.id), name: String(area.name), is_open: await areaIsOpen(supabase, tenantId, String(area.id)) } } };
+}
+
+/**
+ * HORECA-NU-2a — staat deze zone open? Apart gelezen, zoals allergens_declared: vóór de migratie (kolom
+ * bestaat niet, 42703) of bij elke andere leesfout blijft het oude gedrag (open). Een dichte zone weigert
+ * nooit door een fout, enkel door een expliciete is_open = false.
+ */
+export async function areaIsOpen(supabase: SupabaseLike, tenantId: string, areaId: string): Promise<boolean> {
+  const { data, error } = await supabase.from("dining_areas")
+    .select("id, is_open")
+    .eq("tenant_id", tenantId).eq("id", areaId).maybeSingle();
+  if (error || !data) return true;
+  return data.is_open !== false;
+}
+
+/** HORECA-NU-2a — foutmelding voor de gast aan een tafel in een dichte zone (zelfde stijl als de andere API-meldingen). */
+export const ZONE_CLOSED = "ZONE_CLOSED" as const;
+export function zoneClosedError(table: ResolvedTable): { code: typeof ZONE_CLOSED; message: string } | null {
+  if (!table.area || table.area.is_open !== false) return null;
+  return { code: ZONE_CLOSED, message: `${table.area.name} is momenteel gesloten. Bestellen of de bediening roepen kan hier nu niet.` };
 }
 
 /**

@@ -8,7 +8,7 @@ import { submitContactForm, isContactFormAlias, normalizeContactAlias } from "..
 import { resolveCustomerContactEmail } from "../_shared/customerContact.ts";
 import { computeCartPromotions, round2 as promoRound2, type PromotionResult } from "../_shared/promotionEngine.ts";
 import { parseOptionFilter, productMatches, buildOptionFacets, buildTagFacets, type DbRow, type SupabaseLike } from "../_shared/catalogFilters.ts";
-import { resolveTableInput, tenantHasFloorPlan } from "../_shared/diningTables.ts";
+import { resolveTableInput, tenantHasFloorPlan, zoneClosedError } from "../_shared/diningTables.ts";
 import { refundReasonText, settleTableCheckPayment, type RefundClient, type SettleRpcClient } from "../_shared/tableCheckPay.ts";
 import { AddonError, addonsLabel, applicableGroups, resolveAddonSelection, type AddonGroup } from "../_shared/productAddons.ts";
 import { closedMessage, computeSlots, openState, orderingBlocked, postalCodeAllowed, withBusinessHours, type FulfillmentSettings, type ServiceType } from "../_shared/fulfillmentSlots.ts";
@@ -21,7 +21,7 @@ import { cachedShopStatus } from "../_shared/shopStatus.ts";
 
 const corsHeaders = {
   // PLANS-2 — versiestempel: bewijst een deploy zonder neveneffect (lees de header).
-  "X-SellQo-Api-Rev": "uren-1",
+  "X-SellQo-Api-Rev": "horeca-nu-1",
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
@@ -1017,6 +1017,9 @@ async function checkoutTable(supabase: SupabaseLike, tenantId: string, params: R
   if (!resolved.ok) return { success: false, error: { code: resolved.code, message: resolved.message } };
   const fs = await loadFulfillmentSettings(supabase, tenantId);
   if (fs?.qr_mode !== 'order') return { success: false, error: { code: 'TABLE_ORDERING_OFF', message: 'Bestellen aan tafel staat uit in deze zaak' } };
+  // HORECA-NU-2a — de zone van deze tafel (bv. het terras) is tijdelijk dicht.
+  const zoneT = zoneClosedError(resolved.table);
+  if (zoneT) return { success: false, error: zoneT };
   // UREN-1b — buiten de openingsuren, als de zaak dat niet toestaat.
   const closedT = await tableClosedError(supabase, tenantId);
   if (closedT) return { success: false, error: closedT };
@@ -1058,6 +1061,9 @@ async function tableRequestPlace(supabase: SupabaseLike, tenantId: string, param
   const resolved = await resolveTableInput(supabase, tenantId, { table: params.table, table_token: params.table_token });
   if (!resolved.ok) return { success: false, error: { code: resolved.code, message: resolved.message } };
   const str = (v: unknown, n: number) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, n) : null);
+  // HORECA-NU-2a — de zone van deze tafel is tijdelijk dicht.
+  const zoneR = zoneClosedError(resolved.table);
+  if (zoneR) return { success: false, error: zoneR };
   // UREN-1b — buiten de openingsuren, als de zaak dat niet toestaat.
   const closedR = await tableClosedError(supabase, tenantId);
   if (closedR) return { success: false, error: closedR };
@@ -1307,6 +1313,9 @@ async function tableCall(supabase: SupabaseLike, tenantId: string, params: Recor
   }
   const resolved = await resolveTableInput(supabase, tenantId, { table: params.table, table_token: params.table_token });
   if (!resolved.ok) return { success: false, error: { code: resolved.code, message: resolved.message } };
+  // HORECA-NU-2a — de zone van deze tafel is tijdelijk dicht: ook geen ober of rekening roepen.
+  const zoneC = zoneClosedError(resolved.table);
+  if (zoneC) return { success: false, error: zoneC };
   const { data, error } = await supabase.rpc('table_call_place', {
     p_tenant_id: tenantId, p_call_id: callId, p_table_id: resolved.table.table_id ?? null, p_table_label: resolved.table.label, p_kind: kind,
   });
@@ -1716,6 +1725,9 @@ async function getProducts(supabase: any, tenantId: string, params: Record<strin
   if (isFeatured) query = query.eq('is_featured', true);
   if (tags?.length) query = query.overlaps('tags', tags);
   if (ids) query = query.in('id', ids.length ? ids : ['00000000-0000-0000-0000-000000000000']);
+  // HORECA-NU-2b — optioneel: enkel de dagschotels van vandaag (products.daily_special_until in de toekomst).
+  // Additief: zonder `daily_special: true` verandert er niets. Zelfde kaart en prijs als elk ander product.
+  if (params?.daily_special === true) query = query.gt('daily_special_until', new Date().toISOString());
 
   // Sorting
   switch (sortBy) {
@@ -1915,6 +1927,9 @@ async function getProducts(supabase: any, tenantId: string, params: Record<strin
     pagination: {
       page, per_page: perPage, total_count: totalCount, total_pages: Math.ceil(totalCount / perPage),
     },
+    // HORECA-NU-2b — enkel als de vraag daar om vroeg: bevestigt dat de lijst gefilterd is (een oudere API
+    // kende `daily_special` niet en gaf de hele kaart terug; de site toont dan niets).
+    ...(params?.daily_special === true ? { daily_special: true } : {}),
   };
 }
 
@@ -6426,7 +6441,7 @@ const CLOSED_SHOP_BLOCKED_ACTIONS: ReadonlySet<string> = new Set([
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
   // Versiestempel voor deploy-verificatie (neveneffectvrij); bij elke batch ophogen.
-  if (req.method === 'GET') return new Response(JSON.stringify({ ok: true, version: 'UREN-1' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  if (req.method === 'GET') return new Response(JSON.stringify({ ok: true, version: 'HORECA-NU-1' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
   try {
     const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
