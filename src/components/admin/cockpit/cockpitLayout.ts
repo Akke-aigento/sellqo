@@ -12,7 +12,6 @@ export type CockpitCardId =
   | 'today'
   | 'goal'
   | 'rush'
-  | 'menu'
   | 'todo'
   | 'channels'
   | 'feed'
@@ -33,7 +32,6 @@ export const COCKPIT_CARDS: CockpitCardDef[] = [
   { id: 'today', span: 2, tracks: [] },
   { id: 'goal', span: 1, tracks: [] },
   { id: 'rush', span: 2, tracks: ['horeca'] },
-  { id: 'menu', span: 1, tracks: ['horeca'] },
   { id: 'todo', span: 1, tracks: [] },
   { id: 'channels', span: 1, tracks: [] },
   { id: 'feed', span: 1, tracks: [] },

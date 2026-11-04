@@ -78,3 +78,18 @@ describe('FloorPlanView', () => {
     expect(screen.getByText('Nog geen zaalplan.')).toBeInTheDocument();
   });
 });
+
+// HORECA-NU-2a — een dichte zone: label "dicht" op de tab en een uitleg; tafels blijven aanklikbaar.
+describe('FloorPlanView met een dichte zone', () => {
+  it('toont "dicht" en de uitleg, en het personeel kan de tafel nog openen', () => {
+    const onTableClick = vi.fn();
+    const withClosed = areas.map((a) => (a.id === 'a2' ? { ...a, is_open: false } : a));
+    render(<FloorPlanView areas={withClosed} tables={tables} markers={markers} initialAreaId="a2" onTableClick={onTableClick} />);
+    const tabs = screen.getAllByRole('tab');
+    expect(tabs[1].textContent).toBe('Terrasdicht');
+    expect(screen.getByRole('status').textContent).toContain('Terras is dicht voor gasten');
+    fireEvent.click(screen.getAllByTestId('floor-table')[0]);
+    expect(onTableClick).toHaveBeenCalledTimes(1);
+  });
+});
+

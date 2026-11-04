@@ -18,9 +18,17 @@ describe('DASH-2b cockpitkaarten per spoor', () => {
     expect(ids(availableCards(['events']))[0]).toBe('event');
   });
 
-  it('horeca krijgt keuken, drukte, menu en leveringen', () => {
+  it('horeca krijgt keuken, drukte en leveringen', () => {
     const got = ids(availableCards(['horeca']));
-    for (const id of ['kitchen', 'rush', 'menu', 'deliveries']) expect(got).toContain(id);
+    for (const id of ['kitchen', 'rush', 'deliveries']) expect(got).toContain(id);
+  });
+
+  it('HORECA-NU-1: "Op voor vandaag" is geen kaart meer (zit in het Nu-paneel); een bewaarde volgorde met menu blijft werken', () => {
+    expect(ids(availableCards(['horeca']))).not.toContain('menu');
+    const l = resolveLayout(['horeca'], { layout_type: COCKPIT_LAYOUT_TYPE, widget_order: ['menu', 'rush', 'kitchen'], hidden_widgets: ['menu'] });
+    expect(ids(l.order)).not.toContain('menu');
+    expect(ids(l.order).indexOf('rush')).toBeLessThan(ids(l.order).indexOf('kitchen'));
+    expect(l.hidden.size).toBe(0);
   });
 });
 

@@ -18,6 +18,8 @@ export interface FloorArea {
   grid_w: number;
   grid_h: number;
   is_active: boolean;
+  /** HORECA-NU-2a: false = zone tijdelijk dicht (gasten kunnen er niet bestellen; personeel wel). Ontbreekt = open. */
+  is_open?: boolean;
 }
 
 /** Iets met een plek op het raster (tafel of decor). x/y = linkerbovenhoek vóór het draaien. */

@@ -4,7 +4,6 @@ import { format, subDays } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from '@/hooks/useTenant';
 import { useAuth } from '@/hooks/useAuth';
-import { isSoldOutNow } from '@/components/admin/storefront/food/useSoldOutToday';
 
 // ------------------------------------------------------------------ events
 
@@ -94,52 +93,6 @@ export function useCockpitPosSession(enabled: boolean) {
         .maybeSingle();
       if (error) throw error;
       return data;
-    },
-  });
-}
-
-export interface MenuItemState {
-  id: string;
-  name: string;
-  soldOut: boolean;
-}
-
-/**
- * Producten voor "Op voor vandaag": eerst wat al op is, dan de bestverkochte producten (ids
- * uit de toplijst), aangevuld tot `limit`. Alleen actieve producten.
- */
-export function useCockpitMenuState(topProductIds: string[], enabled: boolean, limit = 5) {
-  const { currentTenant } = useTenant();
-  const tenantId = currentTenant?.id;
-  return useQuery({
-    queryKey: ['cockpit-menu-state', tenantId, topProductIds.join(','), limit],
-    enabled: enabled && !!tenantId,
-    staleTime: 60_000,
-    queryFn: async (): Promise<MenuItemState[]> => {
-      const [out, top] = await Promise.all([
-        supabase
-          .from('products')
-          .select('id, name, sold_out_until')
-          .eq('tenant_id', tenantId!)
-          .eq('is_active', true)
-          .gt('sold_out_until', new Date().toISOString())
-          .order('name')
-          .limit(limit),
-        topProductIds.length
-          ? supabase.from('products').select('id, name, sold_out_until').eq('tenant_id', tenantId!).eq('is_active', true).in('id', topProductIds)
-          : Promise.resolve({ data: [], error: null }),
-      ]);
-      if (out.error) throw out.error;
-      if (top.error) throw top.error;
-      type Row = { id: string; name: string; sold_out_until: string | null };
-      const rows = new Map<string, MenuItemState>();
-      for (const r of (out.data ?? []) as Row[]) rows.set(r.id, { id: r.id, name: r.name, soldOut: isSoldOutNow(r.sold_out_until) });
-      const byId = new Map(((top.data ?? []) as Row[]).map((r) => [r.id, r]));
-      for (const id of topProductIds) {
-        const r = byId.get(id);
-        if (r && !rows.has(r.id)) rows.set(r.id, { id: r.id, name: r.name, soldOut: isSoldOutNow(r.sold_out_until) });
-      }
-      return [...rows.values()].slice(0, limit);
     },
   });
 }

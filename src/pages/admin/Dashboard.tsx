@@ -20,7 +20,7 @@ import {
   useCockpitUnread,
 } from '@/hooks/useCockpitSignals';
 import { useCockpitFeed } from '@/hooks/useCockpitFeed';
-import { useCockpitMenuState, useCockpitNextEvent, useCockpitPosSession } from '@/hooks/useCockpitTracks';
+import { useCockpitNextEvent, useCockpitPosSession } from '@/hooks/useCockpitTracks';
 import { useKitchenBoard } from '@/components/admin/kitchen/useKitchenBoard';
 import { useNavItemVisibility } from '@/components/admin/sidebar/useNavItemVisibility';
 import { findNavItems } from '@/components/admin/sidebar/sidebarConfig';
@@ -34,7 +34,9 @@ import { ChannelRevenueCard } from '@/components/admin/cockpit/ChannelRevenueCar
 import { LiveFeedCard } from '@/components/admin/cockpit/LiveFeedCard';
 import { TopProductsCard } from '@/components/admin/cockpit/TopProductsCard';
 import { EventHeroCard } from '@/components/admin/cockpit/EventHeroCard';
-import { DeliveriesCard, HorecaTiles, KitchenHeroCard, RushCard, SoldOutCard } from '@/components/admin/cockpit/HorecaCards';
+import { DeliveriesCard, HorecaTiles, KitchenHeroCard, RushCard } from '@/components/admin/cockpit/HorecaCards';
+// HORECA-NU-1: het Nu-paneel bovenaan (vervangt de kaart "Op voor vandaag": uitverkocht zit nu in een tegel).
+import { NowPanel } from '@/components/horeca/now/NowPanel';
 import { CockpitCustomizeDialog } from '@/components/admin/cockpit/CockpitCustomizeDialog';
 import { COCKPIT_LAYOUT_TYPE, resolveLayout, spanClass, type CockpitCardId } from '@/components/admin/cockpit/cockpitLayout';
 import { minuteLabel } from '@/components/admin/cockpit/cockpitFormat';
@@ -61,7 +63,6 @@ export default function AdminDashboard() {
   const canRevenue = useCan('read', 'reports_financial');
   const canOrders = useCan('read', 'orders');
   const canProducts = useCan('read', 'products');
-  const canWriteProducts = useCan('write', 'products');
   const canInbox = useCan('read', 'inbox');
   const canInvoices = useCan('read', 'invoices');
   const canCustomers = useCan('read', 'customers');
@@ -99,9 +100,6 @@ export default function AdminDashboard() {
   const dayStart = useMemo(() => new Date(`${dayKey}T00:00:00`), [dayKey]);
   const topSince = useMemo(() => (horecaFirst ? dayStart : subDays(dayStart, 7)), [horecaFirst, dayStart]);
   const top = useCockpitTopProducts(topSince, hasTenant && canOrders, 5);
-  const menuSince = useMemo(() => subDays(dayStart, 14), [dayStart]);
-  const menuTop = useCockpitTopProducts(menuSince, hasTenant && horeca && canProducts && canOrders, 8);
-  const menu = useCockpitMenuState((menuTop.data ?? []).flatMap((p) => (p.productId ? [p.productId] : [])), hasTenant && horeca && canProducts && !menuTop.isLoading, 5);
   const event = useCockpitNextEvent(hasTenant && events);
   const kitchen = useKitchenBoard(nowMs, hasTenant && horeca && canOrders);
   const posSession = useCockpitPosSession(hasTenant && horeca && canPos);
@@ -183,8 +181,6 @@ export default function AdminDashboard() {
       case 'deliveries':
       case 'top':
         return canOrders;
-      case 'menu':
-        return canProducts;
       case 'feed':
         return canOrders || canPos || canCustomers;
       default:
@@ -214,8 +210,6 @@ export default function AdminDashboard() {
         return <GoalCard canRead={revenueProps.canRead} canEdit={isShopAdmin} data={revenue.data} isLoading={revenueLoading} />;
       case 'rush':
         return <RushCard data={revenue.data} isLoading={revenueLoading} />;
-      case 'menu':
-        return <SoldOutCard items={menu.data} isLoading={menu.isLoading || menuTop.isLoading} canWrite={canWriteProducts} />;
       case 'todo':
         return <TodoCard items={todoItems} isLoading={todoLoading} />;
       case 'channels':
@@ -271,6 +265,9 @@ export default function AdminDashboard() {
           <CockpitHeader pills={pills} onCustomize={() => setCustomizing(true)} />
 
           <div className="relative -mt-14 flex flex-col gap-6 px-2 md:-mt-16 md:px-4">
+            {/* HORECA-NU-1 — schakelaars voor tijdens de dienst; enkel bij horeca en enkel wat de rol mag. */}
+            <NowPanel nowMs={nowMs} />
+
             <MorningBrief
               isLoading={briefLoading}
               input={{

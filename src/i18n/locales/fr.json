@@ -9105,7 +9105,9 @@
       "error_save": "Échec de l'enregistrement : {{reason}}",
       "kind_regular": "Habitué",
       "regular_prefix": "Habitué ",
-      "regular_help": "Un habitué a sa propre place sur le plan de salle : donnez-lui son nom (p. ex. « Jef »). Sur la caisse, un appui ouvre son addition. Pas d’autocollant QR, personne ne commande soi-même ici."
+      "regular_help": "Un habitué a sa propre place sur le plan de salle : donnez-lui son nom (p. ex. « Jef »). Sur la caisse, un appui ouvre son addition. Pas d’autocollant QR, personne ne commande soi-même ici.",
+      "zone_closed": "fermé",
+      "zone_closed_note": "{{name}} est fermé aux clients : commander ou appeler le service via le QR n’y est pas possible. Vous pouvez toujours y travailler vous-même."
     },
     "prepStations": {
       "title": "Postes de préparation",
@@ -9704,6 +9706,85 @@
       "call_bill_desc": "Le client demande l’addition sans faire signe, aussi sur sa page d’addition si le paiement en ligne est désactivé.",
       "outside_hours": "Commander en dehors des heures d'ouverture",
       "outside_hours_desc": "Désactivé = les clients ne commandent à table que pendant vos heures d'ouverture. En dehors, ils voient quand c'est de nouveau possible."
+    },
+    "now": {
+      "title": "Maintenant",
+      "subtitle": "En un geste, pendant le service",
+      "on": "ACTIVÉ",
+      "off": "DÉSACTIVÉ",
+      "save_failed": "Cela n’a pas fonctionné. Réessayez.",
+      "search": "Rechercher dans la carte",
+      "no_results": "Aucun résultat.",
+      "ordering": {
+        "title": "Commande en ligne",
+        "offline": "Votre site est hors ligne.",
+        "offline_link": "Mettre le site en ligne",
+        "no_payments": "Pas encore de moyen de paiement.",
+        "no_payments_link": "Configurer les paiements"
+      },
+      "qr": {
+        "title": "Commande via QR à table",
+        "view_only": "Menu QR en consultation seule",
+        "offline": "Le menu QR n’est visible que lorsque votre site est en ligne.",
+        "no_pay_way": "Choisissez d’abord comment les clients paient.",
+        "settings_link": "QR à table",
+        "on_toast": "Les clients peuvent maintenant commander via le QR à table",
+        "off_toast": "Le menu QR est maintenant en consultation seule"
+      },
+      "pause": {
+        "title": "Mettre la cuisine en pause",
+        "paused": "EN PAUSE",
+        "until": "jusqu’à {{time}} · touchez pour reprendre",
+        "running": "En cours",
+        "tap": "Touchez pour mettre les commandes en ligne en pause"
+      },
+      "soldout": {
+        "title": "Épuisé aujourd’hui",
+        "count": "{{count}} épuisé(s)",
+        "none": "Rien d’épuisé",
+        "help": "Touchez pour marquer un produit épuisé ou de retour. Demain à 5 h, tout revient automatiquement : sur la carte, à table et à la caisse."
+      },
+      "closed": {
+        "title": "Fermeture exceptionnelle",
+        "closed": "FERMÉ AUJOURD’HUI",
+        "open": "Non, ouvert",
+        "period": "Aujourd’hui fait partie d’une période de fermeture.",
+        "period_toast": "Aujourd’hui fait partie d’une période de fermeture. Modifiez-la dans vos heures d’ouverture.",
+        "confirm_title": "Fermer exceptionnellement aujourd’hui ?",
+        "confirm_desc": "Votre site affiche « fermé » aujourd’hui ; la réservation en ligne pour aujourd’hui n’est plus possible, ni le retrait ou la livraison aujourd’hui. Demain, vous rouvrez selon vos heures d’ouverture.",
+        "reason": "Raison (facultatif)",
+        "reason_placeholder": "Ex. personnel malade",
+        "confirm": "Fermer aujourd’hui",
+        "closed_toast": "Votre établissement est fermé aujourd’hui",
+        "open_toast": "Votre établissement est à nouveau ouvert aujourd’hui"
+      },
+      "zone": {
+        "open": "OUVERT",
+        "closed": "FERMÉ",
+        "open_toast": "{{name}} est ouvert",
+        "closed_toast": "{{name}} est fermé : les clients ne peuvent pas y commander via le QR"
+      },
+      "special": {
+        "title": "Plat du jour",
+        "none_short": "Aucun",
+        "count": "{{count}} plats du jour",
+        "help": "Un plat de votre carte, à son prix habituel. Aujourd’hui, il apparaît en haut de votre carte et sur la caisse, et expire automatiquement demain à 5 h.",
+        "today": "Aujourd’hui",
+        "none": "Pas encore de plat du jour.",
+        "remove": "Retirer {{name}} comme plat du jour",
+        "none_today": "Pas de plat du jour aujourd’hui",
+        "new": "Nouveau plat comme plat du jour",
+        "name": "Nom",
+        "price": "Prix",
+        "category": "Catégorie",
+        "no_category": "Aucune catégorie",
+        "create": "Créer et sélectionner",
+        "pick": "Choisir dans la carte",
+        "make": "Plat du jour",
+        "on_toast": "{{name}} est le plat du jour",
+        "off_toast": "{{name}} n’est plus un plat du jour",
+        "none_toast": "Pas de plat du jour aujourd’hui"
+      }
     }
   },
   "billing": {
@@ -11704,7 +11785,8 @@
       "tab": {
         "cash": "Caisse",
         "reports": "Rapports",
-        "shift": "Mon service"
+        "shift": "Mon service",
+        "now": "Maintenant"
       },
       "menu": "Menu",
       "toAdmin": "Vers l’administration SellQo",
@@ -12193,6 +12275,50 @@
       },
       "retry": "Réessayer",
       "pairAgain": "Associer à nouveau"
+    },
+    "now": {
+      "needApproval": "D’abord l’accord d’un propriétaire ou d’un responsable (PIN).",
+      "approvalIntro": "Un propriétaire ou un responsable approuve avec son code PIN. Il reste uniquement sur cet écran.",
+      "error": {
+        "not_allowed": "Seul le propriétaire ou un responsable peut faire cela.",
+        "invalid": "Ce n’est pas (plus) possible. Actualisez et réessayez.",
+        "wrong_pin": "Code PIN incorrect.",
+        "locked": "Trop d’essais erronés : ce code PIN est bloqué pendant 5 minutes.",
+        "offline": "Pas de connexion. Réessayez.",
+        "server": "Cela n’a pas fonctionné. Réessayez.",
+        "need_approval": "D’abord l’accord d’un propriétaire ou d’un responsable (PIN)."
+      },
+      "soldout": {
+        "title": "Épuisé aujourd’hui",
+        "count": "{{count}} épuisé(s)",
+        "none": "Rien d’épuisé"
+      },
+      "special": {
+        "title": "Plat du jour",
+        "badge": "Plat du jour",
+        "none": "Aucun",
+        "make": "Plat du jour",
+        "remove": "Retirer",
+        "noneToday": "Pas de plat du jour aujourd’hui",
+        "onToast": "{{name}} est le plat du jour",
+        "offToast": "{{name}} n’est plus un plat du jour",
+        "noneToast": "Pas de plat du jour aujourd’hui"
+      },
+      "pause": {
+        "title": "Mettre la cuisine en pause",
+        "paused": "EN PAUSE",
+        "until": "jusqu’à {{time}} · touchez pour reprendre",
+        "running": "En cours",
+        "minutes": "{{count}} min",
+        "pausedToast": "Commandes en ligne en pause pendant {{count}} minutes",
+        "resumed": "Les commandes en ligne reprennent"
+      },
+      "zone": {
+        "open": "OUVERT",
+        "closed": "FERMÉ",
+        "openToast": "{{name}} est ouvert",
+        "closedToast": "{{name}} est fermé : les clients ne peuvent pas y commander via le QR"
+      }
     }
   },
   "deviceAlerts": {

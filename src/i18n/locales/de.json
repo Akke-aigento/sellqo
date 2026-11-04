@@ -9105,7 +9105,9 @@
       "error_save": "Speichern fehlgeschlagen: {{reason}}",
       "kind_regular": "Stammgast",
       "regular_prefix": "Stammgast ",
-      "regular_help": "Ein Stammgast hat seinen eigenen Platz im Raumplan: gib ihm seinen Namen (z. B. „Jef“). In der Kasse öffnet ein Tippen seine Rechnung. Es gibt keinen QR-Aufkleber, denn hier bestellt niemand selbst."
+      "regular_help": "Ein Stammgast hat seinen eigenen Platz im Raumplan: gib ihm seinen Namen (z. B. „Jef“). In der Kasse öffnet ein Tippen seine Rechnung. Es gibt keinen QR-Aufkleber, denn hier bestellt niemand selbst.",
+      "zone_closed": "zu",
+      "zone_closed_note": "{{name}} ist für Gäste zu: Bestellen oder die Bedienung rufen per QR geht dort nicht. Du kannst selbst ganz normal darauf arbeiten."
     },
     "prepStations": {
       "title": "Zubereitungsstationen",
@@ -9704,6 +9706,85 @@
       "call_bill_desc": "Der Gast verlangt die Rechnung, ohne zu winken, auch auf seiner Rechnungsseite, wenn Online-Bezahlen aus ist.",
       "outside_hours": "Bestellen außerhalb der Öffnungszeiten",
       "outside_hours_desc": "Aus = Gäste können am Tisch nur während Ihrer Öffnungszeiten bestellen. Außerhalb sehen sie, wann es wieder geht."
+    },
+    "now": {
+      "title": "Jetzt",
+      "subtitle": "Mit einem Tipp, während des Betriebs",
+      "on": "AN",
+      "off": "AUS",
+      "save_failed": "Das hat nicht geklappt. Versuch es noch einmal.",
+      "search": "Karte durchsuchen",
+      "no_results": "Nichts gefunden.",
+      "ordering": {
+        "title": "Online bestellen",
+        "offline": "Deine Website ist offline.",
+        "offline_link": "Website online stellen",
+        "no_payments": "Noch keine Zahlungsart.",
+        "no_payments_link": "Zahlungen einrichten"
+      },
+      "qr": {
+        "title": "Bestellen per QR am Tisch",
+        "view_only": "QR-Menü nur zum Ansehen",
+        "offline": "Das QR-Menü ist erst sichtbar, wenn deine Website online ist.",
+        "no_pay_way": "Wähle zuerst, wie Gäste bezahlen.",
+        "settings_link": "QR am Tisch",
+        "on_toast": "Gäste können jetzt per QR am Tisch bestellen",
+        "off_toast": "Das QR-Menü ist jetzt nur zum Ansehen"
+      },
+      "pause": {
+        "title": "Küche pausieren",
+        "paused": "PAUSIERT",
+        "until": "bis {{time}} · tippen zum Fortsetzen",
+        "running": "Läuft",
+        "tap": "Tippe, um Online-Bestellungen zu pausieren"
+      },
+      "soldout": {
+        "title": "Heute ausverkauft",
+        "count": "{{count}} ausverkauft",
+        "none": "Nichts ausverkauft",
+        "help": "Tippe, um etwas als ausverkauft oder wieder da zu markieren. Morgen um 5 Uhr ist alles automatisch zurück: auf der Karte, am Tisch und an der Kasse."
+      },
+      "closed": {
+        "title": "Ausnahmsweise geschlossen",
+        "closed": "HEUTE ZU",
+        "open": "Nein, geöffnet",
+        "period": "Heute liegt in einem Schließzeitraum.",
+        "period_toast": "Heute liegt in einem Schließzeitraum. Ändere ihn bei deinen Öffnungszeiten.",
+        "confirm_title": "Heute ausnahmsweise geschlossen?",
+        "confirm_desc": "Deine Website zeigt heute „geschlossen“; Online-Reservierungen für heute sind nicht mehr möglich, Abholung und Lieferung heute auch nicht. Morgen hast du wieder laut deinen Öffnungszeiten geöffnet.",
+        "reason": "Grund (optional)",
+        "reason_placeholder": "Z. B. Personal krank",
+        "confirm": "Heute schließen",
+        "closed_toast": "Dein Betrieb ist heute geschlossen",
+        "open_toast": "Dein Betrieb ist heute wieder geöffnet"
+      },
+      "zone": {
+        "open": "OFFEN",
+        "closed": "ZU",
+        "open_toast": "{{name}} ist offen",
+        "closed_toast": "{{name}} ist zu: Gäste können dort nicht per QR bestellen"
+      },
+      "special": {
+        "title": "Tagesgericht",
+        "none_short": "Keins",
+        "count": "{{count}} Tagesgerichte",
+        "help": "Ein Gericht deiner Karte zum normalen Preis. Heute steht es oben auf deiner Speisekarte und an der Kasse und läuft morgen um 5 Uhr automatisch ab.",
+        "today": "Heute",
+        "none": "Noch kein Tagesgericht heute.",
+        "remove": "{{name}} als Tagesgericht entfernen",
+        "none_today": "Heute kein Tagesgericht",
+        "new": "Neues Gericht als Tagesgericht",
+        "name": "Name",
+        "price": "Preis",
+        "category": "Kategorie",
+        "no_category": "Keine Kategorie",
+        "create": "Anlegen und auswählen",
+        "pick": "Aus der Karte wählen",
+        "make": "Tagesgericht",
+        "on_toast": "{{name}} ist das Tagesgericht von heute",
+        "off_toast": "{{name}} ist kein Tagesgericht mehr",
+        "none_toast": "Heute kein Tagesgericht"
+      }
     }
   },
   "billing": {
@@ -11704,7 +11785,8 @@
       "tab": {
         "cash": "Kasse",
         "reports": "Berichte",
-        "shift": "Meine Schicht"
+        "shift": "Meine Schicht",
+        "now": "Jetzt"
       },
       "menu": "Menü",
       "toAdmin": "Zur SellQo-Verwaltung",
@@ -12193,6 +12275,50 @@
       },
       "retry": "Erneut versuchen",
       "pairAgain": "Erneut koppeln"
+    },
+    "now": {
+      "needApproval": "Zuerst die Freigabe des Inhabers oder einer verantwortlichen Person (PIN).",
+      "approvalIntro": "Der Inhaber oder eine verantwortliche Person gibt mit der PIN frei. Sie bleibt nur in diesem Bildschirm.",
+      "error": {
+        "not_allowed": "Nur der Inhaber oder eine verantwortliche Person darf das.",
+        "invalid": "Das geht (nicht mehr). Aktualisiere und versuch es noch einmal.",
+        "wrong_pin": "Falsche PIN.",
+        "locked": "Zu viele Fehlversuche: Diese PIN ist 5 Minuten gesperrt.",
+        "offline": "Keine Verbindung. Versuch es noch einmal.",
+        "server": "Das hat nicht geklappt. Versuch es noch einmal.",
+        "need_approval": "Zuerst die Freigabe des Inhabers oder einer verantwortlichen Person (PIN)."
+      },
+      "soldout": {
+        "title": "Heute ausverkauft",
+        "count": "{{count}} ausverkauft",
+        "none": "Nichts ausverkauft"
+      },
+      "special": {
+        "title": "Tagesgericht",
+        "badge": "Tagesgericht",
+        "none": "Keins",
+        "make": "Tagesgericht",
+        "remove": "Entfernen",
+        "noneToday": "Heute kein Tagesgericht",
+        "onToast": "{{name}} ist das Tagesgericht von heute",
+        "offToast": "{{name}} ist kein Tagesgericht mehr",
+        "noneToast": "Heute kein Tagesgericht"
+      },
+      "pause": {
+        "title": "Küche pausieren",
+        "paused": "PAUSIERT",
+        "until": "bis {{time}} · tippen zum Fortsetzen",
+        "running": "Läuft",
+        "minutes": "{{count}} Min.",
+        "pausedToast": "Online-Bestellungen für {{count}} Minuten pausiert",
+        "resumed": "Online-Bestellungen laufen wieder"
+      },
+      "zone": {
+        "open": "OFFEN",
+        "closed": "ZU",
+        "openToast": "{{name}} ist offen",
+        "closedToast": "{{name}} ist zu: Gäste können dort nicht per QR bestellen"
+      }
     }
   },
   "deviceAlerts": {

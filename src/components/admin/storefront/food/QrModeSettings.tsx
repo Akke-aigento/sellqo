@@ -24,6 +24,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
 import { QR_MODES, type QrMode } from './qrModes';
+import { qrOrderHasNoPayWay } from './qrModeRules';
 import { BUSINESS_HOURS_URL } from '@/components/admin/settings/hours/HoursModeChoice';
 import { useHorecaHref } from '@/hooks/useHorecaHref';
 
@@ -135,7 +136,8 @@ export function QrModeSettings() {
   const checkBlocked = !stripeOk || data.fiscal;
   // Meteen online bij het bestellen kan niet zonder Stripe; staat het toch aan, dan mag je het uitzetten.
   const payOnlineBlocked = !stripeOk && !s.payOnline;
-  const qrNoWay = s.mode === 'order' && s.flow === 'order' && !s.counter && !s.payOnline;
+  // HORECA-NU-1: dezelfde regel als de tegel op het Nu-paneel (qrModeRules.ts).
+  const qrNoWay = qrOrderHasNoPayWay(s);
 
   const save = async () => {
     if (!tenantId) return;

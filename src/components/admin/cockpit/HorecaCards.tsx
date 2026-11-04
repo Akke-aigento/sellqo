@@ -1,10 +1,9 @@
-// DASH-2b — de horeca-kaarten: keuken nu, drukte, "op voor vandaag" en leveringen.
+// DASH-2b — de horeca-kaarten: keuken nu, drukte en leveringen.
 // De keuken leest uit hetzelfde bord als het keukenscherm (useKitchenBoard), zodat de
 // tellingen hier en daar altijd gelijk zijn.
 import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { isToday } from 'date-fns';
-import { useQueryClient } from '@tanstack/react-query';
 import { AlarmClock, ChefHat, MapPin } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
@@ -12,9 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useTenant } from '@/hooks/useTenant';
 import type { CockpitRevenueData } from '@/hooks/useCockpitRevenue';
-import type { MenuItemState } from '@/hooks/useCockpitTracks';
 import type { KitchenCard } from '@/components/admin/kitchen/kitchenModel';
-import { useSoldOutToday } from '@/components/admin/storefront/food/useSoldOutToday';
 import { cn, formatCurrency } from '@/lib/utils';
 import { HERO_SURFACE, minuteLabel } from './cockpitFormat';
 
@@ -302,64 +299,8 @@ export function RushCard({ data, isLoading }: { data: CockpitRevenueData | undef
   );
 }
 
-// ------------------------------------------------------------------ op voor vandaag
-
-export function SoldOutCard({ items, isLoading, canWrite }: { items: MenuItemState[] | undefined; isLoading: boolean; canWrite: boolean }) {
-  const { t } = useTranslation();
-  const qc = useQueryClient();
-  const soldOut = useSoldOutToday();
-
-  const toggle = (item: MenuItemState) =>
-    soldOut.mutate(
-      { productId: item.id, soldOut: !item.soldOut },
-      { onSuccess: () => qc.invalidateQueries({ queryKey: ['cockpit-menu-state'] }) },
-    );
-
-  return (
-    <Card className="flex flex-col rounded-2xl">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-base">{t('admin.cockpit.menu.title')}</CardTitle>
-        <p className="text-xs text-muted-foreground">{t('admin.cockpit.menu.help')}</p>
-      </CardHeader>
-      <CardContent className="flex-1">
-        {isLoading && !items ? (
-          <div className="space-y-3">
-            {[0, 1, 2].map((i) => (
-              <Skeleton key={i} className="h-10 w-full" />
-            ))}
-          </div>
-        ) : !items || items.length === 0 ? (
-          <p className="text-sm text-muted-foreground">{t('admin.cockpit.menu.empty')}</p>
-        ) : (
-          <ul className="flex flex-col">
-            {items.map((item) => (
-              <li key={item.id} className="flex min-h-12 items-center gap-3">
-                <span className={cn('min-w-0 flex-1 truncate text-[15px] font-semibold', item.soldOut && 'text-muted-foreground line-through')}>
-                  {item.name}
-                </span>
-                {canWrite ? (
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    aria-pressed={item.soldOut}
-                    disabled={soldOut.isPending}
-                    onClick={() => toggle(item)}
-                    className={cn('h-11 rounded-full px-4', item.soldOut && 'border-orange-300 bg-orange-50 text-orange-900 hover:bg-orange-100 dark:border-orange-900 dark:bg-orange-950 dark:text-orange-200')}
-                  >
-                    {item.soldOut ? t('admin.cockpit.menu.back_on') : t('admin.cockpit.menu.mark_out')}
-                  </Button>
-                ) : (
-                  item.soldOut && <span className="text-xs font-semibold text-orange-800 dark:text-orange-300">{t('admin.cockpit.menu.is_out')}</span>
-                )}
-              </li>
-            ))}
-          </ul>
-        )}
-      </CardContent>
-    </Card>
-  );
-}
+// HORECA-NU-1: "Op voor vandaag" (SoldOutCard) is opgegaan in de tegel "Uitverkocht vandaag" van het Nu-paneel
+// (src/components/horeca/now/NowPanel.tsx), met zoeken over de hele kaart.
 
 // ------------------------------------------------------------------ leveringen
 

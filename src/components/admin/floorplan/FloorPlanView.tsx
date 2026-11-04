@@ -41,12 +41,18 @@ export function FloorPlanView({ areas, tables, markers, status, badges, onTableC
         <div role="tablist" aria-label={t('admin.floorPlan.areas')} className="flex gap-1 overflow-x-auto">
           {sorted.map((a) => (
             <button key={a.id} type="button" role="tab" aria-selected={a.id === area.id} onClick={() => setPicked(a.id)}
-              className={cn('whitespace-nowrap rounded-full border px-3 py-1 text-sm', a.id === area.id ? 'border-primary bg-primary text-primary-foreground' : 'hover:bg-muted')}>
+              className={cn('whitespace-nowrap rounded-full border px-3 py-1 text-sm', a.id === area.id ? 'border-primary bg-primary text-primary-foreground' : 'hover:bg-muted', a.is_open === false && a.id !== area.id && 'opacity-60')}>
               {a.name}
+              {/* HORECA-NU-2a — zone tijdelijk dicht: label, en het plan gedimd (personeel werkt er wel op). */}
+              {a.is_open === false ? <span className="ml-1.5 rounded bg-muted px-1 text-[11px] font-semibold uppercase text-muted-foreground">{t('admin.floorPlan.zone_closed')}</span> : null}
             </button>
           ))}
         </div>
       ) : null}
+      {area.is_open === false ? (
+        <p role="status" className="rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground">{t('admin.floorPlan.zone_closed_note', { name: area.name })}</p>
+      ) : null}
+      <div className={cn(area.is_open === false && 'opacity-60 grayscale')}>
       <FloorCanvas
         area={area}
         tables={inArea(tables).filter((x) => x.is_active)}
@@ -57,6 +63,7 @@ export function FloorPlanView({ areas, tables, markers, status, badges, onTableC
         onTableLongPress={onTableLongPress}
         maxHeight={maxHeight}
       />
+      </div>
     </div>
   );
 }

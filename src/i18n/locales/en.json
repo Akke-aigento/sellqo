@@ -9436,7 +9436,9 @@
       "error_save": "Saving failed: {{reason}}",
       "kind_regular": "Regular",
       "regular_prefix": "Regular ",
-      "regular_help": "A regular gets their own spot on the floor plan: give it their name (e.g. \"Jef\"). On the till a tap opens their bill. There is no QR sticker, because nobody orders here themselves."
+      "regular_help": "A regular gets their own spot on the floor plan: give it their name (e.g. \"Jef\"). On the till a tap opens their bill. There is no QR sticker, because nobody orders here themselves.",
+      "zone_closed": "closed",
+      "zone_closed_note": "{{name}} is closed to guests: ordering or calling staff via the QR is not possible there. You can still work on it yourself."
     },
     "prepStations": {
       "title": "Preparation stations",
@@ -10035,6 +10037,85 @@
       "call_bill_desc": "The guest asks for the bill without waving, also on their bill page when online payment is off.",
       "outside_hours": "Ordering outside opening hours",
       "outside_hours_desc": "Off = guests can only order at the table during your opening hours. Outside them they see when they can order again."
+    },
+    "now": {
+      "title": "Now",
+      "subtitle": "One tap, during service",
+      "on": "ON",
+      "off": "OFF",
+      "save_failed": "That didn’t work. Please try again.",
+      "search": "Search the menu",
+      "no_results": "Nothing found.",
+      "ordering": {
+        "title": "Online ordering",
+        "offline": "Your website is offline.",
+        "offline_link": "Put website online",
+        "no_payments": "No payment method yet.",
+        "no_payments_link": "Set up payments"
+      },
+      "qr": {
+        "title": "Ordering via table QR",
+        "view_only": "QR menu is view-only",
+        "offline": "The QR menu is only visible once your website is online.",
+        "no_pay_way": "First choose how guests pay.",
+        "settings_link": "Table QR",
+        "on_toast": "Guests can now order via the table QR",
+        "off_toast": "The QR menu is now view-only"
+      },
+      "pause": {
+        "title": "Pause kitchen",
+        "paused": "PAUSED",
+        "until": "until {{time}} · tap to resume",
+        "running": "Running",
+        "tap": "Tap to pause online orders"
+      },
+      "soldout": {
+        "title": "Sold out today",
+        "count": "{{count}} sold out",
+        "none": "Nothing sold out",
+        "help": "Tap to mark something sold out or back. Tomorrow at 5 am everything is back automatically: on the menu, at the table and on the POS."
+      },
+      "closed": {
+        "title": "Closed today",
+        "closed": "CLOSED TODAY",
+        "open": "No, open",
+        "period": "Today falls within a closing period.",
+        "period_toast": "Today falls within a closing period. Change it in your opening hours.",
+        "confirm_title": "Closed today?",
+        "confirm_desc": "Your website shows \"closed\" today; online booking for today is no longer possible, and neither is pickup or delivery today. Tomorrow you are open again according to your opening hours.",
+        "reason": "Reason (optional)",
+        "reason_placeholder": "E.g. staff ill",
+        "confirm": "Close today",
+        "closed_toast": "Your business is closed today",
+        "open_toast": "Your business is open again today"
+      },
+      "zone": {
+        "open": "OPEN",
+        "closed": "CLOSED",
+        "open_toast": "{{name}} is open",
+        "closed_toast": "{{name}} is closed: guests cannot order there via the QR"
+      },
+      "special": {
+        "title": "Dish of the day",
+        "none_short": "None",
+        "count": "{{count}} dishes of the day",
+        "help": "A dish from your menu, at its usual price. Today it appears at the top of your menu and on the POS, and it expires automatically tomorrow at 5 am.",
+        "today": "Today",
+        "none": "No dish of the day yet.",
+        "remove": "Remove {{name}} as dish of the day",
+        "none_today": "No dish of the day today",
+        "new": "New dish as dish of the day",
+        "name": "Name",
+        "price": "Price",
+        "category": "Category",
+        "no_category": "No category",
+        "create": "Create and select",
+        "pick": "Pick from the menu",
+        "make": "Dish of the day",
+        "on_toast": "{{name}} is today’s dish of the day",
+        "off_toast": "{{name}} is no longer a dish of the day",
+        "none_toast": "No dish of the day today"
+      }
     }
   },
   "product_form": {
@@ -11704,7 +11785,8 @@
       "tab": {
         "cash": "Cash",
         "reports": "Reports",
-        "shift": "My shift"
+        "shift": "My shift",
+        "now": "Now"
       },
       "menu": "Menu",
       "toAdmin": "Go to SellQo admin",
@@ -12193,6 +12275,50 @@
       },
       "retry": "Try again",
       "pairAgain": "Link again"
+    },
+    "now": {
+      "needApproval": "First the approval of an owner or manager (PIN).",
+      "approvalIntro": "An owner or manager approves with their PIN. It stays only on this screen.",
+      "error": {
+        "not_allowed": "Only the owner or a manager can do this.",
+        "invalid": "That is not possible (anymore). Refresh and try again.",
+        "wrong_pin": "Wrong PIN.",
+        "locked": "Too many wrong attempts: this PIN is blocked for 5 minutes.",
+        "offline": "No connection. Please try again.",
+        "server": "That didn’t work. Please try again.",
+        "need_approval": "First the approval of an owner or manager (PIN)."
+      },
+      "soldout": {
+        "title": "Sold out today",
+        "count": "{{count}} sold out",
+        "none": "Nothing sold out"
+      },
+      "special": {
+        "title": "Dish of the day",
+        "badge": "Dish of the day",
+        "none": "None",
+        "make": "Dish of the day",
+        "remove": "Remove",
+        "noneToday": "No dish of the day today",
+        "onToast": "{{name}} is today’s dish of the day",
+        "offToast": "{{name}} is no longer a dish of the day",
+        "noneToast": "No dish of the day today"
+      },
+      "pause": {
+        "title": "Pause kitchen",
+        "paused": "PAUSED",
+        "until": "until {{time}} · tap to resume",
+        "running": "Running",
+        "minutes": "{{count}} min",
+        "pausedToast": "Online orders paused for {{count}} minutes",
+        "resumed": "Online orders are running again"
+      },
+      "zone": {
+        "open": "OPEN",
+        "closed": "CLOSED",
+        "openToast": "{{name}} is open",
+        "closedToast": "{{name}} is closed: guests cannot order there via the QR"
+      }
     }
   },
   "deviceAlerts": {

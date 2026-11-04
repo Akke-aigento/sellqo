@@ -34,13 +34,16 @@ export function useFloorPlan() {
     queryKey: floorPlanKey(tenantId),
     enabled: !!tenantId,
     queryFn: async (): Promise<FloorPlanData> => {
-      const [a, t, m] = await Promise.all([
+      const [a, t, m, open] = await Promise.all([
         supabase.from('dining_areas').select(AREA_COLS).eq('tenant_id', tenantId!).eq('is_active', true).order('sort').order('name'),
         supabase.from('dining_tables').select(TABLE_COLS).eq('tenant_id', tenantId!).eq('is_active', true).limit(2000),
         supabase.from('floor_markers').select(MARKER_COLS).eq('tenant_id', tenantId!).limit(2000),
+        // HORECA-NU-2a — apart gelezen: vóór de migratie (kolom bestaat niet) blijft het plan gewoon werken, alles open.
+        supabase.from('dining_areas').select('id, is_open' as 'id').eq('tenant_id', tenantId!).eq('is_active', true),
       ]);
       for (const r of [a, t, m]) if (r.error) throw r.error;
-      const areas = (a.data ?? []) as FloorArea[];
+      const closed = new Set(open.error ? [] : ((open.data ?? []) as unknown as { id: string; is_open: boolean | null }[]).filter((x) => x.is_open === false).map((x) => x.id));
+      const areas = ((a.data ?? []) as FloorArea[]).map((x) => ({ ...x, is_open: !closed.has(x.id) }));
       const live = new Set(areas.map((x) => x.id));
       return {
         areas,

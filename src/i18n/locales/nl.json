@@ -9450,7 +9450,9 @@
       "error_save": "Bewaren mislukt: {{reason}}",
       "kind_regular": "Vaste klant",
       "regular_prefix": "Klant ",
-      "regular_help": "Een vaste klant heeft een eigen plek op het zaalplan: geef hem zijn naam (bv. \"Jef\"). Op de kassa opent een tik zijn rekening. Er is geen QR-sticker, want hier bestelt niemand zelf."
+      "regular_help": "Een vaste klant heeft een eigen plek op het zaalplan: geef hem zijn naam (bv. \"Jef\"). Op de kassa opent een tik zijn rekening. Er is geen QR-sticker, want hier bestelt niemand zelf.",
+      "zone_closed": "dicht",
+      "zone_closed_note": "{{name}} is dicht voor gasten: bestellen of de bediening roepen via de QR kan er niet. Je kan er zelf gewoon op werken."
     },
     "prepStations": {
       "title": "Bereidingsposten",
@@ -10049,6 +10051,85 @@
       "call_bill_desc": "De gast vraagt de rekening zonder te zwaaien, ook op zijn rekening als online afrekenen uitstaat.",
       "outside_hours": "Bestellen buiten de openingsuren",
       "outside_hours_desc": "Uit = gasten kunnen aan tafel enkel bestellen tijdens je openingsuren. Daarbuiten zien ze wanneer het weer kan."
+    },
+    "now": {
+      "title": "Nu",
+      "subtitle": "Met één tik, tijdens de dienst",
+      "on": "AAN",
+      "off": "UIT",
+      "save_failed": "Dat lukte niet. Probeer opnieuw.",
+      "search": "Zoek op de kaart",
+      "no_results": "Niets gevonden.",
+      "ordering": {
+        "title": "Online bestellen",
+        "offline": "Je website staat offline.",
+        "offline_link": "Website online zetten",
+        "no_payments": "Nog geen betaalmethode.",
+        "no_payments_link": "Betalingen instellen"
+      },
+      "qr": {
+        "title": "Bestellen via QR aan tafel",
+        "view_only": "QR-menu enkel om te bekijken",
+        "offline": "Het QR-menu is pas zichtbaar als je website online staat.",
+        "no_pay_way": "Kies eerst hoe gasten betalen.",
+        "settings_link": "QR aan tafel",
+        "on_toast": "Gasten kunnen nu bestellen via de QR aan tafel",
+        "off_toast": "Het QR-menu is nu enkel om te bekijken"
+      },
+      "pause": {
+        "title": "Keuken pauzeren",
+        "paused": "GEPAUZEERD",
+        "until": "tot {{time}} · tik om te hervatten",
+        "running": "Loopt",
+        "tap": "Tik om online bestellingen te pauzeren"
+      },
+      "soldout": {
+        "title": "Uitverkocht vandaag",
+        "count": "{{count}} op",
+        "none": "Niets op",
+        "help": "Tik om iets op of terug te zetten. Morgen om 5 uur staat alles vanzelf terug: op de kaart, aan tafel en op de kassa."
+      },
+      "closed": {
+        "title": "Uitzonderlijk dicht",
+        "closed": "VANDAAG DICHT",
+        "open": "Nee, open",
+        "period": "Vandaag valt in een sluitingsperiode.",
+        "period_toast": "Vandaag valt in een sluitingsperiode. Pas die aan bij je openingsuren.",
+        "confirm_title": "Vandaag uitzonderlijk dicht?",
+        "confirm_desc": "Je website toont vandaag \"gesloten\", online reserveren voor vandaag kan niet meer en afhalen of leveren vandaag ook niet. Morgen ben je weer open volgens je openingsuren.",
+        "reason": "Reden (optioneel)",
+        "reason_placeholder": "Bv. personeel ziek",
+        "confirm": "Vandaag dicht",
+        "closed_toast": "Je zaak staat vandaag dicht",
+        "open_toast": "Je zaak is vandaag weer open"
+      },
+      "zone": {
+        "open": "OPEN",
+        "closed": "DICHT",
+        "open_toast": "{{name}} is open",
+        "closed_toast": "{{name}} is dicht: gasten kunnen er niet bestellen via de QR"
+      },
+      "special": {
+        "title": "Dagschotel",
+        "none_short": "Geen",
+        "count": "{{count}} dagschotels",
+        "help": "Een gerecht van je kaart, aan de gewone prijs. Het staat vandaag bovenaan je menukaart en op de kassa, en vervalt morgen om 5 uur vanzelf.",
+        "today": "Vandaag",
+        "none": "Nog geen dagschotel vandaag.",
+        "remove": "{{name}} weghalen als dagschotel",
+        "none_today": "Geen dagschotel vandaag",
+        "new": "Nieuw gerecht als dagschotel",
+        "name": "Naam",
+        "price": "Prijs",
+        "category": "Categorie",
+        "no_category": "Geen categorie",
+        "create": "Maken en aanduiden",
+        "pick": "Kies van de kaart",
+        "make": "Dagschotel",
+        "on_toast": "{{name}} is de dagschotel van vandaag",
+        "off_toast": "{{name}} is geen dagschotel meer",
+        "none_toast": "Geen dagschotel vandaag"
+      }
     }
   },
   "product_form": {
@@ -11706,7 +11787,8 @@
       "tab": {
         "cash": "Kas",
         "reports": "Rapporten",
-        "shift": "Mijn dienst"
+        "shift": "Mijn dienst",
+        "now": "Nu"
       },
       "menu": "Menu",
       "toAdmin": "Naar SellQo-beheer",
@@ -12195,6 +12277,50 @@
       },
       "retry": "Opnieuw proberen",
       "pairAgain": "Opnieuw koppelen"
+    },
+    "now": {
+      "needApproval": "Eerst het akkoord van een eigenaar of verantwoordelijke (PIN).",
+      "approvalIntro": "Een eigenaar of verantwoordelijke keurt goed met zijn PIN. Die blijft enkel in dit scherm.",
+      "error": {
+        "not_allowed": "Enkel de eigenaar of een verantwoordelijke mag dit.",
+        "invalid": "Dat kan niet (meer). Ververs en probeer opnieuw.",
+        "wrong_pin": "Verkeerde PIN.",
+        "locked": "Te veel foute pogingen: deze PIN is 5 minuten geblokkeerd.",
+        "offline": "Geen verbinding. Probeer opnieuw.",
+        "server": "Dat lukte niet. Probeer opnieuw.",
+        "need_approval": "Eerst het akkoord van een eigenaar of verantwoordelijke (PIN)."
+      },
+      "soldout": {
+        "title": "Uitverkocht vandaag",
+        "count": "{{count}} op",
+        "none": "Niets op"
+      },
+      "special": {
+        "title": "Dagschotel",
+        "badge": "Dagschotel",
+        "none": "Geen",
+        "make": "Dagschotel",
+        "remove": "Weghalen",
+        "noneToday": "Geen dagschotel vandaag",
+        "onToast": "{{name}} is de dagschotel van vandaag",
+        "offToast": "{{name}} is geen dagschotel meer",
+        "noneToast": "Geen dagschotel vandaag"
+      },
+      "pause": {
+        "title": "Keuken pauzeren",
+        "paused": "GEPAUZEERD",
+        "until": "tot {{time}} · tik om te hervatten",
+        "running": "Loopt",
+        "minutes": "{{count}} min",
+        "pausedToast": "Online bestellingen gepauzeerd voor {{count}} minuten",
+        "resumed": "Online bestellingen lopen weer"
+      },
+      "zone": {
+        "open": "OPEN",
+        "closed": "DICHT",
+        "openToast": "{{name}} is open",
+        "closedToast": "{{name}} is dicht: gasten kunnen er niet bestellen via de QR"
+      }
     }
   },
   "deviceAlerts": {
