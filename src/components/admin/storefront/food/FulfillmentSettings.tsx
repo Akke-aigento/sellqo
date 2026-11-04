@@ -30,9 +30,11 @@ interface Settings {
   max_orders_per_slot: number | null; hours: Hours; pay_on_pickup: boolean; notify_ready: boolean;
   /** UREN-1: per soort "Zelfde als openingsuren" of "Eigen uren" (NULL in de databank = afgeleid). */
   pickup_hours_mode: HoursMode; delivery_hours_mode: HoursMode;
+  /** UREN-1b: "zo snel mogelijk" ook buiten de afhaal-/leveruren (standaard aan = gedrag van vroeger). */
+  outside_hours: boolean;
 }
 // UREN-1: nieuwe zaken nemen standaard de openingsuren over.
-const DEFAULT_SETTINGS: Settings = { slots_enabled: false, slot_minutes: 15, prep_minutes: 20, days_ahead: 0, max_orders_per_slot: null, hours: emptyHours(), pay_on_pickup: false, notify_ready: true, pickup_hours_mode: 'business', delivery_hours_mode: 'business' };
+const DEFAULT_SETTINGS: Settings = { slots_enabled: false, slot_minutes: 15, prep_minutes: 20, days_ahead: 0, max_orders_per_slot: null, hours: emptyHours(), pay_on_pickup: false, notify_ready: true, pickup_hours_mode: 'business', delivery_hours_mode: 'business', outside_hours: true };
 const MODE_KEY: Record<ServiceType, 'pickup_hours_mode' | 'delivery_hours_mode'> = { pickup: 'pickup_hours_mode', local_delivery: 'delivery_hours_mode' };
 // Labels als i18n-key; de sleutel is de enum-waarde.
 const HOURS_TAB_KEY: Record<ServiceType, string> = { pickup: 'admin.storefront.food.hours_pickup', local_delivery: 'admin.storefront.food.hours_delivery' };
@@ -176,6 +178,7 @@ export function FulfillmentSettings() {
       notify_ready: data.settings.notify_ready !== false,
       pickup_hours_mode: resolveHoursMode((data.settings as { pickup_hours_mode?: unknown }).pickup_hours_mode, parseHours(data.settings.hours).pickup),
       delivery_hours_mode: resolveHoursMode((data.settings as { delivery_hours_mode?: unknown }).delivery_hours_mode, parseHours(data.settings.hours).local_delivery),
+      outside_hours: (data.settings as { online_block_outside_hours?: boolean }).online_block_outside_hours !== true,
     } : DEFAULT_SETTINGS);
   }, [data]);
 
@@ -189,7 +192,7 @@ export function FulfillmentSettings() {
     if (methods.some((m) => !m.name.trim())) { toast.error(t('admin.storefront.food.method_name_required')); return; }
     // UREN-1: enkel de soorten met eigen uren; "zelfde als openingsuren" wordt in Instellingen › Bedrijf gecontroleerd.
     const badRange = (['pickup', 'local_delivery'] as ServiceType[]).some((t) => settings[MODE_KEY[t]] === 'own' && Object.values(settings.hours[t]).some((rs) => rs.some(([a, b]) => !a || !b || b <= a)));
-    if (settings.slots_enabled && badRange) { toast.error(t('admin.storefront.food.hours_end_before_start')); return; }
+    if ((settings.slots_enabled || !settings.outside_hours) && badRange) { toast.error(t('admin.storefront.food.hours_end_before_start')); return; }
     setSaving(true);
     try {
       for (const id of removed) {
@@ -219,6 +222,7 @@ export function FulfillmentSettings() {
         // UREN-1: closed_dates (PAUSE-1) wordt niet meer geschreven; de sluitingsdagen staan bij de openingsuren.
         pickup_hours_mode: settings.pickup_hours_mode,
         delivery_hours_mode: settings.delivery_hours_mode,
+        online_block_outside_hours: !settings.outside_hours,
         updated_at: new Date().toISOString(),
       } as never);
       if (error) throw error;
@@ -292,52 +296,66 @@ export function FulfillmentSettings() {
             <Switch checked={settings.slots_enabled} onCheckedChange={(v) => setSettings((s) => ({ ...s, slots_enabled: v }))} aria-label={t('admin.storefront.food.fulfillmentSettings.tijdsloten_aan')} />
           </div>
         </CardHeader>
-        {settings.slots_enabled ? (
-          <CardContent className="space-y-5">
-            <div className="grid gap-3 sm:grid-cols-4">
-              <div className="space-y-1.5">
-                <Label>{t('admin.storefront.food.fulfillmentSettings.slot_van')}</Label>
-                <Select value={String(settings.slot_minutes)} onValueChange={(v) => setSettings((s) => ({ ...s, slot_minutes: Number(v) }))}>
-                  <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
-                  <SelectContent>{[10, 15, 20, 30, 60].map((n) => <SelectItem key={n} value={String(n)}>{n} minuten</SelectItem>)}</SelectContent>
-                </Select>
+        {/* UREN-1b — met tijdsloten bepalen de uren de sloten; zonder tijdsloten ("zo snel mogelijk") kies je of
+            bestellen buiten de uren mag. De uren (zelfde als openingsuren / eigen uren) staan in beide gevallen hier. */}
+        <CardContent className="space-y-5">
+          {settings.slots_enabled ? (
+            <>
+              <div className="grid gap-3 sm:grid-cols-4">
+                <div className="space-y-1.5">
+                  <Label>{t('admin.storefront.food.fulfillmentSettings.slot_van')}</Label>
+                  <Select value={String(settings.slot_minutes)} onValueChange={(v) => setSettings((s) => ({ ...s, slot_minutes: Number(v) }))}>
+                    <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                    <SelectContent>{[10, 15, 20, 30, 60].map((n) => <SelectItem key={n} value={String(n)}>{n} minuten</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label>{t('admin.storefront.food.fulfillmentSettings.bereidingstijd')}</Label>
+                  <Select value={String(settings.prep_minutes)} onValueChange={(v) => setSettings((s) => ({ ...s, prep_minutes: Number(v) }))}>
+                    <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                    <SelectContent>{[0, 10, 15, 20, 30, 45, 60, 90, 120].map((n) => <SelectItem key={n} value={String(n)}>{n === 0 ? t('admin.storefront.food.none') : t('admin.storefront.food.n_minutes', { count: n })}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label>{t('admin.storefront.food.fulfillmentSettings.vooruit_bestellen')}</Label>
+                  <Select value={String(settings.days_ahead)} onValueChange={(v) => setSettings((s) => ({ ...s, days_ahead: Number(v) }))}>
+                    <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                    <SelectContent>{[0, 1, 2, 3, 7, 14].map((n) => <SelectItem key={n} value={String(n)}>{n === 0 ? t('admin.storefront.food.today_only') : n === 1 ? t('admin.storefront.food.until_tomorrow') : t('admin.storefront.food.n_days_ahead', { count: n })}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label>{t('admin.storefront.food.fulfillmentSettings.max_bestellingen_per_slot')}</Label>
+                  <Input inputMode="numeric" placeholder={t('admin.storefront.food.unlimited')} value={settings.max_orders_per_slot == null ? '' : String(settings.max_orders_per_slot)}
+                    onChange={(e) => { const n = parseInt(e.target.value, 10); setSettings((s) => ({ ...s, max_orders_per_slot: Number.isFinite(n) && n > 0 ? n : null })); }} className="h-9" />
+                </div>
               </div>
-              <div className="space-y-1.5">
-                <Label>{t('admin.storefront.food.fulfillmentSettings.bereidingstijd')}</Label>
-                <Select value={String(settings.prep_minutes)} onValueChange={(v) => setSettings((s) => ({ ...s, prep_minutes: Number(v) }))}>
-                  <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
-                  <SelectContent>{[0, 10, 15, 20, 30, 45, 60, 90, 120].map((n) => <SelectItem key={n} value={String(n)}>{n === 0 ? t('admin.storefront.food.none') : t('admin.storefront.food.n_minutes', { count: n })}</SelectItem>)}</SelectContent>
-                </Select>
+            </>
+          ) : (
+            <label className="flex items-center justify-between gap-4 rounded-md border p-3">
+              <span>
+                <span className="block text-sm font-medium">{t('admin.storefront.food.outside_hours')}</span>
+                <span className="block text-xs text-muted-foreground">{t('admin.storefront.food.outside_hours_desc')}</span>
+              </span>
+              <Switch checked={settings.outside_hours} onCheckedChange={(v) => setSettings((s) => ({ ...s, outside_hours: v }))} aria-label={t('admin.storefront.food.outside_hours')} />
+            </label>
+          )}
+          {settings.slots_enabled || !settings.outside_hours ? (
+              <div className="space-y-3">
+                <div className="inline-flex rounded-md border p-0.5">
+                  {(['pickup', 'local_delivery'] as ServiceType[]).map((st) => (
+                    <button key={st} type="button" onClick={() => setHoursTab(st)}
+                      className={`rounded px-3 py-1.5 text-sm font-medium ${hoursTab === st ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'}`}>
+                      {t(HOURS_TAB_KEY[st])}
+                    </button>
+                  ))}
+                </div>
+                <HoursModeChoice key={hoursTab} id={`fulfillment-${hoursTab}`} mode={settings[MODE_KEY[hoursTab]]}
+                  onChange={(m) => setSettings((s) => ({ ...s, [MODE_KEY[hoursTab]]: m }))}>
+                  <HoursEditor hours={settings.hours} type={hoursTab} onChange={(h) => setSettings((s) => ({ ...s, hours: h }))} />
+                </HoursModeChoice>
               </div>
-              <div className="space-y-1.5">
-                <Label>{t('admin.storefront.food.fulfillmentSettings.vooruit_bestellen')}</Label>
-                <Select value={String(settings.days_ahead)} onValueChange={(v) => setSettings((s) => ({ ...s, days_ahead: Number(v) }))}>
-                  <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
-                  <SelectContent>{[0, 1, 2, 3, 7, 14].map((n) => <SelectItem key={n} value={String(n)}>{n === 0 ? t('admin.storefront.food.today_only') : n === 1 ? t('admin.storefront.food.until_tomorrow') : t('admin.storefront.food.n_days_ahead', { count: n })}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5">
-                <Label>{t('admin.storefront.food.fulfillmentSettings.max_bestellingen_per_slot')}</Label>
-                <Input inputMode="numeric" placeholder={t('admin.storefront.food.unlimited')} value={settings.max_orders_per_slot == null ? '' : String(settings.max_orders_per_slot)}
-                  onChange={(e) => { const n = parseInt(e.target.value, 10); setSettings((s) => ({ ...s, max_orders_per_slot: Number.isFinite(n) && n > 0 ? n : null })); }} className="h-9" />
-              </div>
-            </div>
-            <div className="space-y-3">
-              <div className="inline-flex rounded-md border p-0.5">
-                {(['pickup', 'local_delivery'] as ServiceType[]).map((st) => (
-                  <button key={st} type="button" onClick={() => setHoursTab(st)}
-                    className={`rounded px-3 py-1.5 text-sm font-medium ${hoursTab === st ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'}`}>
-                    {t(HOURS_TAB_KEY[st])}
-                  </button>
-                ))}
-              </div>
-              <HoursModeChoice key={hoursTab} id={`fulfillment-${hoursTab}`} mode={settings[MODE_KEY[hoursTab]]}
-                onChange={(m) => setSettings((s) => ({ ...s, [MODE_KEY[hoursTab]]: m }))}>
-                <HoursEditor hours={settings.hours} type={hoursTab} onChange={(h) => setSettings((s) => ({ ...s, hours: h }))} />
-              </HoursModeChoice>
-            </div>
-          </CardContent>
-        ) : null}
+          ) : null}
+        </CardContent>
       </Card>
 
       {/* PAUSE-1 → UREN-1 — sluitingsdagen: bij de openingsuren, hier een link. */}

@@ -17,7 +17,9 @@ import { weekHasRanges } from '@/lib/businessHours';
 
 // Maandag eerst; sleutel = weekdag zoals in de databank (0 = zondag).
 const DAYS = [1, 2, 3, 4, 5, 6, 0] as const;
-const NOTICE = [0, 30, 60, 120, 240, 1440] as const;
+const NOTICE = [0, 30, 60, 120, 180, 240, 1440] as const;
+// UREN-1b — laatste aankomst vóór sluiting (enkel bij "Zelfde als openingsuren").
+const LAST_ARRIVAL = [0, 30, 60, 90, 120, 150, 180] as const;
 
 export function OnlineReservationsCard() {
   const { t, i18n } = useTranslation();
@@ -42,6 +44,8 @@ export function OnlineReservationsCard() {
   const invalid = own && Object.values(s.online_hours).some((r) => r.some((x) => !validRange(x)));
   // UREN-1: bij "zelfde als openingsuren" tellen de openingsuren.
   const noHours = own ? !Object.values(s.online_hours).some((r) => r.some(validRange)) : !weekHasRanges(business?.week);
+  // "30 min", "1 u", "1 u 30" (zonder i18next-plurals, zie sellqo-i18n-verplicht).
+  const dur = (m: number) => (m < 60 ? t('reservations.durMinutes', { n: m }) : m % 60 ? t('reservations.durHoursMinutes', { h: Math.floor(m / 60), m: m % 60 }) : t('reservations.durHours', { h: m / 60 }));
   const url = currentTenant?.slug ? `https://${currentTenant.slug}.sellqo.shop/reserveren` : null;
   const num = 'h-10 w-24 rounded-md border bg-background px-2 text-sm';
   const select = 'h-10 rounded-md border bg-background px-2 text-sm';
@@ -98,6 +102,31 @@ export function OnlineReservationsCard() {
           {own ? null : <p className="text-xs text-muted-foreground">{t('reservations.businessHoursHint')}</p>}
         </div>
 
+        {/* UREN-1b — de twee tijdsgrenzen samen: hoe lang op voorhand minstens, en tot wanneer vóór sluiting. */}
+        <div className="space-y-3 rounded-md border p-3">
+          <p className="text-sm font-semibold">{t('reservations.timingTitle')}</p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="space-y-1">
+              <span className="block text-sm font-medium">{t('reservations.noticeLabel')}</span>
+              <select className={select} value={s.min_notice_minutes} onChange={(e) => setS((x) => ({ ...x, min_notice_minutes: Number(e.target.value) }))}>
+                {NOTICE.map((m) => <option key={m} value={m}>{m === 0 ? t('reservations.noticeNoMinimum') : m >= 1440 ? t('reservations.noticeDay') : t('reservations.noticeBefore', { d: dur(m) })}</option>)}
+              </select>
+              <span className="block text-xs text-muted-foreground">{t('reservations.noticeHint')}</span>
+            </label>
+            <label className="space-y-1">
+              <span className="block text-sm font-medium">{t('reservations.lastArrivalLabel')}</span>
+              {own ? (
+                <span className="block text-sm text-muted-foreground">{t('reservations.lastArrivalOwn')}</span>
+              ) : <>
+                <select className={select} value={s.online_last_arrival_minutes} onChange={(e) => setS((x) => ({ ...x, online_last_arrival_minutes: Number(e.target.value) }))}>
+                  {LAST_ARRIVAL.map((m) => <option key={m} value={m}>{m === 0 ? t('reservations.lastArrivalJustBefore') : t('reservations.lastArrivalBefore', { d: dur(m) })}</option>)}
+                </select>
+                <span className="block text-xs text-muted-foreground">{t('reservations.lastArrivalHint')}</span>
+              </>}
+            </label>
+          </div>
+        </div>
+
         <div className="grid gap-3 sm:grid-cols-2">
           <label className="space-y-1">
             <span className="block text-sm font-semibold">{t('reservations.slotLabel')}</span>
@@ -119,12 +148,6 @@ export function OnlineReservationsCard() {
             <span className="block text-sm font-semibold">{t('reservations.daysAhead')}</span>
             <input type="number" min={1} max={365} className={num} value={s.days_ahead}
               onChange={(e) => setS((x) => ({ ...x, days_ahead: Math.min(365, Math.max(1, Number(e.target.value) || 1)) }))} />
-          </label>
-          <label className="space-y-1">
-            <span className="block text-sm font-semibold">{t('reservations.minNotice')}</span>
-            <select className={select} value={s.min_notice_minutes} onChange={(e) => setS((x) => ({ ...x, min_notice_minutes: Number(e.target.value) }))}>
-              {NOTICE.map((m) => <option key={m} value={m}>{m === 0 ? t('reservations.noticeNone') : m >= 1440 ? t('reservations.noticeDay') : t('reservations.minutesBefore', { count: m })}</option>)}
-            </select>
           </label>
         </div>
         {s.online_enabled && noHours ? <p className="text-sm text-amber-700 dark:text-amber-300">{t('reservations.noHoursWarning')}</p> : null}

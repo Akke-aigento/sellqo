@@ -384,7 +384,9 @@
       "uploadLogo": "Upload logo",
       "ibanInvalid": "Invalid IBAN format",
       "missingFieldsCount": "{{count}} required fields for a Belgian invoice are missing.",
-      "saveChanges": "Save changes"
+      "saveChanges": "Save changes",
+      "logo_in_branding": "Change logo in Branding",
+      "logoHint_branding": "You set your logo under Branding. It appears on your website, in your emails, on invoices and receipts."
     },
     "branding": {
       "subtitle": "Logo, favicon and primary colour — used in your webshop, emails and invoices",
@@ -393,7 +395,13 @@
       "primaryColor": "Primary colour (webshop)",
       "primaryColorHint": "Buttons and links in your webshop",
       "themePath": "Webshop → Theme",
-      "brandColor": "Brand colour"
+      "brandColor": "Brand colour",
+      "subtitle_one_place": "One place for your logo, favicon and brand colour. They apply to your website, your emails, invoices and receipts.",
+      "diverges": "Your invoices, receipts and some emails currently use a different logo or colour than your website. When you save here, they all get this logo and colour.",
+      "sync_failed": "Your website was updated, but invoices and emails were not: {{reason}}",
+      "from_logo": "Take the colour from my logo",
+      "brand_one_hint": "For buttons and links on your website, and the accents in your emails, invoices and receipts.",
+      "theme_tip": "Fonts, theme and your homepage layout are changed in"
     },
     "social": {
       "linksTitle": "Social media links",
@@ -7438,7 +7446,9 @@
         "allergens_none_label": "Contains none of the 14 allergens",
         "allergens_none_disabled": "Not available while an allergen is checked.",
         "closed_moved": "Closing days (holidays, public holidays) are now with your opening hours in Settings › Company details. They apply to pickup, delivery and online reservations.",
-        "closed_moved_link": "Go to opening hours"
+        "closed_moved_link": "Go to opening hours",
+        "outside_hours": "Allow \"as soon as possible\" orders outside the hours",
+        "outside_hours_desc": "Without time slots your customer orders \"as soon as possible\". Off = only within the hours below; outside them your customer sees when it is possible again."
       },
       "schema": {
         "themeGallery": {
@@ -7447,7 +7457,9 @@
           "ook_de_homepage_opbouw_en_voorbeeldteksten": "Also use the theme’s homepage layout and sample texts",
           "mijn_eigen_merkkleur_behouden": "Keep my own brand color",
           "foto_s_in_de_thema_s": "Photos in the themes come from Unsplash (free to use). Feel free to replace them with your own images.",
-          "bekijk": "View"
+          "bekijk": "View",
+          "take_brand": "Also take the theme's brand colour (changes your colour in Branding)",
+          "horeca_badge": "Hospitality"
         },
         "menuEditor": {
           "legal_contact": "Contact details",
@@ -7508,7 +7520,16 @@
         "nog_geen_betaalmethode_stripe_overschrijving_of": "No payment method yet (Stripe, bank transfer or pay on pickup)",
         "online_bestellen_staat_aan": "Online ordering is on",
         "online_bestellen_staat_uit": "Online ordering is off",
-        "je_winkel_staat_offline": "Your store is offline"
+        "je_winkel_staat_offline": "Your store is offline",
+        "site_online": "Your website is online",
+        "site_offline": "Your website is offline",
+        "site_open": "Open your website",
+        "site_live_label": "Website online",
+        "menu_items": "On the menu: {{count}}",
+        "no_menu_items": "Nothing on the menu yet",
+        "live_desc_site": "Anyone can visit your website at {{domain}}, and Google may find it.",
+        "closed_desc_site": "As long as your website is not open, visitors see \"We open soon\". In the editor you see it as usual.",
+        "ordering_desc_site": "Guests can order pickup or delivery online. Off = your website shows your menu, without ordering."
       },
       "schemaText": {
         "achtergrond": "Background",
@@ -7725,7 +7746,10 @@
         "view_site": "View website",
         "own_domain_desc_site": "Connect your own domain name to your website.",
         "hours_desc": "Shown on your site: in the footer and at the top of your menu.",
-        "customize_intro_site": "Adjust colours, logo, fonts and your homepage in one screen, with your website next to it."
+        "customize_intro_site": "Adjust colours, logo, fonts and your homepage in one screen, with your website next to it.",
+        "horeca_theme_tip_title": "Choose a hospitality theme",
+        "horeca_theme_tip": "Your website uses a shop theme and talks about \"products\" and \"shop\". A hospitality theme shows Menu, Visit us and your opening hours.",
+        "horeca_theme_tip_cta": "Choose a hospitality theme"
       },
       "features": {
         "newsletter_where": "Subscribing always requires confirmation. You manage your subscribers and your welcome email in Marketing:",
@@ -8123,7 +8147,11 @@
       "sectie_verwijderen": "Delete section",
       "secties": "Sections",
       "verbergen": "Hide",
-      "footer_placeholder": "E.g. Handmade in Leuven since 2024."
+      "footer_placeholder": "E.g. Handmade in Leuven since 2024.",
+      "brand_title": "Logo and brand colour",
+      "no_logo": "No logo yet",
+      "brand_link": "Change logo and colours in Branding",
+      "brand_hint": "One place, because they also drive your emails, invoices and receipts."
     },
     "modules": {
       "title": "Modules for your business",
@@ -10001,7 +10029,9 @@
       "call_waiter": "Call a waiter",
       "call_waiter_desc": "The guest taps Call a waiter and staff come to the table.",
       "call_bill": "Ask for the bill",
-      "call_bill_desc": "The guest asks for the bill without waving, also on their bill page when online payment is off."
+      "call_bill_desc": "The guest asks for the bill without waving, also on their bill page when online payment is off.",
+      "outside_hours": "Ordering outside opening hours",
+      "outside_hours_desc": "Off = guests can only order at the table during your opening hours. Outside them they see when they can order again."
     }
   },
   "product_form": {
@@ -12372,7 +12402,20 @@
     "noticeDay": "the day before",
     "noHoursWarning": "Online reservations are on, but there are no hours yet: guests won’t see any free times.",
     "onlineHow": "With online reservations on, your webshop gets a \"Reserveren\" button. A request shows up here and on the till (orange). Mobile numbers are deleted after 30 days.",
-    "businessHoursHint": "With \"Same as opening hours\", guests can arrive from opening time until just before closing time."
+    "businessHoursHint": "With \"Same as opening hours\", guests can arrive from opening time until your last arrival (below).",
+    "timingTitle": "Booking in time",
+    "noticeLabel": "At least in advance",
+    "noticeNoMinimum": "No minimum",
+    "noticeBefore": "{{d}} in advance",
+    "noticeHint": "How long before the arrival time a guest can still book online.",
+    "lastArrivalLabel": "Last arrival",
+    "lastArrivalOwn": "With own hours you choose the last arrival time yourself, per day above.",
+    "lastArrivalJustBefore": "Until just before closing",
+    "lastArrivalBefore": "{{d}} before closing",
+    "lastArrivalHint": "How long before closing time the last guest can arrive.",
+    "durMinutes": "{{n}} min",
+    "durHours": "{{h}} h",
+    "durHoursMinutes": "{{h}} h {{m}}"
   },
   "ai_images_toast": {
     "generated": "Image generated!",

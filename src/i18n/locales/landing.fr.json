@@ -2513,6 +2513,18 @@
         "website_horeca": {
           "title": "Ton propre site, aussi avec une offre horeca",
           "description": "Avec une offre horeca, le menu affiche maintenant Site web, après la Carte. Tu y choisis un thème, tu mets ton logo et tes couleurs, tu écris ton pied de page, tu crées des pages et tu composes ta page d'accueil, avec ton site à côté. Tu n'ajoutes que les sections qui fonctionnent sur ton site. L'expédition, les retours et les remises de la boutique en ligne restent avec la boutique."
+        },
+        "ordering_outside_hours": {
+          "title": "Choisis si l'on peut commander en dehors de tes heures d'ouverture",
+          "description": "Pour le QR à table et pour le retrait et la livraison sans créneaux, un interrupteur décide si les clients peuvent aussi commander en dehors de tes heures d'ouverture. Si tu le désactives, ton client voit sur la carte ou au paiement quand c'est de nouveau possible. Par défaut, rien ne change. Pour la réservation en ligne, tu choisis aussi jusqu'à combien de temps avant la fermeture le dernier client peut arriver, en plus du délai minimum de réservation."
+        },
+        "horeca_themes": {
+          "title": "Les thèmes horeca parlent la langue de ton établissement",
+          "description": "Choisis un thème horeca dans Site web › Personnaliser (Restaurant & à emporter, Bar & café ou Restaurant & bistro) et ton site parle de Carte, Réserver et Nous rendre visite au lieu de produits et boutique, aussi en pied de page et sur une page d'accueil sans sections. Avec une offre horeca, ces thèmes apparaissent en premier, et si ton site utilise encore un thème boutique, tu reçois un conseil. Ton thème ne change jamais tout seul."
+        },
+        "branding_one_place": {
+          "title": "Logo et couleur de marque au même endroit",
+          "description": "Tu définis désormais ton logo, ton favicon et ta couleur de marque uniquement dans Paramètres › Image de marque. Ils valent pour ton site, tes e-mails, factures et tickets de caisse. Dans Site web › Personnaliser et dans les données de l'entreprise, tu les vois avec un lien vers Branding. Si tes factures ou e-mails utilisent aujourd'hui un autre logo ou une autre couleur, Image de marque te le signale ; à l'enregistrement, tout devient identique."
         }
       },
       "copyLink": "Copier le lien",

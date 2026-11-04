@@ -7,6 +7,7 @@
 -- Live nagetrokken op 4-11-2026 (read-only): er bestaat geen apart artikel over afhaal-/leveruren of sluitingsdagen
 -- (PAUSE-1); die uitleg zit in het nieuwe artikel. md5 vooraf: reservaties 72250dd6bdc952aff33956e53ac6f9e6,
 -- horeca-werkplek 17ba93751579017fb9bb5c7dc68258b9. Categorie a0000001-…006 (Webshop) bestaat live.
+--   (UREN-1b: ook laatste aankomst en bestellen buiten de openingsuren.)
 -- PAS DRAAIEN NA de publish van sellqo.app met UREN-1 (anders beschrijft het artikel wat nog niet live is).
 -- Idempotent: het nieuwe artikel via ON CONFLICT (doc_level, slug) DO UPDATE; elke replace() raakt enkel een rij
 -- waarin het anker precies één keer voorkomt (na de eerste keer niet meer). Snapshot vooraf, één keer.
@@ -57,7 +58,15 @@ values (
   <li><strong>Zelfde als openingsuren</strong>: de tijdstippen volgen je openingsuren. Gasten kunnen online reserveren vanaf het openingsuur tot vóór het sluitingsuur.</li>
   <li><strong>Eigen uren</strong>: je vult daar aparte uren in, bijvoorbeeld als je enkel 's avonds levert.</li>
 </ul>
-<p>Nieuwe zaken staan standaard op <em>Zelfde als openingsuren</em>. Had je al eigen afhaal-, lever- of reservatie-uren, dan blijven die gewoon gelden (keuze <em>Eigen uren</em>). Je sluitingsdagen gelden altijd, ook bij eigen uren.</p>$doc$
+<p>Nieuwe zaken staan standaard op <em>Zelfde als openingsuren</em>. Had je al eigen afhaal-, lever- of reservatie-uren, dan blijven die gewoon gelden (keuze <em>Eigen uren</em>). Je sluitingsdagen gelden altijd, ook bij eigen uren.</p>
+<p>Bij online reserveren met <em>Zelfde als openingsuren</em> kies je onder <strong>Op tijd reserveren</strong> ook de <strong>Laatste aankomst</strong>: tot net vóór sluiting, of bijvoorbeeld 1 u 30 vóór sluiting. Ernaast staat <strong>Minstens op voorhand</strong>: hoe lang vóór het aankomstuur een gast nog online kan reserveren.</p>
+
+<h2>Bestellen buiten je openingsuren</h2>
+<ul>
+  <li><strong>QR aan tafel</strong>: onder <strong>Kaart › Instellen › QR-menu</strong>, bij <em>Bestellen</em>, staat <strong>Bestellen buiten de openingsuren</strong>. Zet je het uit, dan kunnen gasten aan tafel enkel tijdens je openingsuren bestellen. Daarbuiten zien ze op de menukaart wanneer het weer kan.</li>
+  <li><strong>Afhalen en leveren zonder tijdsloten</strong> ("zo snel mogelijk"): onder <strong>Tijdsloten</strong> staat <strong>Ook buiten de uren "zo snel mogelijk" bestellen</strong>. Zet je het uit, dan kan dat enkel binnen je afhaal- of leveruren; je klant ziet bij het afrekenen wanneer het weer kan. Met tijdsloten kies je altijd een tijdstip binnen de uren.</li>
+</ul>
+<p>Standaard staan beide aan, zoals vroeger. Heb je geen uren ingevuld, dan wordt er niets geweigerd.</p>$doc$
 )
 on conflict (doc_level, slug) do update set
   title = excluded.title, excerpt = excluded.excerpt, context_path = excluded.context_path, sort_order = excluded.sort_order,
@@ -67,7 +76,7 @@ on conflict (doc_level, slug) do update set
 update public.doc_articles
    set content = replace(content,
          '<li>per weekdag het eerste en het laatste aankomstuur (dagen zonder uren zijn online dicht; je sluitingsdagen gelden ook);</li>',
-         '<li>welke uren: <em>Zelfde als openingsuren</em> (gasten komen aan vanaf het openingsuur tot vóór het sluitingsuur; je openingsuren vul je in onder <strong>Instellingen › Bedrijfsgegevens</strong>) of <em>Eigen uren</em> (per weekdag het eerste en het laatste aankomstuur; dagen zonder uren zijn online dicht). Je sluitingsdagen uit Instellingen › Bedrijfsgegevens gelden altijd;</li>'),
+         '<li>welke uren: <em>Zelfde als openingsuren</em> (gasten komen aan vanaf het openingsuur tot je <em>Laatste aankomst</em>, bv. tot net vóór sluiting of 1 u 30 ervoor; je openingsuren vul je in onder <strong>Instellingen › Bedrijfsgegevens</strong>) of <em>Eigen uren</em> (per weekdag het eerste en het laatste aankomstuur; dagen zonder uren zijn online dicht). Je sluitingsdagen uit Instellingen › Bedrijfsgegevens gelden altijd;</li>'),
        updated_at = now()
  where doc_level = 'tenant' and slug = 'reservaties'
    and (length(content) - length(replace(content, '<li>per weekdag het eerste en het laatste aankomstuur (dagen zonder uren zijn online dicht; je sluitingsdagen gelden ook);</li>', '')))

@@ -10,14 +10,19 @@ import type { ThemePreset } from './schemaTypes';
 import { useTranslation } from 'react-i18next';
 import { schemaText } from './schemaText';
 
-export function ThemeGallery({ presets, current, hasSections, onApply }: {
+export function ThemeGallery({ presets, current, hasSections, onApply, horecaFirst = false }: {
   presets: ThemePreset[]; current: string | null; hasSections: boolean;
   onApply: (p: ThemePreset, opts: { homepage: boolean; keepBrand: boolean }) => void;
+  /** UREN-1b — horecazaak: eerst de horecathema's. */
+  horecaFirst?: boolean;
 }) {
   const { t } = useTranslation();
   // Lege homepage: de opbouw van het thema meteen meenemen. Al secties: alleen als je dat wil.
   const [homepage, setHomepage] = useState(!hasSections);
-  const [keepBrand, setKeepBrand] = useState(false);
+  // UREN-1b — de merkkleur woont in Instellingen › Branding; een thema neemt hem enkel over als je dat aanvinkt.
+  const [takeBrand, setTakeBrand] = useState(false);
+  const keepBrand = !takeBrand;
+  const list = horecaFirst ? [...presets].sort((a, b) => Number(b.vocabulary === 'horeca') - Number(a.vocabulary === 'horeca')) : presets;
   return (
     <div className="space-y-4">
       <p className="text-sm text-muted-foreground">
@@ -29,12 +34,12 @@ export function ThemeGallery({ presets, current, hasSections, onApply }: {
           <Label htmlFor="tg-home" className="font-normal leading-snug">{t('admin.storefront.schema.themeGallery.ook_de_homepage_opbouw_en_voorbeeldteksten')}</Label>
         </div>
         <div className="flex items-start gap-2.5">
-          <Checkbox id="tg-brand" checked={keepBrand} onCheckedChange={(v) => setKeepBrand(v === true)} />
-          <Label htmlFor="tg-brand" className="font-normal leading-snug">{t('admin.storefront.schema.themeGallery.mijn_eigen_merkkleur_behouden')}</Label>
+          <Checkbox id="tg-brand" checked={takeBrand} onCheckedChange={(v) => setTakeBrand(v === true)} />
+          <Label htmlFor="tg-brand" className="font-normal leading-snug">{t('admin.storefront.schema.themeGallery.take_brand')}</Label>
         </div>
       </div>
       <div className="space-y-3">
-        {presets.map((p) => {
+        {list.map((p) => {
           const on = current === p.id;
           const accent = p.preview.accent || '#0d9488';
           return (
@@ -45,6 +50,7 @@ export function ThemeGallery({ presets, current, hasSections, onApply }: {
                   {p.preview.image ? <img src={p.preview.image.replace('w=1600', 'w=600')} alt="" className="absolute inset-0 h-full w-full object-cover opacity-90" loading="lazy" /> : null}
                   <div className="absolute inset-0 flex flex-col justify-end gap-1.5 p-3" style={p.preview.image ? { background: 'linear-gradient(to top, rgba(0,0,0,.55), transparent)', color: '#fff' } : undefined}>
                     <span className="text-lg font-bold leading-tight" style={{ fontFamily: p.theme.heading_font || undefined }}>{schemaText(t, p.name)}</span>
+                    {p.vocabulary === 'horeca' ? <span className="w-fit rounded bg-black/60 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">{t('admin.storefront.schema.themeGallery.horeca_badge')}</span> : null}
                     <span className="inline-flex w-fit items-center px-2.5 py-1 text-[11px] font-bold"
                       style={{ background: accent, color: '#fff', borderRadius: p.settings.button_style === 'square' ? 0 : p.settings.button_style === 'rounded' ? 6 : 999 }}>
                       {t('admin.storefront.schema.themeGallery.bekijk')}

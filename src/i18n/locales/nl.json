@@ -384,7 +384,9 @@
       "uploadLogo": "Logo uploaden",
       "ibanInvalid": "Ongeldig IBAN-formaat",
       "missingFieldsCount": "Er ontbreken {{count}} verplichte velden voor een Belgische factuur.",
-      "saveChanges": "Wijzigingen opslaan"
+      "saveChanges": "Wijzigingen opslaan",
+      "logo_in_branding": "Logo wijzigen in Branding",
+      "logoHint_branding": "Je logo stel je in onder Branding. Het staat op je website, in je mails, op je facturen en kassabonnen."
     },
     "branding": {
       "subtitle": "Logo, favicon en hoofdkleur — gebruikt in je webshop, e-mails en facturen",
@@ -393,7 +395,13 @@
       "primaryColor": "Primaire kleur (webshop)",
       "primaryColorHint": "Knoppen en links in je webshop",
       "themePath": "Webshop → Theme",
-      "brandColor": "Merkkleur"
+      "brandColor": "Merkkleur",
+      "subtitle_one_place": "Eén plek voor je logo, favicon en merkkleur. Ze gelden voor je website, je mails, facturen en kassabonnen.",
+      "diverges": "Je facturen, kassabonnen en sommige mails gebruiken nu een ander logo of een andere kleur dan je website. Sla je hier op, dan krijgen ze allemaal dit logo en deze kleur.",
+      "sync_failed": "Je website is bijgewerkt, maar facturen en mails niet: {{reason}}",
+      "from_logo": "Kleur uit mijn logo halen",
+      "brand_one_hint": "Voor knoppen en links op je website, en de accenten in je mails, facturen en kassabonnen.",
+      "theme_tip": "Lettertypes, thema en de opbouw van je homepage pas je aan in"
     },
     "social": {
       "linksTitle": "Social Media Links",
@@ -7013,7 +7021,9 @@
         "allergens_none_label": "Bevat geen van de 14 allergenen",
         "allergens_none_disabled": "Kan niet zolang er een allergeen aangevinkt staat.",
         "closed_moved": "Sluitingsdagen (vakantie, feestdag) staan nu bij je openingsuren in Instellingen › Bedrijfsgegevens. Ze gelden voor afhalen, leveren en online reserveren.",
-        "closed_moved_link": "Naar openingsuren"
+        "closed_moved_link": "Naar openingsuren",
+        "outside_hours": "Ook buiten de uren \"zo snel mogelijk\" bestellen",
+        "outside_hours_desc": "Zonder tijdsloten bestelt je klant \"zo snel mogelijk\". Uit = dat kan enkel binnen de uren hieronder; daarbuiten ziet je klant wanneer het weer kan."
       },
       "shopOpenCard": {
         "klanten_kunnen_afrekenen_uit_je_winkel": "Klanten kunnen afrekenen. Uit = je winkel toont je producten, zonder winkelmandje.",
@@ -7029,7 +7039,16 @@
         "active_products": "Actieve producten: {{count}}",
         "no_active_products": "Nog geen actieve producten",
         "live_desc": "Iedereen kan je winkel bezoeken op {{domain}}, en Google mag hem vinden.",
-        "closed_desc": "Zolang je winkel niet open is, zien bezoekers \"We openen binnenkort\". In de editor zie je hem wel gewoon."
+        "closed_desc": "Zolang je winkel niet open is, zien bezoekers \"We openen binnenkort\". In de editor zie je hem wel gewoon.",
+        "site_online": "Je website staat online",
+        "site_offline": "Je website staat offline",
+        "site_open": "Website openen",
+        "site_live_label": "Website online",
+        "menu_items": "Op de kaart: {{count}}",
+        "no_menu_items": "Nog niets op de kaart",
+        "live_desc_site": "Iedereen kan je website bezoeken op {{domain}}, en Google mag hem vinden.",
+        "closed_desc_site": "Zolang je website niet open is, zien bezoekers \"We openen binnenkort\". In de editor zie je hem wel gewoon.",
+        "ordering_desc_site": "Gasten kunnen online afhalen of laten leveren. Uit = je website toont je kaart, zonder bestellen."
       },
       "schema": {
         "menuEditor": {
@@ -7067,7 +7086,9 @@
           "foto_s_in_de_thema_s": "Foto's in de thema's komen van Unsplash (vrij te gebruiken). Vervang ze gerust door je eigen beelden.",
           "bekijk": "Bekijk",
           "intro": "Kies een startpunt. Je producten, logo en winkelgegevens blijven altijd staan. Je ziet het meteen rechts; pas met \"Opslaan\" wordt het echt.",
-          "example_shop": "Bekijk een winkel met dit thema: {{name}}"
+          "example_shop": "Bekijk een winkel met dit thema: {{name}}",
+          "take_brand": "Ook de merkkleur van het thema overnemen (wijzigt je kleur in Branding)",
+          "horeca_badge": "Horeca"
         },
         "icon": {
           "truck": "Vrachtwagen",
@@ -7300,7 +7321,10 @@
         "view_site": "Bekijk website",
         "own_domain_desc_site": "Koppel je eigen domeinnaam aan je website.",
         "hours_desc": "Staan op je site: in de voettekst en bovenaan je menukaart.",
-        "customize_intro_site": "Kleuren, logo, lettertypes en je homepage pas je aan in één scherm, met je website ernaast."
+        "customize_intro_site": "Kleuren, logo, lettertypes en je homepage pas je aan in één scherm, met je website ernaast.",
+        "horeca_theme_tip_title": "Kies een horecathema",
+        "horeca_theme_tip": "Je website staat op een winkelthema en spreekt van \"producten\" en \"shop\". Een horecathema toont Menukaart, Bezoek ons en je openingsuren.",
+        "horeca_theme_tip_cta": "Horecathema kiezen"
       },
       "features": {
         "newsletter_where": "Inschrijven gebeurt altijd met bevestiging. Je abonnees en je welkomstmail beheer je in Marketing:",
@@ -8137,7 +8161,11 @@
       "logo_unreadable": "Je logo kon niet gelezen worden.",
       "saved": "Opgeslagen — je winkel is bijgewerkt",
       "save_failed": "Opslaan lukte niet. Je wijzigingen staan nog klaar; probeer opnieuw.",
-      "footer_placeholder": "Bv. Handgemaakt in Leuven, sinds 2024."
+      "footer_placeholder": "Bv. Handgemaakt in Leuven, sinds 2024.",
+      "brand_title": "Logo en merkkleur",
+      "no_logo": "Nog geen logo",
+      "brand_link": "Logo en kleuren wijzigen in Branding",
+      "brand_hint": "Eén plek, want ze sturen ook je mails, facturen en kassabonnen."
     },
     "modules": {
       "title": "Modules voor jouw zaak",
@@ -10015,7 +10043,9 @@
       "call_waiter": "Ober roepen",
       "call_waiter_desc": "De gast tikt op Ober roepen en de bediening komt naar de tafel.",
       "call_bill": "Rekening vragen",
-      "call_bill_desc": "De gast vraagt de rekening zonder te zwaaien, ook op zijn rekening als online afrekenen uitstaat."
+      "call_bill_desc": "De gast vraagt de rekening zonder te zwaaien, ook op zijn rekening als online afrekenen uitstaat.",
+      "outside_hours": "Bestellen buiten de openingsuren",
+      "outside_hours_desc": "Uit = gasten kunnen aan tafel enkel bestellen tijdens je openingsuren. Daarbuiten zien ze wanneer het weer kan."
     }
   },
   "product_form": {
@@ -12374,7 +12404,20 @@
     "noticeDay": "de dag voordien",
     "noHoursWarning": "Online reserveren staat aan, maar er zijn nog geen uren: gasten zien nog geen vrije uren.",
     "onlineHow": "Staat online reserveren aan, dan krijgt je webshop een knop \"Reserveren\". Een aanvraag verschijnt hier en in de kassa (oranje). Gsm-nummers worden na 30 dagen gewist.",
-    "businessHoursHint": "Bij \"Zelfde als openingsuren\" kunnen gasten aankomen vanaf het openingsuur tot vóór het sluitingsuur."
+    "businessHoursHint": "Bij \"Zelfde als openingsuren\" kunnen gasten aankomen vanaf het openingsuur tot je laatste aankomst (hieronder).",
+    "timingTitle": "Op tijd reserveren",
+    "noticeLabel": "Minstens op voorhand",
+    "noticeNoMinimum": "Geen minimum",
+    "noticeBefore": "{{d}} op voorhand",
+    "noticeHint": "Hoe lang vóór het aankomstuur een gast nog online kan reserveren.",
+    "lastArrivalLabel": "Laatste aankomst",
+    "lastArrivalOwn": "Bij eigen uren kies je het laatste aankomstuur zelf, per dag hierboven.",
+    "lastArrivalJustBefore": "Tot net vóór sluiting",
+    "lastArrivalBefore": "{{d}} vóór sluiting",
+    "lastArrivalHint": "Hoe lang vóór het sluitingsuur de laatste gast kan aankomen.",
+    "durMinutes": "{{n}} min",
+    "durHours": "{{h}} u",
+    "durHoursMinutes": "{{h}} u {{m}}"
   },
   "ai_images_toast": {
     "generated": "Afbeelding gegenereerd!",

@@ -122,11 +122,15 @@ echo "$out" | tail -1
 # fulfillment_settings/reservation_settings/table_reservations zoals live, met een oude sluitingsdag, dan de
 # migratie (2×: de kopie mag niets verdubbelen) en de test.
 $P -d $DB -f 09_uren_prelude.sql >/dev/null
-for M in ../../../supabase/migrations/20261104120000_uren_1.sql; do
+for M in ../../../supabase/migrations/20261104120000_uren_1.sql ../../../supabase/migrations/20261104120200_uren_1b.sql; do
   $P -d $DB -f $M >/dev/null 2>/tmp/kassa_mig.err || { cat /tmp/kassa_mig.err; echo "FOUT in $M"; exit 1; }
   $P -d $DB -f $M >/dev/null 2>/tmp/kassa_mig.err || { cat /tmp/kassa_mig.err; echo "FOUT bij tweede keer $M"; exit 1; }
 done
 out=$($P -d $DB -f test_uren.sql 2>&1 | grep -v NOTICE) || { echo "$out" | tail -5; echo "FOUT in test_uren.sql"; exit 1; }
 if echo "$out" | grep -qE '^ f$'; then echo "$out" | grep -B3 -E '^ f$'; echo "FOUT: controle faalt in test_uren.sql"; fail=1; fi
+echo "$out" | tail -1
+# UREN-1b: laatste aankomst vóór sluiting en de schakelaars "buiten de openingsuren".
+out=$($P -d $DB -f test_uren_1b.sql 2>&1 | grep -v NOTICE) || { echo "$out" | tail -5; echo "FOUT in test_uren_1b.sql"; exit 1; }
+if echo "$out" | grep -qE '^ f$'; then echo "$out" | grep -B3 -E '^ f$'; echo "FOUT: controle faalt in test_uren_1b.sql"; fail=1; fi
 echo "$out" | tail -1
 exit $fail

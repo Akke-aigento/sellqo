@@ -17,6 +17,9 @@ const changelogEntries: Array<{
   { version: '2026.15d', dateKey: 'nov_2026', changes: [
     { id: 'opening_hours', type: 'feature' },
     { id: 'website_horeca', type: 'feature' },
+    { id: 'ordering_outside_hours', type: 'feature' },
+    { id: 'horeca_themes', type: 'improvement' },
+    { id: 'branding_one_place', type: 'improvement' },
   ] },
   { version: '2026.15c', dateKey: 'nov_2026', changes: [
     { id: 'kassa_next_to_admin', type: 'improvement' },

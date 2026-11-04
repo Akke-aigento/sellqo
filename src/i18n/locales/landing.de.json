@@ -2513,6 +2513,18 @@
         "website_horeca": {
           "title": "Deine eigene Website, auch mit einem Gastro-Paket",
           "description": "Mit einem Gastro-Paket steht im Menü jetzt Website, nach der Karte. Dort wählst du ein Theme, setzt Logo und Farben, schreibst deine Fußzeile, legst Seiten an und stellst deine Startseite zusammen, mit deiner Seite daneben. Du fügst nur Abschnitte hinzu, die auf deiner Seite funktionieren. Versand, Retouren und Webshop-Rabatte gehören zum Webshop und bleiben dort."
+        },
+        "ordering_outside_hours": {
+          "title": "Selbst wählen, ob außerhalb deiner Öffnungszeiten bestellt werden kann",
+          "description": "Bei QR am Tisch und bei Abholung und Lieferung ohne Zeitfenster entscheidet ein Schalter, ob Gäste auch außerhalb deiner Öffnungszeiten bestellen können. Schaltest du ihn aus, sieht dein Gast auf der Karte oder beim Bezahlen, wann es wieder geht. Standardmäßig bleibt alles, wie es war. Bei Online-Reservierungen wählst du jetzt auch, wie lange vor Schließung der letzte Gast ankommen kann, neben der Mindestvorlaufzeit."
+        },
+        "horeca_themes": {
+          "title": "Gastro-Themes sprechen die Sprache deines Lokals",
+          "description": "Wählst du unter Website › Anpassen ein Gastro-Theme (Restaurant & Abholung, Bar & Café oder Restaurant & Bistro), spricht deine Seite von Karte, Reservieren und Besuchen Sie uns statt von Produkten und Shop, auch in der Fußzeile und auf einer Startseite ohne Abschnitte. Mit einem Gastro-Paket stehen diese Themes vorne, und nutzt deine Seite noch ein Shop-Theme, bekommst du einen Tipp. Dein Theme ändert sich nie von selbst."
+        },
+        "branding_one_place": {
+          "title": "Logo und Markenfarbe an einem Ort",
+          "description": "Logo, Favicon und Markenfarbe stellst du jetzt nur noch unter Einstellungen › Branding ein. Sie gelten für deine Website, deine E-Mails, Rechnungen und Kassenbons. Unter Website › Anpassen und bei den Unternehmensdaten siehst du sie, mit einem Link zu Branding. Nutzen deine Rechnungen oder E-Mails heute ein anderes Logo oder eine andere Farbe, meldet Branding das; beim Speichern bekommen alle dasselbe."
         }
       },
       "copyLink": "Link kopieren",

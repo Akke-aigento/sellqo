@@ -18,5 +18,6 @@
   "@/hooks/useLogoUpload": "mocks/logo.ts",
   "@/hooks/useInvoiceCompliance": "mocks/compliance.ts",
   "@/hooks/useFrontendMode": "mocks/storefront.ts",
-  "@/hooks/useStorefront": "mocks/storefront.ts"
+  "@/hooks/useStorefront": "mocks/storefront.ts",
+  "@/hooks/useThemeSchema": "mocks/themeSchema.ts"
 }

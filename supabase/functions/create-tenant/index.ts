@@ -305,6 +305,8 @@ serve(async (req) => {
     }
 
     // === Gekozen plan vastleggen (PRICE-2) ===
+    // UREN-1b: thema waarmee een nieuwe horecazaak start (preset-id uit het themaschema van sellqo-storefront).
+    const HORECA_START_PRESET = "bistro";
     // De trigger create_tenant_trial_subscription zet elke nieuwe winkel op een Pro-proef.
     // - Betaald plan: de proef loopt op dat plan, bij het einde start het abonnement.
     // - Plan zonder maandprijs (free, events_flex): geen proef. Vóór PRICE-2 bleef wie
@@ -313,7 +315,7 @@ serve(async (req) => {
     const selectedPlanId = body.selected_plan_id;
     if (selectedPlanId) {
       const { data: plan } = await supabase
-        .from("pricing_plans").select("id, monthly_price, active").eq("id", selectedPlanId).maybeSingle();
+        .from("pricing_plans").select("id, monthly_price, active, track").eq("id", selectedPlanId).maybeSingle();
       if (plan?.active) {
         const noMonthly = Number(plan.monthly_price) === 0;
         const { error: subError } = await supabase
@@ -325,6 +327,14 @@ serve(async (req) => {
         } else {
           await supabase.from("tenants").update({ subscription_plan: plan.id }).eq("id", tenant.id);
           logStep("Subscription plan updated", { plan: plan.id, trial: !noMonthly });
+        }
+        // UREN-1b — een horecazaak start op een horecathema (de site spreekt dan van Menukaart, Bezoek ons, …).
+        // Enkel het thema-id: de standaardshop neemt de instellingen van dat thema over zolang de zaak er geen
+        // eigen heeft. Best effort: lukt het niet, dan blijft het standaardthema.
+        if (plan.track === "horeca") {
+          const { error: presetError } = await supabase.from("tenant_theme_settings")
+            .update({ theme_config: { preset: HORECA_START_PRESET } }).eq("tenant_id", tenant.id);
+          if (presetError) logStep("WARNING: horeca theme not set", { error: presetError.message });
         }
       } else {
         logStep("WARNING: selected plan not active, keeping trial", { plan: selectedPlanId });

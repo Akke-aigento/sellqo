@@ -17,6 +17,8 @@ import { EmailLogoFromCurrentButton } from '@/components/admin/settings/EmailLog
 import { useInvoiceCompliance, validateIBAN, formatIBAN } from '@/hooks/useInvoiceCompliance';
 import { supabase } from '@/integrations/supabase/client';
 import { BusinessHoursCard } from '@/components/admin/settings/hours/BusinessHoursCard';
+import { Link } from 'react-router-dom';
+import { useFrontendMode } from '@/hooks/useFrontendMode';
 
 // Verhuisd uit StoreSettings (WEBSHOP-4b).
 const CURRENCIES = [
@@ -42,6 +44,7 @@ function displayName(lang: string, type: 'region' | 'currency', code: string): s
 export function BusinessSettings() {
   const { t, i18n } = useTranslation();
   const { currentTenant, refreshTenants } = useTenant();
+  const { isCustomFrontend } = useFrontendMode();
   const { toast } = useToast();
   // MAIL-LOGO-1: uploadLogo maakt ook de e-mailvariant (tenants.email_logo_url).
   const { uploadLogo, uploading, emailPreview, createFromCurrentLogo, creatingFromCurrent } = useLogoUpload();
@@ -229,8 +232,14 @@ export function BusinessSettings() {
           <div>
             <p className="font-medium">{t('settings.business.storeLogo')}</p>
             <p className="text-sm text-muted-foreground mb-2">
-              {t('settings.business.logoHint')}
+              {isCustomFrontend ? t('settings.business.logoHint') : t('settings.business.logoHint_branding')}
             </p>
+            {/* UREN-1b — website-winkels: het logo staat op één plek (Branding) en geldt ook hier. Eigen frontends: ongewijzigd. */}
+            {!isCustomFrontend ? (
+              <Button variant="outline" size="sm" asChild>
+                <Link to="/admin/settings?section=branding">{t('settings.business.logo_in_branding')}</Link>
+              </Button>
+            ) : <>
             <input
               ref={fileInputRef}
               type="file"
@@ -251,9 +260,10 @@ export function BusinessSettings() {
               )}
               {uploading ? t('settings.logoUpload.uploading') : t('settings.business.uploadLogo')}
             </Button>
+            </>}
           </div>
         </div>
-        {emailPreview && (emailPreview.result === 'skipped_theme_logo' ? (
+        {isCustomFrontend && emailPreview && (emailPreview.result === 'skipped_theme_logo' ? (
           <p className="text-xs text-muted-foreground">{t('settings.emailLogo.themeLogoWins')}</p>
         ) : (
           <EmailLogoPreview
@@ -264,7 +274,7 @@ export function BusinessSettings() {
           />
         ))}
         {/* MAIL-UX-1: enkel als het bedrijfslogo het mail-logo is (geen themalogo) en er nog geen mailversie is. */}
-        {!emailPreview && (
+        {isCustomFrontend && !emailPreview && (
           <EmailLogoFromCurrentButton
             target="tenant"
             shownLogoUrl={currentTenant?.logo_url ?? null}

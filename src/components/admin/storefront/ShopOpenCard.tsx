@@ -16,7 +16,8 @@ import { useTranslation } from 'react-i18next';
 
 interface OpenState { shop_live: boolean; shop_ordering: boolean; products: number; legal: number; payments: boolean }
 
-export function ShopOpenCard() {
+// UREN-1b — `site`: horecazaak zonder webshop: "website" en "kaart" in plaats van "winkel" en "producten".
+export function ShopOpenCard({ site = false }: { site?: boolean } = {}) {
   const { t } = useTranslation();
   const { currentTenant } = useTenant();
   const { isCustomFrontend } = useFrontendMode();
@@ -57,7 +58,7 @@ export function ShopOpenCard() {
     setSaving(false);
     if (error) { toast.error(t('admin.storefront.food.save_failed_reason', { reason: error.message })); return; }
     if (!written || written.length === 0) { toast.error(t('common.saveNoPermission')); return; }
-    toast.success(patch.shop_live === true ? t('admin.storefront.shopOpenCard.je_winkel_staat_online') : patch.shop_live === false ? t('admin.storefront.shopOpenCard.je_winkel_staat_offline') : patch.shop_ordering ? t('admin.storefront.shopOpenCard.online_bestellen_staat_aan') : t('admin.storefront.shopOpenCard.online_bestellen_staat_uit'));
+    toast.success(patch.shop_live === true ? t(site ? 'admin.storefront.shopOpenCard.site_online' : 'admin.storefront.shopOpenCard.je_winkel_staat_online') : patch.shop_live === false ? t(site ? 'admin.storefront.shopOpenCard.site_offline' : 'admin.storefront.shopOpenCard.je_winkel_staat_offline') : patch.shop_ordering ? t('admin.storefront.shopOpenCard.online_bestellen_staat_aan') : t('admin.storefront.shopOpenCard.online_bestellen_staat_uit'));
     await qc.invalidateQueries({ queryKey: ['shop-open', tenantId] });
     // QR-REKENING-1b — de QR-instellingen tonen of het menu zichtbaar is.
     await qc.invalidateQueries({ queryKey: ['qr-mode', tenantId] });
@@ -66,7 +67,7 @@ export function ShopOpenCard() {
   if (isLoading || !data) return <Card><CardContent className="flex justify-center py-8"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></CardContent></Card>;
 
   const checks = [
-    { ok: data.products > 0, text: data.products > 0 ? t('admin.storefront.shopOpenCard.active_products', { count: data.products }) : t('admin.storefront.shopOpenCard.no_active_products') },
+    { ok: data.products > 0, text: data.products > 0 ? t(site ? 'admin.storefront.shopOpenCard.menu_items' : 'admin.storefront.shopOpenCard.active_products', { count: data.products }) : t(site ? 'admin.storefront.shopOpenCard.no_menu_items' : 'admin.storefront.shopOpenCard.no_active_products') },
     { ok: data.payments, text: data.payments ? t('admin.storefront.shopOpenCard.betaalmethode_ingesteld') : t('admin.storefront.shopOpenCard.nog_geen_betaalmethode_stripe_overschrijving_of') },
     { ok: data.legal > 0, text: data.legal > 0 ? t('admin.storefront.shopOpenCard.juridische_pagina_s_aanwezig') : t('admin.storefront.shopOpenCard.nog_geen_algemene_voorwaarden_en_privacybeleid') },
   ];
@@ -74,11 +75,11 @@ export function ShopOpenCard() {
   return (
     <Card className={cn(data.shop_live && 'border-emerald-500/50')}>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2"><Rocket className="h-5 w-5" />{data.shop_live ? t('admin.storefront.shopOpenCard.je_winkel_staat_online') : t('admin.orderingHub.winkel_openen')}</CardTitle>
+        <CardTitle className="flex items-center gap-2"><Rocket className="h-5 w-5" />{data.shop_live ? t(site ? 'admin.storefront.shopOpenCard.site_online' : 'admin.storefront.shopOpenCard.je_winkel_staat_online') : t(site ? 'admin.storefront.shopOpenCard.site_open' : 'admin.orderingHub.winkel_openen')}</CardTitle>
         <CardDescription>
           {data.shop_live
-            ? t('admin.storefront.shopOpenCard.live_desc', { domain: `${currentTenant?.slug}.sellqo.shop` })
-            : t('admin.storefront.shopOpenCard.closed_desc')}
+            ? t(site ? 'admin.storefront.shopOpenCard.live_desc_site' : 'admin.storefront.shopOpenCard.live_desc', { domain: `${currentTenant?.slug}.sellqo.shop` })
+            : t(site ? 'admin.storefront.shopOpenCard.closed_desc_site' : 'admin.storefront.shopOpenCard.closed_desc')}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -97,13 +98,13 @@ export function ShopOpenCard() {
         </ul>
         <div className="space-y-3 border-t pt-4">
           <div className="flex items-center justify-between gap-3">
-            <Label htmlFor="shop-live" className="font-medium">{t('admin.orderingHub.winkel_online')}</Label>
+            <Label htmlFor="shop-live" className="font-medium">{t(site ? 'admin.storefront.shopOpenCard.site_live_label' : 'admin.orderingHub.winkel_online')}</Label>
             <Switch id="shop-live" checked={data.shop_live} disabled={saving} onCheckedChange={(v) => save({ shop_live: v })} />
           </div>
           <div className="flex items-center justify-between gap-3">
             <div>
               <Label htmlFor="shop-order" className="font-medium">{t('admin.orderingHub.online_bestellen')}</Label>
-              <p className="text-xs text-muted-foreground">{t('admin.storefront.shopOpenCard.klanten_kunnen_afrekenen_uit_je_winkel')}</p>
+              <p className="text-xs text-muted-foreground">{t(site ? 'admin.storefront.shopOpenCard.ordering_desc_site' : 'admin.storefront.shopOpenCard.klanten_kunnen_afrekenen_uit_je_winkel')}</p>
             </div>
             <Switch id="shop-order" checked={data.shop_ordering} disabled={saving || !data.shop_live} onCheckedChange={(v) => save({ shop_ordering: v })} />
           </div>

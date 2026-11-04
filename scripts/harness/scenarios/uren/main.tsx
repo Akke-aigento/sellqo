@@ -13,7 +13,15 @@ const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
 const entry: Record<string, string> = {
   sidebar: '/admin', bedrijf: '/admin/settings?section=company', afhalen: '/admin/bestellen?tab=webshop', reservaties: '/admin/bestellen?tab=reservaties',
   website: '/admin/storefront', aanpassen: '/admin/storefront/aanpassen', hub: '/admin/settings?section=horeca',
+  'aanpassen-thema': '/admin/storefront/aanpassen?panel=themes', branding: '/admin/settings?section=branding', qr: '/admin/bestellen?tab=qr',
+  'afhalen-zonder-sloten': '/admin/bestellen?tab=webshop',
 };
+// UREN-1b — de editor haalt het themaschema bij de shop; hier uit de mock.
+import { SCHEMA } from './mocks/schemaData';
+const realFetch = window.fetch.bind(window);
+window.fetch = ((input: RequestInfo | URL, init?: RequestInit) => String(input).endsWith('/theme/schema.json')
+  ? Promise.resolve(new Response(JSON.stringify(SCHEMA), { status: 200, headers: { 'content-type': 'application/json' } }))
+  : realFetch(input, init)) as typeof fetch;
 const wrap = (C: () => JSX.Element) => ({ default: () => <div className="mx-auto max-w-4xl p-4"><C /></div> });
 const Sidebar = lazy(async () => {
   const [{ SidebarProvider, SidebarTrigger }, { AdminSidebar }] = await Promise.all([import('@/components/ui/sidebar'), import('@/components/admin/AdminSidebar')]);
@@ -24,8 +32,10 @@ const Afhalen = lazy(async () => wrap((await import('@/components/admin/storefro
 const Reservaties = lazy(async () => wrap((await import('@/components/admin/horeca/OnlineReservationsCard')).OnlineReservationsCard));
 const Website = lazy(() => import('@/pages/admin/Storefront'));
 const Aanpassen = lazy(() => import('@/pages/admin/StorefrontCustomize'));
+const Branding = lazy(async () => wrap((await import('@/components/admin/settings/BrandingSettings')).BrandingSettings));
+const Qr = lazy(async () => wrap((await import('@/components/admin/storefront/food/QrModeSettings')).QrModeSettings));
 const Hub = lazy(async () => wrap((await import('@/components/admin/settings/HorecaSettingsHub')).HorecaSettingsHub));
-const Screen = { sidebar: Sidebar, bedrijf: Bedrijf, afhalen: Afhalen, reservaties: Reservaties, website: Website, aanpassen: Aanpassen, hub: Hub }[H.screen] ?? Bedrijf;
+const Screen = { sidebar: Sidebar, bedrijf: Bedrijf, afhalen: Afhalen, reservaties: Reservaties, website: Website, aanpassen: Aanpassen, hub: Hub, 'aanpassen-thema': Aanpassen, branding: Branding, qr: Qr, 'afhalen-zonder-sloten': Afhalen }[H.screen] ?? Bedrijf;
 
 createRoot(document.getElementById('root')!).render(
   <QueryClientProvider client={qc}>

@@ -4,6 +4,18 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.15d — Zelf kiezen of er buiten je openingsuren besteld kan worden (feature, 04-11-2026)
+Bij QR aan tafel en bij afhalen en leveren zonder tijdsloten kies je met één schakelaar of gasten ook buiten je openingsuren kunnen bestellen; je gast ziet dan wanneer het weer kan. Bij online reserveren kies je ook tot hoe lang vóór sluiting de laatste gast kan aankomen. Standaard verandert er niets.
+i18n: `public.changelog.changes.ordering_outside_hours`
+
+### 2026.15d — Horecathema's spreken de taal van je zaak (improvement, 04-11-2026)
+Met een horecathema spreekt je website van Menukaart, Reserveren en Bezoek ons in plaats van producten en shop. Met een horecapakket staan die thema's vooraan; je thema verandert nooit vanzelf.
+i18n: `public.changelog.changes.horeca_themes`
+
+### 2026.15d — Logo en merkkleur op één plek (improvement, 04-11-2026)
+Je logo, favicon en merkkleur stel je enkel nog in onder Instellingen › Branding. Ze gelden voor je website, mails, facturen en kassabonnen.
+i18n: `public.changelog.changes.branding_one_place`
+
 ### 2026.15d — Openingsuren op één plek, ook op je website (feature, 04-11-2026)
 Onder Instellingen › Bedrijfsgegevens vul je je openingsuren in, met blokken per dag (ook tot na middernacht) en uitzonderlijke sluitingsdagen met een korte reden. Je website toont ze in de voettekst en bovenaan je menukaart, met "Nu open" of wanneer je weer opengaat. Afhalen, leveren en online reserveren nemen ze standaard over; wil je daar andere uren, kies dan "Eigen uren". Bestaande eigen uren blijven staan.
 i18n: `public.changelog.changes.opening_hours`

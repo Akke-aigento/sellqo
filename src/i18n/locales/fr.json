@@ -412,7 +412,9 @@
       "uploadLogo": "Téléverser le logo",
       "ibanInvalid": "Format IBAN invalide",
       "missingFieldsCount": "Il manque {{count}} champs obligatoires pour une facture belge.",
-      "saveChanges": "Enregistrer les modifications"
+      "saveChanges": "Enregistrer les modifications",
+      "logo_in_branding": "Modifier le logo dans Image de marque",
+      "logoHint_branding": "Vous définissez votre logo dans Image de marque. Il figure sur votre site, dans vos e-mails, sur vos factures et tickets de caisse."
     },
     "branding": {
       "subtitle": "Logo, favicon et couleur principale — utilisés dans votre boutique, vos e-mails et vos factures",
@@ -421,7 +423,13 @@
       "primaryColor": "Couleur principale (boutique)",
       "primaryColorHint": "Boutons et liens de votre boutique",
       "themePath": "Boutique → Thème",
-      "brandColor": "Couleur de marque"
+      "brandColor": "Couleur de marque",
+      "subtitle_one_place": "Un seul endroit pour votre logo, favicon et couleur de marque. Ils valent pour votre site, vos e-mails, factures et tickets de caisse.",
+      "diverges": "Vos factures, tickets de caisse et certains e-mails utilisent actuellement un autre logo ou une autre couleur que votre site. Si vous enregistrez ici, ils reçoivent tous ce logo et cette couleur.",
+      "sync_failed": "Votre site est à jour, mais pas les factures et e-mails : {{reason}}",
+      "from_logo": "Prendre la couleur de mon logo",
+      "brand_one_hint": "Pour les boutons et liens de votre site, et les accents de vos e-mails, factures et tickets de caisse.",
+      "theme_tip": "Les polices, le thème et la structure de votre page d'accueil se modifient dans"
     },
     "social": {
       "linksTitle": "Liens vers les réseaux sociaux",
@@ -7107,7 +7115,9 @@
         "allergens_none_label": "Ne contient aucun des 14 allergènes",
         "allergens_none_disabled": "Indisponible tant qu’un allergène est coché.",
         "closed_moved": "Les jours de fermeture (vacances, jours fériés) se trouvent désormais avec vos heures d'ouverture dans Paramètres › Données de l'entreprise. Ils valent pour le retrait, la livraison et les réservations en ligne.",
-        "closed_moved_link": "Vers les heures d'ouverture"
+        "closed_moved_link": "Vers les heures d'ouverture",
+        "outside_hours": "Autoriser « dès que possible » en dehors des heures",
+        "outside_hours_desc": "Sans créneaux, votre client commande « dès que possible ». Désactivé = uniquement pendant les horaires ci-dessous ; en dehors, il voit quand ce sera possible."
       },
       "schema": {
         "themeGallery": {
@@ -7116,7 +7126,9 @@
           "ook_de_homepage_opbouw_en_voorbeeldteksten": "Reprendre aussi la structure de la page d’accueil et les textes d’exemple du thème",
           "mijn_eigen_merkkleur_behouden": "Conserver ma propre couleur de marque",
           "foto_s_in_de_thema_s": "Les photos des thèmes proviennent d’Unsplash (libres d’utilisation). N’hésitez pas à les remplacer par vos propres images.",
-          "bekijk": "Voir"
+          "bekijk": "Voir",
+          "take_brand": "Reprendre aussi la couleur de marque du thème (modifie votre couleur dans Image de marque)",
+          "horeca_badge": "Horeca"
         },
         "menuEditor": {
           "legal_contact": "Coordonnées",
@@ -7177,7 +7189,16 @@
         "nog_geen_betaalmethode_stripe_overschrijving_of": "Pas encore de moyen de paiement (Stripe, virement ou paiement au retrait)",
         "online_bestellen_staat_aan": "La commande en ligne est activée",
         "online_bestellen_staat_uit": "La commande en ligne est désactivée",
-        "je_winkel_staat_offline": "Votre boutique est hors ligne"
+        "je_winkel_staat_offline": "Votre boutique est hors ligne",
+        "site_online": "Votre site est en ligne",
+        "site_offline": "Votre site est hors ligne",
+        "site_open": "Ouvrir votre site",
+        "site_live_label": "Site en ligne",
+        "menu_items": "À la carte : {{count}}",
+        "no_menu_items": "Rien à la carte pour l'instant",
+        "live_desc_site": "Tout le monde peut visiter votre site sur {{domain}}, et Google peut le trouver.",
+        "closed_desc_site": "Tant que votre site n'est pas ouvert, les visiteurs voient « Ouverture prochaine ». Dans l'éditeur, vous le voyez normalement.",
+        "ordering_desc_site": "Les clients peuvent commander à emporter ou en livraison. Désactivé = votre site affiche la carte, sans commande."
       },
       "schemaText": {
         "achtergrond": "Arrière-plan",
@@ -7394,7 +7415,10 @@
         "view_site": "Voir le site",
         "own_domain_desc_site": "Associez votre propre nom de domaine à votre site.",
         "hours_desc": "Affichées sur votre site : en pied de page et en haut de votre carte.",
-        "customize_intro_site": "Ajustez couleurs, logo, polices et votre page d'accueil dans un seul écran, avec votre site à côté."
+        "customize_intro_site": "Ajustez couleurs, logo, polices et votre page d'accueil dans un seul écran, avec votre site à côté.",
+        "horeca_theme_tip_title": "Choisissez un thème horeca",
+        "horeca_theme_tip": "Votre site utilise un thème boutique et parle de « produits » et de « boutique ». Un thème horeca affiche Carte, Nous rendre visite et vos heures d'ouverture.",
+        "horeca_theme_tip_cta": "Choisir un thème horeca"
       },
       "features": {
         "newsletter_where": "L’inscription se fait toujours avec confirmation. Vous gérez vos abonnés et votre e-mail de bienvenue dans Marketing :",
@@ -7792,7 +7816,11 @@
       "sectie_verwijderen": "Supprimer la section",
       "secties": "Sections",
       "verbergen": "Masquer",
-      "footer_placeholder": "P. ex. Fait main à Louvain depuis 2024."
+      "footer_placeholder": "P. ex. Fait main à Louvain depuis 2024.",
+      "brand_title": "Logo et couleur de marque",
+      "no_logo": "Pas encore de logo",
+      "brand_link": "Modifier logo et couleurs dans Image de marque",
+      "brand_hint": "Un seul endroit, car ils pilotent aussi vos e-mails, factures et tickets de caisse."
     },
     "modules": {
       "title": "Modules pour votre activité",
@@ -9670,7 +9698,9 @@
       "call_waiter": "Appeler un serveur",
       "call_waiter_desc": "Le client appuie sur Appeler un serveur et le personnel vient à la table.",
       "call_bill": "Demander l’addition",
-      "call_bill_desc": "Le client demande l’addition sans faire signe, aussi sur sa page d’addition si le paiement en ligne est désactivé."
+      "call_bill_desc": "Le client demande l’addition sans faire signe, aussi sur sa page d’addition si le paiement en ligne est désactivé.",
+      "outside_hours": "Commander en dehors des heures d'ouverture",
+      "outside_hours_desc": "Désactivé = les clients ne commandent à table que pendant vos heures d'ouverture. En dehors, ils voient quand c'est de nouveau possible."
     }
   },
   "billing": {
@@ -12372,7 +12402,20 @@
     "noticeDay": "la veille",
     "noHoursWarning": "La réservation en ligne est activée, mais aucune heure n’est encore définie : les clients ne voient aucune heure libre.",
     "onlineHow": "Avec la réservation en ligne, votre boutique affiche un bouton « Reserveren ». Une demande apparaît ici et sur la caisse (orange). Les numéros de GSM sont supprimés après 30 jours.",
-    "businessHoursHint": "Avec « Comme les heures d'ouverture », les clients peuvent arriver de l'ouverture jusqu'à juste avant la fermeture."
+    "businessHoursHint": "Avec « Comme les heures d'ouverture », les clients peuvent arriver de l'ouverture jusqu'à votre dernière arrivée (ci-dessous).",
+    "timingTitle": "Réserver à temps",
+    "noticeLabel": "Au moins à l'avance",
+    "noticeNoMinimum": "Pas de minimum",
+    "noticeBefore": "{{d}} à l'avance",
+    "noticeHint": "Combien de temps avant l'heure d'arrivée un client peut encore réserver en ligne.",
+    "lastArrivalLabel": "Dernière arrivée",
+    "lastArrivalOwn": "Avec des horaires propres, vous choisissez vous-même la dernière heure d'arrivée, par jour ci-dessus.",
+    "lastArrivalJustBefore": "Jusqu'à juste avant la fermeture",
+    "lastArrivalBefore": "{{d}} avant la fermeture",
+    "lastArrivalHint": "Combien de temps avant la fermeture le dernier client peut arriver.",
+    "durMinutes": "{{n}} min",
+    "durHours": "{{h}} h",
+    "durHoursMinutes": "{{h}} h {{m}}"
   },
   "ai_images_toast": {
     "generated": "Image générée !",

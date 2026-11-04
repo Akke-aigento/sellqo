@@ -412,7 +412,9 @@
       "uploadLogo": "Logo hochladen",
       "ibanInvalid": "Ungültiges IBAN-Format",
       "missingFieldsCount": "Es fehlen {{count}} Pflichtfelder für eine belgische Rechnung.",
-      "saveChanges": "Änderungen speichern"
+      "saveChanges": "Änderungen speichern",
+      "logo_in_branding": "Logo unter Branding ändern",
+      "logoHint_branding": "Ihr Logo legen Sie unter Branding fest. Es erscheint auf Ihrer Website, in E-Mails, auf Rechnungen und Kassenbons."
     },
     "branding": {
       "subtitle": "Logo, Favicon und Hauptfarbe — verwendet in Ihrem Shop, in E-Mails und auf Rechnungen",
@@ -421,7 +423,13 @@
       "primaryColor": "Primärfarbe (Onlineshop)",
       "primaryColorHint": "Schaltflächen und Links in Ihrem Shop",
       "themePath": "Onlineshop → Theme",
-      "brandColor": "Markenfarbe"
+      "brandColor": "Markenfarbe",
+      "subtitle_one_place": "Ein Ort für Logo, Favicon und Markenfarbe. Sie gelten für Ihre Website, Ihre E-Mails, Rechnungen und Kassenbons.",
+      "diverges": "Ihre Rechnungen, Kassenbons und einige E-Mails verwenden derzeit ein anderes Logo oder eine andere Farbe als Ihre Website. Wenn Sie hier speichern, bekommen alle dieses Logo und diese Farbe.",
+      "sync_failed": "Ihre Website wurde aktualisiert, Rechnungen und E-Mails aber nicht: {{reason}}",
+      "from_logo": "Farbe aus meinem Logo übernehmen",
+      "brand_one_hint": "Für Schaltflächen und Links auf Ihrer Website und die Akzente in E-Mails, Rechnungen und Kassenbons.",
+      "theme_tip": "Schriften, Theme und den Aufbau Ihrer Startseite ändern Sie unter"
     },
     "social": {
       "linksTitle": "Social-Media-Links",
@@ -7107,7 +7115,9 @@
         "allergens_none_label": "Enthält keines der 14 Allergene",
         "allergens_none_disabled": "Nicht möglich, solange ein Allergen angekreuzt ist.",
         "closed_moved": "Schließtage (Urlaub, Feiertage) stehen jetzt bei deinen Öffnungszeiten unter Einstellungen › Unternehmensdaten. Sie gelten für Abholung, Lieferung und Online-Reservierungen.",
-        "closed_moved_link": "Zu den Öffnungszeiten"
+        "closed_moved_link": "Zu den Öffnungszeiten",
+        "outside_hours": "„So schnell wie möglich“ auch außerhalb der Zeiten",
+        "outside_hours_desc": "Ohne Zeitfenster bestellt dein Kunde „so schnell wie möglich“. Aus = nur innerhalb der Zeiten unten; außerhalb sieht er, wann es wieder geht."
       },
       "schema": {
         "themeGallery": {
@@ -7116,7 +7126,9 @@
           "ook_de_homepage_opbouw_en_voorbeeldteksten": "Auch Startseitenaufbau und Beispieltexte des Themes übernehmen",
           "mijn_eigen_merkkleur_behouden": "Eigene Markenfarbe behalten",
           "foto_s_in_de_thema_s": "Die Fotos in den Themes stammen von Unsplash (frei nutzbar). Ersetzen Sie sie gern durch eigene Bilder.",
-          "bekijk": "Ansehen"
+          "bekijk": "Ansehen",
+          "take_brand": "Auch die Markenfarbe des Themes übernehmen (ändert Ihre Farbe unter Branding)",
+          "horeca_badge": "Gastro"
         },
         "menuEditor": {
           "legal_contact": "Kontaktdaten",
@@ -7177,7 +7189,16 @@
         "nog_geen_betaalmethode_stripe_overschrijving_of": "Noch keine Zahlungsmethode (Stripe, Überweisung oder Bezahlen bei Abholung)",
         "online_bestellen_staat_aan": "Online-Bestellung ist an",
         "online_bestellen_staat_uit": "Online-Bestellung ist aus",
-        "je_winkel_staat_offline": "Ihr Shop ist offline"
+        "je_winkel_staat_offline": "Ihr Shop ist offline",
+        "site_online": "Ihre Website ist online",
+        "site_offline": "Ihre Website ist offline",
+        "site_open": "Website öffnen",
+        "site_live_label": "Website online",
+        "menu_items": "Auf der Karte: {{count}}",
+        "no_menu_items": "Noch nichts auf der Karte",
+        "live_desc_site": "Alle können Ihre Website unter {{domain}} besuchen, und Google darf sie finden.",
+        "closed_desc_site": "Solange Ihre Website nicht geöffnet ist, sehen Besucher „Wir öffnen bald“. Im Editor sehen Sie sie ganz normal.",
+        "ordering_desc_site": "Gäste können online abholen oder liefern lassen. Aus = Ihre Website zeigt die Karte, ohne Bestellen."
       },
       "schemaText": {
         "achtergrond": "Hintergrund",
@@ -7394,7 +7415,10 @@
         "view_site": "Website ansehen",
         "own_domain_desc_site": "Verbinde deinen eigenen Domainnamen mit deiner Website.",
         "hours_desc": "Stehen auf deiner Seite: in der Fußzeile und oben auf deiner Karte.",
-        "customize_intro_site": "Farben, Logo, Schriften und deine Startseite passt du in einem Bildschirm an, mit deiner Website daneben."
+        "customize_intro_site": "Farben, Logo, Schriften und deine Startseite passt du in einem Bildschirm an, mit deiner Website daneben.",
+        "horeca_theme_tip_title": "Wählen Sie ein Gastro-Theme",
+        "horeca_theme_tip": "Ihre Website nutzt ein Shop-Theme und spricht von „Produkten“ und „Shop“. Ein Gastro-Theme zeigt Karte, Besuchen Sie uns und Ihre Öffnungszeiten.",
+        "horeca_theme_tip_cta": "Gastro-Theme wählen"
       },
       "features": {
         "newsletter_where": "Die Anmeldung erfolgt immer mit Bestätigung. Ihre Abonnenten und Ihre Willkommens-E-Mail verwalten Sie unter Marketing:",
@@ -7792,7 +7816,11 @@
       "sectie_verwijderen": "Abschnitt löschen",
       "secties": "Abschnitte",
       "verbergen": "Ausblenden",
-      "footer_placeholder": "Z. B. Handgemacht in Löwen seit 2024."
+      "footer_placeholder": "Z. B. Handgemacht in Löwen seit 2024.",
+      "brand_title": "Logo und Markenfarbe",
+      "no_logo": "Noch kein Logo",
+      "brand_link": "Logo und Farben unter Branding ändern",
+      "brand_hint": "Ein Ort, denn sie steuern auch Ihre E-Mails, Rechnungen und Kassenbons."
     },
     "modules": {
       "title": "Module für Ihr Geschäft",
@@ -9670,7 +9698,9 @@
       "call_waiter": "Bedienung rufen",
       "call_waiter_desc": "Der Gast tippt auf Bedienung rufen und die Bedienung kommt an den Tisch.",
       "call_bill": "Rechnung verlangen",
-      "call_bill_desc": "Der Gast verlangt die Rechnung, ohne zu winken, auch auf seiner Rechnungsseite, wenn Online-Bezahlen aus ist."
+      "call_bill_desc": "Der Gast verlangt die Rechnung, ohne zu winken, auch auf seiner Rechnungsseite, wenn Online-Bezahlen aus ist.",
+      "outside_hours": "Bestellen außerhalb der Öffnungszeiten",
+      "outside_hours_desc": "Aus = Gäste können am Tisch nur während Ihrer Öffnungszeiten bestellen. Außerhalb sehen sie, wann es wieder geht."
     }
   },
   "billing": {
@@ -12372,7 +12402,20 @@
     "noticeDay": "am Vortag",
     "noHoursWarning": "Online reservieren ist an, aber es gibt noch keine Zeiten: Gäste sehen keine freien Zeiten.",
     "onlineHow": "Ist online reservieren an, bekommt dein Webshop eine Schaltfläche „Reserveren“. Eine Anfrage erscheint hier und in der Kasse (orange). Handynummern werden nach 30 Tagen gelöscht.",
-    "businessHoursHint": "Bei „Wie die Öffnungszeiten“ können Gäste ab Öffnung bis kurz vor Schließung ankommen."
+    "businessHoursHint": "Bei „Wie die Öffnungszeiten“ können Gäste ab Öffnung bis zu deiner letzten Ankunft (unten) ankommen.",
+    "timingTitle": "Rechtzeitig reservieren",
+    "noticeLabel": "Mindestens im Voraus",
+    "noticeNoMinimum": "Kein Minimum",
+    "noticeBefore": "{{d}} im Voraus",
+    "noticeHint": "Wie lange vor der Ankunftszeit ein Gast noch online reservieren kann.",
+    "lastArrivalLabel": "Letzte Ankunft",
+    "lastArrivalOwn": "Bei eigenen Zeiten wählst du die letzte Ankunftszeit selbst, pro Tag oben.",
+    "lastArrivalJustBefore": "Bis kurz vor Schließung",
+    "lastArrivalBefore": "{{d}} vor Schließung",
+    "lastArrivalHint": "Wie lange vor Schließung der letzte Gast ankommen kann.",
+    "durMinutes": "{{n}} Min.",
+    "durHours": "{{h}} Std.",
+    "durHoursMinutes": "{{h}} Std. {{m}}"
   },
   "ai_images_toast": {
     "generated": "Bild erstellt!",

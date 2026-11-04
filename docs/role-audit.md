@@ -1,3 +1,48 @@
+## UREN-1b — laatste aankomst, bestellen buiten de openingsuren, horecathema's en logo/merkkleur op één plek (2026.15d) — 4 november 2026
+
+Vervolg op UREN-1 (hieronder), zelfde branch `uren-1`, na Akke's akkoord op het rapport.
+
+**Root cause / recon**
+- **Reservaties:** bij "Zelfde als openingsuren" kon de laatste aankomst enkel "net vóór sluiting" zijn. `min_notice_minutes` stond in het raster als "Ten laatste" met opties "x minuten vooraf" — onduidelijk.
+- **Bestellen buiten de uren — wat er bestond (code en live nagetrokken):**
+  - Afhalen/leveren **met** tijdsloten: sloten vallen enkel binnen de uren (`computeSlots`) en een slot is verplicht (`SLOT_REQUIRED`) → buiten de uren al onmogelijk.
+  - Afhalen/leveren **zonder** tijdsloten ("zo snel mogelijk"): enkel pauze en sluitingsdag blokkeren (`orderingBlocked`, PAUSE-1). Geen controle op uren; geen instelling.
+  - QR aan tafel (`checkout_table`, `table_request_place`, `checkout_complete` eat_in): geen enkele urencontrole; enkel `qr_mode` en de shopstatus (BILLING-LOCK-2). Een gast kan dus vandaag om 3 u 's nachts bestellen.
+- **Thema's:** de live standaardshop (sellqo-storefront) gebruikt de presets uit `src/theme/schema.json` (`theme_config.preset`), niet de tabel `themes`. Live: 0 SellQo-themawinkels op een `themes`-rij behalve 2× `tpl-food` en 1× `tpl-mode` (legacy renderer `src/pages/storefront`), alle andere op een preset. Horecapresets bestaan al: `restaurant`, `bar`, `bistro` (Akke's "Café & bar" en "Restaurant"). `tpl-food` is "Food & ambacht" (bakkers, slagers) = winkel, geen horeca.
+- **Logo en kleuren (grep + SQL):** twee bewaarplekken. `tenant_theme_settings.logo_url/favicon_url/brand_color/primary_color` (Branding én Aanpassen › Thema schrijven ze; gelezen door storefront-api en `_shared/tenantEmail.ts` met voorrang) en `tenants.logo_url/primary_color` (Bedrijfsgegevens en onboarding schrijven; gelezen door generate-credit-note, generate-payment-request-pdf, create-manual-invoice, export-vat-pdf, send-gift-card-email, send-return-email, send-customer-message, create-notification, send-trial-expiry-warning, token-wallet, unsubscribe, de kassa `deviceAccount.ts`, en als terugval in tenantEmail).
+  - Live uiteen (4-11): logo verschilt bij **loveke** en **vanxcel** (beide eigen frontend); kleur `tenants.primary_color` ≠ themakleur bij loveke, vanxcel, astra-sleep (eigen frontend) en demo-bakkerij, demo-mode, sellqo-speeltuin (SellQo-thema; tenants staat nog op de standaard #3b82f6). demo-bakkerij heeft een themalogo maar geen `tenants.logo_url` → facturen zonder logo. Niets geschreven.
+
+**Uitgevoerd**
+- `supabase/migrations/20261104120200_uren_1b.sql`: `reservation_settings.online_last_arrival_minutes` (0–600, standaard 0 = gedrag UREN-1), `fulfillment_settings.qr_block_outside_hours` en `online_block_outside_hours` (standaard false = toegestaan, zoals vandaag). `reservation_slots` herschreven in minuten: marge 0 = tot net vóór sluiting, >0 = laatste aankomst ≤ sluiting − marge, ook over middernacht; eigen uren ongewijzigd.
+- `_shared/fulfillmentSlots.ts`: `openState()` (open nu? volgende opening, tijdzone, middernacht, sluitingsdagen) en `closedMessage()`. `_shared/businessHours.ts`: `publicBusinessHours` + `table_ordering_when_closed`.
+- `storefront-api`: `get_config.business_hours.table_ordering_when_closed` ('allow'|'block', additief binnen het nieuwe veld); `get_fulfillment_slots` additief `outside_hours: { opens_at, message }` (enkel zonder tijdsloten, met de schakelaar, en nu dicht); `validateCartFulfillment` → `OUTSIDE_HOURS`; `checkout_table`, `table_request_place` en `checkout_complete` (eat_in) → `OUTSIDE_HOURS` met `opens_at`. Alle nieuwe leesacties apart en foutbestendig (zonder kolom = oud gedrag).
+- Beheer: `OnlineReservationsCard.tsx` blok "Op tijd reserveren" (Minstens op voorhand + Laatste aankomst, duur als "1 u 30"); `QrModeSettings.tsx` schakelaar "Bestellen buiten de openingsuren" (groep Bestellen); `FulfillmentSettings.tsx` schakelaar onder Tijdsloten als tijdsloten uit staan, met de uren erbij.
+- Thema's: `sellqo-storefront/src/theme/schema.json` sleutel `vocabulary: "horeca"` op restaurant/bar/bistro; `ThemeGallery.tsx` horeca vooraan bij een horecazaak + label; `Storefront.tsx` tip "Kies een horecathema" (horeca-only op een winkelthema; schema via `src/hooks/useThemeSchema.ts`); `ShopOpenCard.tsx` websitewoorden; `create-tenant`: plan met spoor horeca → `theme_config = { preset: 'bistro' }` (best effort).
+- Logo en merkkleur: bron = **Instellingen › Branding**. `src/lib/branding.ts` `syncTenantBrand` schrijft bij bewaren ook `tenants.logo_url` en `tenants.primary_color` (= merkkleur); `BrandingSettings.tsx` één merkkleur + "Kleur uit mijn logo halen" (verhuisd) + melding als de twee plekken vandaag uiteenlopen; `StorefrontCustomize.tsx` tab Thema = voorbeeld + link; themagalerij neemt de merkkleur enkel over als je dat aanvinkt (dan ook gesynchroniseerd); `BusinessSettings.tsx` Winkellogo = link naar Branding; onboarding `LogoUploadStep.tsx` vult ook het themalogo (enkel als leeg). Eigen frontends: Branding en Bedrijfsgegevens **ongewijzigd** (eerste wet).
+- i18n nl/en/fr/de/uk (44 app-keys + 3 changelog-ids `ordering_outside_hours`, `horeca_themes`, `branding_one_place` in 2026.15d). Docs: `20261104120100_uren_1_docs.sql` uitgebreid (laatste aankomst, bestellen buiten de uren), nieuw `20261104120300_uren_1b_docs.sql` (artikel `logo-en-merkkleur`, `theme-aanpassen`, `emailcampagnes`).
+
+**Samenhang (aanvulling)**
+
+| Plek | Doet nu | Wat verandert | Stand |
+|---|---|---|---|
+| Instellingen › Branding | logo, favicon, 2 kleuren (enkel thema) | de enige plek; schrijft ook tenants (SellQo-thema) | gedaan |
+| Website › Aanpassen › Thema | logo, favicon, merkkleur, kleur uit logo | voorbeeld + link naar Branding; thema neemt kleur enkel over op verzoek | gedaan |
+| Bedrijfsgegevens › Winkellogo | eigen upload naar tenants.logo_url | link naar Branding (eigen frontends: ongewijzigd) | gedaan |
+| Onboarding › logo | enkel tenants.logo_url | ook het themalogo (als leeg) | gedaan |
+| Kaart › Instellen › QR-menu | geen urenregel | schakelaar bestellen buiten de uren | gedaan |
+| Afhalen & leveren › Tijdsloten | geen urenregel zonder tijdsloten | schakelaar + uren zichtbaar | gedaan |
+| Online reserveren | "Ten laatste" in het raster | blok "Op tijd reserveren" met beide grenzen | gedaan |
+| Themagalerij | alle thema's gelijk | horeca vooraan, label | gedaan |
+| Site-woorden (storefront) | altijd webshop | volgens het thema | gedaan |
+
+**Security-keuzes:** geen nieuwe policy of grant. Nieuwe kolommen op `fulfillment_settings`/`reservation_settings` vallen onder hun bestaande RLS (schrijven `tenant_admin`). `tenants`-update uit Branding valt onder "Tenant admins can update their own tenant". `reservation_slots` blijft SECURITY DEFINER, `search_path ''`, enkel `service_role`.
+
+**Gedeelde-paden-waarschuwing:** `storefront-api`: enkel additieve sleutels (`business_hours.table_ordering_when_closed`, `outside_hours`) en nieuwe foutcode `OUTSIDE_HOURS` die enkel optreedt als een zaak de schakelaar uitzet (standaard nooit). Bestaande `blocked`-waarden ongewijzigd. Eigen frontends die tafel- of afhaalbestellingen doen, krijgen die code pas als de zaak het zo instelt. `create-tenant` (deploy nodig): enkel een extra update bij een horecaplan. `tenant_theme_settings`, `themes`, `homepage_sections`: niets gewijzigd (schema.json is een bestand in sellqo-storefront).
+
+**Verificatie:** tsc exit 0; build exit 0; lint "beter dan de baseline" (1457 → 1452, lat niet verlaagd); i18n-parity en used-keys groen; node-checks exit 0; vitest CI-stap 442 groen; deno `_shared` 247 groen, `promo-compare` 218 groen, rooktest groen, deno check zelfde 7 stub-fouten als HEAD; `scripts/gks/sql/run.sh` groen met nieuw `test_uren_1b.sql` (11 controles: marge 0/60/90/120, eigen uren zonder marge, middernacht met marge, standaardwaarden, max 600); docs-migraties 2× op wegwerpdatabank: zelfde md5. Harnas `uren` 390/1280 (+ branding, qr, afhalen-zonder-sloten, aanpassen-thema), storefront Playwright 2 × 24 groen.
+
+**Bewust ongemoeid / Vervolg:** tabel `themes` ongewijzigd (legacy renderer; nieuwe rijen zouden op de standaardshop niets doen). Bestaande horeca-only zaken niet omgezet: Café De Wissel (`demo-bar`, preset bar = al horeca), Test Horeca Small (`test-horeca-small`, standaard → krijgt de tip), Test Horeca Small (`test-horeca`, geen themarij). De divergentie bij loveke/vanxcel/astra blijft (eigen frontend, Branding schrijft daar niet naar tenants); voorstel: aparte beslissing per klant. Een nieuwe horecazaak start op bistro maar houdt de standaardmerkkleur tot ze die in Branding kiest.
+
 ## UREN-1 + WEBSITE-HORECA-1 — openingsuren van de zaak op één plek, en het site-uiterlijk voor horeca (2026.15d) — 4 november 2026
 
 Branch `uren-1` vanaf `origin/main` 4cf0e6b; storefront: branch `uren-1` in `Akke-aigento/sellqo-storefront` vanaf cab4e66. Plan-scope (vastgelegd): openingsuren in elk spoor en elk plan, geen nieuwe feature-sleutel (`webshop_builder` staat live op true in alle 8 plannen), geen grandfathering.

@@ -139,3 +139,48 @@ export function withBusinessHours<T extends FulfillmentSettings & { pickup_hours
   const closed = closureDates(parseClosures(bh?.closures), localYmd(nowMs, tz), 15);
   return { ...s, hours, closed_dates: closed };
 }
+
+/**
+ * UREN-1b — is de zaak (of een soort) nu open volgens een weekschema, en wanneer opent ze weer?
+ * `week` mag blokken tot "24:00" bevatten (splitOvernight) of "tot" vóór "van" (over middernacht).
+ * `closed`: lokale datums (YYYY-MM-DD) waarop alles dicht is. Een leeg schema geeft `null` (geen regel:
+ * zonder uren kan niets geweigerd worden). opens_at: eerste opening binnen 8 dagen, anders null.
+ */
+export function openState(week: Record<string, [string, string][]> | null | undefined, closed: string[] | null | undefined, tz: string, nowMs: number):
+  { open: boolean; opens_at: string | null } | null {
+  const w = week || {};
+  if (!Object.values(w).some((r) => Array.isArray(r) && r.length)) return null;
+  const shut = new Set(closed || []);
+  const today = localDay(nowMs, tz);
+  let next: number | null = null;
+  for (let i = -1; i <= 8; i++) {
+    const cal = new Date(Date.UTC(today.y, today.m - 1, today.d + i, 12));
+    const day = { y: cal.getUTCFullYear(), m: cal.getUTCMonth() + 1, d: cal.getUTCDate(), weekday: cal.getUTCDay() };
+    if (shut.has(`${day.y}-${pad(day.m)}-${pad(day.d)}`)) continue;
+    for (const [from, to] of w[String(day.weekday)] || []) {
+      const a = hm(from); let b = hm(to);
+      if (a == null || b == null || a === b) continue;
+      if (b < a) b += 24 * 60;
+      // Uren optellen bij lokale middernacht klopt niet rond zomertijd; per eindpunt apart omrekenen.
+      const startMs = zonedToUtc(day.y, day.m, day.d, Math.floor(a / 60), a % 60, tz);
+      const endCal = new Date(Date.UTC(day.y, day.m - 1, day.d + Math.floor(b / 1440), 12));
+      const endMs = zonedToUtc(endCal.getUTCFullYear(), endCal.getUTCMonth() + 1, endCal.getUTCDate(), Math.floor((b % 1440) / 60), b % 60, tz);
+      if (startMs <= nowMs && nowMs < endMs) return { open: true, opens_at: null };
+      if (startMs > nowMs && (next == null || startMs < next)) next = startMs;
+    }
+  }
+  return { open: false, opens_at: next == null ? null : new Date(next).toISOString() };
+}
+
+const DAY_NL = ['zondag', 'maandag', 'dinsdag', 'woensdag', 'donderdag', 'vrijdag', 'zaterdag'];
+/** "Bestellen kan vanaf 17:30" / "vanaf morgen 11:30" / "vanaf donderdag 11:30" (Nederlands, zoals de andere API-meldingen). */
+export function closedMessage(opensAt: string | null, tz: string, nowMs: number): string {
+  if (!opensAt) return 'We zijn nu gesloten.';
+  const ms = new Date(opensAt).getTime();
+  const at = localDay(ms, tz);
+  const today = localDay(nowMs, tz);
+  const f = new Intl.DateTimeFormat('en-GB', { timeZone: tz, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(ms));
+  const diff = Math.round((Date.UTC(at.y, at.m - 1, at.d) - Date.UTC(today.y, today.m - 1, today.d)) / 86400000);
+  const when = diff === 0 ? f : diff === 1 ? `morgen ${f}` : `${DAY_NL[at.weekday]} ${f}`;
+  return `We zijn nu gesloten. Bestellen kan vanaf ${when}.`;
+}

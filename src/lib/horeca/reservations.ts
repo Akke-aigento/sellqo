@@ -38,10 +38,13 @@ export interface OnlineReservationSettings {
   min_notice_minutes: number;
   /** UREN-1: 'business' = zelfde als de openingsuren, 'own' = online_hours. NULL in de databank = afgeleid. */
   online_hours_mode: 'business' | 'own';
+  /** UREN-1b: bij "Zelfde als openingsuren": hoe lang vóór sluiting de laatste aankomst (0 = tot net vóór sluiting). */
+  online_last_arrival_minutes: number;
 }
 export const DEFAULT_ONLINE_SETTINGS: OnlineReservationSettings = {
   online_enabled: false, online_hours: {}, slot_minutes: 15, max_guests_per_slot: 20, max_party: 8, days_ahead: 30, min_notice_minutes: 120,
   online_hours_mode: 'business',
+  online_last_arrival_minutes: 0,
 };
 
 /** Geldig uurbereik "HH:MM"–"HH:MM" (van ≤ tot). */
@@ -142,7 +145,7 @@ export async function fetchReservationSettings(tenantId: string, db: Db = supaba
 
 export async function fetchOnlineSettings(tenantId: string): Promise<OnlineReservationSettings> {
   const { data, error } = await supabase.from('reservation_settings' as never)
-    .select('online_enabled, online_hours, slot_minutes, max_guests_per_slot, max_party, days_ahead, min_notice_minutes, online_hours_mode')
+    .select('online_enabled, online_hours, slot_minutes, max_guests_per_slot, max_party, days_ahead, min_notice_minutes, online_hours_mode, online_last_arrival_minutes')
     .eq('tenant_id' as never, tenantId as never).maybeSingle();
   if (error) throw error;
   const row = (data as (Partial<Omit<OnlineReservationSettings, 'online_hours_mode'>> & { online_hours_mode?: string | null }) | null) ?? {};

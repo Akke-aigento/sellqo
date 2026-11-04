@@ -2513,6 +2513,18 @@
         "website_horeca": {
           "title": "Your own website, also with a hospitality plan",
           "description": "With a hospitality plan, the menu now shows Website, after Menu. There you choose a theme, set your logo and colours, write your footer, create pages and build your homepage, with your site next to it. You only add sections that work on your site. Shipping, returns and webshop discounts belong to the webshop and stay there."
+        },
+        "ordering_outside_hours": {
+          "title": "Choose whether people can order outside your opening hours",
+          "description": "For QR at the table and for pickup and delivery without time slots, one switch decides whether guests can also order outside your opening hours. Turn it off and your guest sees on the menu or at checkout when ordering is possible again. By default everything stays as it was. For online reservations you now also choose how long before closing the last guest can arrive, next to how long in advance people must book at least."
+        },
+        "horeca_themes": {
+          "title": "Hospitality themes speak the language of your venue",
+          "description": "Choose a hospitality theme in Website › Customise (Restaurant & takeaway, Bar & café or Restaurant & bistro) and your site talks about Menu, Book a table and Visit us instead of products and shop, also in the footer and on a homepage without sections. With a hospitality plan these themes come first, and if your site still uses a shop theme, you get a tip. Your theme never changes by itself."
+        },
+        "branding_one_place": {
+          "title": "Logo and brand colour in one place",
+          "description": "You now set your logo, favicon and brand colour only under Settings › Branding. They apply to your website, your emails, invoices and receipts. In Website › Customise and in your company details you see them, with a link to Branding. If your invoices or emails currently use a different logo or colour, Branding tells you; when you save, they all get the same."
         }
       },
       "copyLink": "Copy link",

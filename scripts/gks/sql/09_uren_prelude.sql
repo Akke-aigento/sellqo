@@ -31,3 +31,5 @@ on conflict (id) do nothing;
 insert into public.fulfillment_settings (tenant_id, closed_dates)
 values ('b0000000-0000-0000-0000-000000000001', array[current_date + 5, current_date - 1])
 on conflict (tenant_id) do update set closed_dates = excluded.closed_dates;
+-- UREN-1b: kolommen die live al bestaan (qr_*), zodat de prelude dicht bij live blijft.
+alter table public.fulfillment_settings add column if not exists qr_flow text not null default 'order';

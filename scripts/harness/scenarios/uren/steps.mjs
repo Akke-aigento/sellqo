@@ -5,6 +5,8 @@ const screens = [
   ['bedrijf', ''], ['bedrijf', '&role=viewer'], ['bedrijf', '&hours=empty'],
   ['afhalen', ''], ['afhalen', '&hours=empty'], ['reservaties', ''],
   ['website', ''], ['website', '&tracks=webshop'], ['aanpassen', ''], ['hub', ''],
+  // UREN-1b
+  ['aanpassen-thema', ''], ['branding', ''], ['qr', ''], ['afhalen-zonder-sloten', ''],
 ];
 export async function run(page, { width, log }) {
   const base = page.url().split('?')[0];
@@ -51,8 +53,21 @@ export async function run(page, { width, log }) {
         await p.getByRole('button', { name: 'Uren afhalen' }).click();
       }
     } else if (s === 'website') {
-      log(name, 'kop:', await p.locator('h1').innerText(), '|', (await text()).slice(0, 260));
+      log(name, 'kop:', await p.locator('h1').innerText(), '|', (await text()).slice(0, 700));
+    } else if (s === 'aanpassen-thema') {
+      await p.getByRole('tab', { name: 'Thema' }).click();
+      await p.getByText('Thema kiezen', { exact: true }).first().click();
+      await p.waitForSelector('label[for="tg-brand"]');
+      log(name, 'thema-volgorde:', (await p.locator('button span.text-lg.font-bold').allInnerTexts()).slice(0, 5).join(' | '));
+      log(name, 'merk-checkbox:', await p.locator('label[for="tg-brand"]').innerText());
+    } else if (s === 'branding' || s === 'qr' || s === 'afhalen-zonder-sloten') {
+      log(name, (await text()).slice(0, 600));
     } else if (s === 'aanpassen') {
+      await p.getByRole('tab', { name: 'Thema' }).click();
+      await p.waitForTimeout(200);
+      log(name, 'thema-tab:', (await p.locator('aside').innerText()).slice(0, 300).replace(/\n/g, ' · '));
+      await shot(`${name}-thema-tab`);
+      await p.getByRole('tab', { name: 'Secties' }).click();
       await p.getByRole('button', { name: 'Sectie toevoegen' }).click();
       await p.waitForTimeout(300);
       log(name, 'toe te voegen:', (await p.locator('[data-radix-popper-content-wrapper] button span.block.text-sm').allInnerTexts()).join(' | '));

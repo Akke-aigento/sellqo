@@ -1,5 +1,5 @@
 import { Navigate, Link, useSearchParams } from 'react-router-dom';
-import { Clock, Globe, Home, FileText, Scale, Wand2, ExternalLink, Info, ChevronRight, Link2, SlidersHorizontal } from 'lucide-react';
+import { Clock, Palette, Globe, Home, FileText, Scale, Wand2, ExternalLink, Info, ChevronRight, Link2, SlidersHorizontal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { ScrollHint } from '@/components/ui/scroll-hint';
@@ -12,6 +12,8 @@ import { StorefrontFeaturesSettings } from '@/components/admin/storefront/studio
 import { ShopOpenCard } from '@/components/admin/storefront/ShopOpenCard';
 import { useTranslation } from 'react-i18next';
 import { useTracks } from '@/hooks/useBusinessModules';
+import { isHorecaPreset, useThemeSchema } from '@/hooks/useThemeSchema';
+import { useStorefront } from '@/hooks/useStorefront';
 import { isHorecaOnly } from '@/lib/siteSections';
 import { BUSINESS_HOURS_URL } from '@/components/admin/settings/hours/HoursModeChoice';
 
@@ -35,6 +37,9 @@ const TO_EDITOR = ['design', 'homepage'];
 // zelfde scherm. Verzending, retouren en webshopkortingen staan hier niet (die horen bij het webshopspoor).
 function ShopOverview({ slug, onNavigate, site }: { slug: string; onNavigate: (s: string) => void; site: boolean }) {
   const { t } = useTranslation();
+  const { data: schema } = useThemeSchema(site ? slug : undefined);
+  const { themeSettings } = useStorefront();
+  const preset = ((themeSettings as unknown as { theme_config?: { preset?: string } } | null)?.theme_config?.preset) || 'standaard';
   const { isCustomFrontend, customFrontendUrl } = useFrontendMode();
   const shopUrl = `https://${slug}.sellqo.shop`;
   return (
@@ -88,7 +93,19 @@ function ShopOverview({ slug, onNavigate, site }: { slug: string; onNavigate: (s
         </div>
       </Card>
 
-      <ShopOpenCard />
+      {/* UREN-1b — horecazaak op een winkelthema: tip naar de horecathema's (niets stil omgezet). */}
+      {site && schema && !isHorecaPreset(schema, preset) ? (
+        <div role="status" className="flex flex-wrap items-start gap-3 rounded-lg border border-amber-500/60 bg-amber-50 p-4 text-amber-950 dark:bg-amber-950/40 dark:text-amber-50">
+          <Palette className="mt-0.5 h-5 w-5 shrink-0" aria-hidden />
+          <span className="min-w-0 flex-1">
+            <span className="block font-medium">{t('admin.storefront.page.horeca_theme_tip_title')}</span>
+            <span className="block text-sm">{t('admin.storefront.page.horeca_theme_tip')}</span>
+          </span>
+          <Button asChild size="sm" variant="outline"><Link to="/admin/storefront/aanpassen?panel=themes">{t('admin.storefront.page.horeca_theme_tip_cta')}</Link></Button>
+        </div>
+      ) : null}
+
+      <ShopOpenCard site={site} />
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {[

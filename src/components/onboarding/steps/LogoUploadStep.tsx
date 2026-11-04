@@ -55,6 +55,9 @@ export function LogoUploadStep({
         .from('tenants')
         .update({ logo_url: publicUrl.publicUrl })
         .eq('id', tenantId);
+      // UREN-1b — één logo: ook op de website (Branding schrijft beide). Een nieuwe winkel heeft nooit een eigen
+      // frontend; enkel invullen als er nog geen themalogo is.
+      await supabase.from('tenant_theme_settings').update({ logo_url: publicUrl.publicUrl }).eq('tenant_id', tenantId).is('logo_url', null);
 
       // MAIL-LOGO-1: e-mailvariant (bijgesneden PNG, 176 px hoog). Best effort: lukt het niet,
       // dan gebruiken de mails het origineel; de onboarding loopt gewoon door.

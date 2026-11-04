@@ -1,7 +1,7 @@
 // UREN-1 — unit tests voor de openingsuren en hun effect op afhaal- en leversloten (geen netwerk).
 // Run: deno test --no-lock supabase/functions/_shared/businessHours.test.ts
 import { closureDates, parseClosures, parseWeek, publicBusinessHours, resolveHoursMode, splitOvernight } from './businessHours.ts';
-import { computeSlots, orderingBlocked, withBusinessHours, type FulfillmentSettings } from './fulfillmentSlots.ts';
+import { closedMessage, computeSlots, openState, orderingBlocked, withBusinessHours, type FulfillmentSettings } from './fulfillmentSlots.ts';
 
 function eq(actual: unknown, expected: unknown, msg = '') {
   const a = JSON.stringify(actual); const e = JSON.stringify(expected);
@@ -50,7 +50,8 @@ Deno.test('publicBusinessHours: null zonder iets ingevuld, voorbije sluitingen w
   eq(publicBusinessHours({ week: {}, closures: [] }, TUE_10), null);
   eq(publicBusinessHours({ week: {}, closures: [{ from: '2026-10-01', to: '2026-10-12' }] }, TUE_10), null, 'enkel voorbije sluiting = niets');
   eq(publicBusinessHours({ week: { '2': [['11:30', '14:00']] }, closures: [{ from: '2026-10-01', to: '2026-10-12' }, { from: '2026-10-13', to: '2026-10-13', reason: 'Verlof' }] }, TUE_10),
-    { timezone: 'Europe/Brussels', week: { '2': [['11:30', '14:00']] }, closures: [{ from: '2026-10-13', to: '2026-10-13', reason: 'Verlof' }] });
+    { timezone: 'Europe/Brussels', week: { '2': [['11:30', '14:00']] }, closures: [{ from: '2026-10-13', to: '2026-10-13', reason: 'Verlof' }], table_ordering_when_closed: 'allow' });
+  eq((publicBusinessHours({ week: { '2': [['11:30', '14:00']] } }, TUE_10, true) as { table_ordering_when_closed: string }).table_ordering_when_closed, 'block');
 });
 
 Deno.test('afhalen "zelfde als openingsuren": sloten uit business_hours', () => {
@@ -99,4 +100,25 @@ Deno.test('openingsuren over middernacht: sloten na 00:00 op de volgende dag', (
 Deno.test('zonder openingsuren (geen rij): "zelfde als" geeft geen sloten, eigen uren blijven', () => {
   eq(computeSlots(withBusinessHours(fs(), null, TUE_10), 'pickup', TUE_10).length, 0);
   eq(computeSlots(withBusinessHours(fs({ hours: { pickup: { '2': [['17:00', '17:30']] } } }), null, TUE_10), 'pickup', TUE_10).length, 1);
+});
+
+// --- UREN-1b: open of dicht, en wanneer weer open ---------------------------------------------------
+const WEEK = splitOvernight({ '2': [['11:30', '14:00'], ['17:30', '22:00']], '3': [['11:30', '14:00']], '6': [['20:00', '02:00']] });
+const T = (iso: string) => Date.parse(iso);
+Deno.test('openState: open binnen een blok, anders het volgende blok', () => {
+  eq(openState(WEEK, [], 'Europe/Brussels', T('2026-10-13T10:00:00Z')), { open: true, opens_at: null }, 'di 12:00');
+  eq(openState(WEEK, [], 'Europe/Brussels', T('2026-10-13T13:00:00Z')), { open: false, opens_at: '2026-10-13T15:30:00.000Z' }, 'di 15:00 → 17:30');
+  eq(openState(WEEK, [], 'Europe/Brussels', T('2026-10-13T20:30:00Z')), { open: false, opens_at: '2026-10-14T09:30:00.000Z' }, 'di 22:30 → wo 11:30');
+  eq(openState(WEEK, [], 'Europe/Brussels', T('2026-10-17T23:00:00Z'))?.open, true, 'za→zo 01:00 (staart)');
+});
+Deno.test('openState: sluitingsdag en leeg schema', () => {
+  eq(openState(WEEK, ['2026-10-14'], 'Europe/Brussels', T('2026-10-13T20:30:00Z')), { open: false, opens_at: '2026-10-17T18:00:00.000Z' }, 'wo dicht → za 20:00');
+  eq(openState({}, [], 'Europe/Brussels', TUE_10), null, 'geen uren = geen regel');
+});
+Deno.test('closedMessage: vandaag, morgen, weekdag', () => {
+  const now = T('2026-10-13T13:00:00Z');
+  eq(closedMessage('2026-10-13T15:30:00.000Z', 'Europe/Brussels', now), 'We zijn nu gesloten. Bestellen kan vanaf 17:30.');
+  eq(closedMessage('2026-10-14T09:30:00.000Z', 'Europe/Brussels', now), 'We zijn nu gesloten. Bestellen kan vanaf morgen 11:30.');
+  eq(closedMessage('2026-10-17T18:00:00.000Z', 'Europe/Brussels', now), 'We zijn nu gesloten. Bestellen kan vanaf zaterdag 20:00.');
+  eq(closedMessage(null, 'Europe/Brussels', now), 'We zijn nu gesloten.');
 });

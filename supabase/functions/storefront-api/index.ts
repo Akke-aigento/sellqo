@@ -11,8 +11,8 @@ import { parseOptionFilter, productMatches, buildOptionFacets, buildTagFacets, t
 import { resolveTableInput, tenantHasFloorPlan } from "../_shared/diningTables.ts";
 import { refundReasonText, settleTableCheckPayment, type RefundClient, type SettleRpcClient } from "../_shared/tableCheckPay.ts";
 import { AddonError, addonsLabel, applicableGroups, resolveAddonSelection, type AddonGroup } from "../_shared/productAddons.ts";
-import { computeSlots, orderingBlocked, postalCodeAllowed, withBusinessHours, type FulfillmentSettings, type ServiceType } from "../_shared/fulfillmentSlots.ts";
-import { publicBusinessHours, type BusinessHoursRow } from "../_shared/businessHours.ts";
+import { closedMessage, computeSlots, openState, orderingBlocked, postalCodeAllowed, withBusinessHours, type FulfillmentSettings, type ServiceType } from "../_shared/fulfillmentSlots.ts";
+import { closureDates, localYmd, parseClosures, parseWeek, publicBusinessHours, splitOvernight, type BusinessHoursRow } from "../_shared/businessHours.ts";
 import { CART_RESTORE_SESSION_PREFIX, verifyCartRestore } from "../_shared/cartRestoreToken.ts";
 import { amountMismatchNote, discountRoundingToleranceCents, stripeAmountMismatch } from "../_shared/stripeAmountCheck.ts";
 import { buildSizeChart, publicSizeChart, sellSizesFromVariants } from "../_shared/sizeChart.ts";
@@ -326,6 +326,8 @@ async function getConfig(supabase: any, tenantId: string, params: Record<string,
   const locale = params.locale as string | undefined;
 
   const businessHoursP = loadBusinessHours(supabase, tenantId);
+  // UREN-1b — QR aan tafel buiten de openingsuren (aparte, foutbestendige lees; ontbreekt de kolom: toegestaan).
+  const tableBlockP = loadTableBlock(supabase, tenantId);
   const [
     { data: tenant },
     { data: themeSettings },
@@ -419,7 +421,7 @@ async function getConfig(supabase: any, tenantId: string, params: Record<string,
     },
     // UREN-1 — additief: { timezone, week: { "1": [["11:30","14:00"]], ... } (0 = zondag), closures: [{ from, to, reason }] }
     // met enkel de komende sluitingen; null als de zaak geen openingsuren invulde.
-    business_hours: publicBusinessHours(businessHours, Date.now()),
+    business_hours: publicBusinessHours(businessHours, Date.now(), await tableBlockP),
   };
 }
 
@@ -888,11 +890,30 @@ async function loadBusinessHours(supabase: SupabaseLike, tenantId: string): Prom
 // QR, betalen aan tafel, oproepen) byte-gelijk blijft. Lukt een van beide niet, dan het oude gedrag.
 async function effectiveFulfillment(supabase: SupabaseLike, tenantId: string, settings: ShopFulfillment, nowMs: number): Promise<ShopFulfillment> {
   const [{ data: modes, error }, bh] = await Promise.all([
-    supabase.from('fulfillment_settings').select('pickup_hours_mode, delivery_hours_mode').eq('tenant_id', tenantId).maybeSingle(),
+    // UREN-1b: ook online_block_outside_hours ("zo snel mogelijk" buiten de uren niet toestaan).
+    supabase.from('fulfillment_settings').select('pickup_hours_mode, delivery_hours_mode, online_block_outside_hours').eq('tenant_id', tenantId).maybeSingle(),
     loadBusinessHours(supabase, tenantId),
   ]);
   if (error || bh === undefined) return settings;
   return withBusinessHours({ ...settings, ...((modes || {}) as Record<string, unknown>) } as ShopFulfillment & { pickup_hours_mode?: string | null; delivery_hours_mode?: string | null }, bh, nowMs);
+}
+
+// UREN-1b — staat "QR aan tafel buiten de openingsuren niet toestaan" aan? Fout (kolom nog niet gemigreerd) = nee.
+async function loadTableBlock(supabase: SupabaseLike, tenantId: string): Promise<boolean> {
+  const { data, error } = await supabase.from('fulfillment_settings').select('qr_block_outside_hours').eq('tenant_id', tenantId).maybeSingle();
+  return !error && data?.qr_block_outside_hours === true;
+}
+
+// UREN-1b — bestellen aan tafel geweigerd omdat de zaak volgens haar openingsuren dicht is (enkel als ze dat
+// zo instelde en uren invulde). null = mag.
+async function tableClosedError(supabase: SupabaseLike, tenantId: string, nowMs = Date.now()): Promise<{ code: string; message: string; opens_at: string | null } | null> {
+  if (!(await loadTableBlock(supabase, tenantId))) return null;
+  const bh = await loadBusinessHours(supabase, tenantId);
+  if (!bh) return null;
+  const tz = bh.timezone || 'Europe/Brussels';
+  const st = openState(splitOvernight(parseWeek(bh.week)), closureDates(parseClosures(bh.closures), localYmd(nowMs, tz), 8), tz, nowMs);
+  if (!st || st.open) return null;
+  return { code: 'OUTSIDE_HOURS', message: closedMessage(st.opens_at, tz, nowMs), opens_at: st.opens_at };
 }
 
 // FOOD-2 — "betalen bij afhalen/levering": alleen als de winkel het aanzette én de klant
@@ -935,7 +956,11 @@ async function fulfillmentSlotsFor(supabase: SupabaseLike, tenantId: string, typ
   // PAUSE-1 — additief: alleen aanwezig als de zaak gepauzeerd of vandaag dicht is.
   const blocked = orderingBlocked(settings, nowMs);
   const pause = blocked ? { blocked } : {};
-  if (!settings || !settings.slots_enabled) return { enabled: false, type, slot_minutes: settings?.slot_minutes ?? null, slots: [] as ReturnType<typeof computeSlots>, ...pause };
+  // UREN-1b — additief: zonder tijdsloten ("zo snel mogelijk") en met "buiten de uren niet toestaan": wanneer weer open.
+  const st = settings && !settings.slots_enabled && (settings as { online_block_outside_hours?: boolean }).online_block_outside_hours === true
+    ? openState(settings.hours?.[type], settings.closed_dates, settings.timezone || 'Europe/Brussels', nowMs) : null;
+  const outside = st && !st.open ? { outside_hours: { opens_at: st.opens_at, message: closedMessage(st.opens_at, settings!.timezone || 'Europe/Brussels', nowMs) } } : {};
+  if (!settings || !settings.slots_enabled) return { enabled: false, type, slot_minutes: settings?.slot_minutes ?? null, slots: [] as ReturnType<typeof computeSlots>, ...pause, ...outside };
   const horizon = new Date(nowMs + (Number(settings.days_ahead) + 2) * 86400000).toISOString();
   const counts = settings.max_orders_per_slot ? await slotCounts(supabase, tenantId, new Date(nowMs).toISOString(), horizon) : {};
   return { enabled: true, type, slot_minutes: settings.slot_minutes, slots: computeSlots(settings, type, nowMs, counts), ...pause };
@@ -986,6 +1011,9 @@ async function checkoutTable(supabase: SupabaseLike, tenantId: string, params: R
   if (!resolved.ok) return { success: false, error: { code: resolved.code, message: resolved.message } };
   const fs = await loadFulfillmentSettings(supabase, tenantId);
   if (fs?.qr_mode !== 'order') return { success: false, error: { code: 'TABLE_ORDERING_OFF', message: 'Bestellen aan tafel staat uit in deze zaak' } };
+  // UREN-1b — buiten de openingsuren, als de zaak dat niet toestaat.
+  const closedT = await tableClosedError(supabase, tenantId);
+  if (closedT) return { success: false, error: closedT };
   const c = (params.customer || {}) as Record<string, unknown>;
   const str = (v: unknown, n: number) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, n) : null);
   const { error } = await supabase.from('storefront_carts').update({
@@ -1024,6 +1052,9 @@ async function tableRequestPlace(supabase: SupabaseLike, tenantId: string, param
   const resolved = await resolveTableInput(supabase, tenantId, { table: params.table, table_token: params.table_token });
   if (!resolved.ok) return { success: false, error: { code: resolved.code, message: resolved.message } };
   const str = (v: unknown, n: number) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, n) : null);
+  // UREN-1b — buiten de openingsuren, als de zaak dat niet toestaat.
+  const closedR = await tableClosedError(supabase, tenantId);
+  if (closedR) return { success: false, error: closedR };
   const { data, error } = await supabase.rpc('table_request_place', {
     p_tenant_id: tenantId, p_request_id: requestId, p_cart_id: cartId,
     p_table_id: resolved.table.table_id ?? null, p_table_label: resolved.table.label,
@@ -1499,7 +1530,7 @@ async function validateCartFulfillment(supabase: SupabaseLike, tenantId: string,
   if (m?.min_order_amount != null && Number(cart.subtotal) < Number(m.min_order_amount)) {
     return { code: 'MIN_ORDER', message: `Het minimumbedrag hiervoor is ${Number(m.min_order_amount).toFixed(2).replace('.', ',')} euro` };
   }
-  const { enabled, slots, blocked } = await fulfillmentSlotsFor(supabase, tenantId, type as ServiceType) as { enabled: boolean; slots: ReturnType<typeof computeSlots>; blocked?: ReturnType<typeof orderingBlocked> };
+  const { enabled, slots, blocked, outside_hours } = await fulfillmentSlotsFor(supabase, tenantId, type as ServiceType) as { enabled: boolean; slots: ReturnType<typeof computeSlots>; blocked?: ReturnType<typeof orderingBlocked>; outside_hours?: { opens_at: string | null; message: string } };
   // PAUSE-1 — "zo snel mogelijk" kan niet als de zaak gepauzeerd of vandaag dicht is.
   // Met tijdsloten vallen de gepauzeerde tijden al weg; een later slot kiezen mag wel.
   if (!enabled && blocked) {
@@ -1507,6 +1538,8 @@ async function validateCartFulfillment(supabase: SupabaseLike, tenantId: string,
       ? { code: 'ORDERING_PAUSED', message: 'We nemen even geen online bestellingen aan. Probeer het straks opnieuw.' }
       : { code: 'CLOSED_TODAY', message: 'We zijn vandaag gesloten.' };
   }
+  // UREN-1b — "zo snel mogelijk" buiten de uren, als de zaak dat niet toestaat.
+  if (!enabled && outside_hours) return { code: 'OUTSIDE_HOURS', message: outside_hours.message };
   if (enabled) {
     if (!cart.requested_time) return { code: 'SLOT_REQUIRED', message: type === 'pickup' ? 'Kies een afhaaltijd' : 'Kies een levertijd' };
     const iso = new Date(String(cart.requested_time)).toISOString();
@@ -4949,6 +4982,9 @@ async function checkoutComplete(supabase: any, tenantId: string, params: Record<
   if (cart.service_type === 'eat_in') {
     const fsT = await loadFulfillmentSettings(supabase, tenantId);
     if (fsT?.qr_mode !== 'order' || !cart.table_label) return { success: false, error: { code: 'TABLE_ORDERING_OFF', message: 'Bestellen aan tafel staat uit in deze zaak' } };
+    // UREN-1b — buiten de openingsuren, als de zaak dat niet toestaat.
+    const closedC = await tableClosedError(supabase, tenantId);
+    if (closedC) return { success: false, error: closedC };
     // ZAAL-H1 — zaak met zaalplan: enkel een tafel die via een geldige QR-token gekozen is.
     if (!cart.dining_table_id && await tenantHasFloorPlan(supabase, tenantId)) return { success: false, error: { code: 'TABLE_TOKEN_REQUIRED', message: 'Scan de QR-code op je tafel opnieuw' } };
     if (paymentMethodId !== 'pay_on_pickup' && !fsT.qr_pay_online) return { success: false, error: { code: 'PAYMENT_METHOD_NOT_AVAILABLE', message: 'Online betalen kan niet aan tafel; betaal aan de toog' } };

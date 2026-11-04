@@ -24,6 +24,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
 import { QR_MODES, type QrMode } from './qrModes';
+import { BUSINESS_HOURS_URL } from '@/components/admin/settings/hours/HoursModeChoice';
 
 type QrFlow = 'order' | 'check';
 const QR_FLOWS: QrFlow[] = ['check', 'order'];
@@ -33,8 +34,10 @@ interface QrState {
   counter: boolean; payOnline: boolean;
   checkOnline: boolean; split: boolean; tip: boolean;
   callWaiter: boolean; callBill: boolean;
+  /** UREN-1b: bestellen aan tafel ook buiten de openingsuren (standaard aan = gedrag van vroeger). */
+  outsideHours: boolean;
 }
-const FS_KEYS = ['mode', 'flow', 'autoAccept', 'counter', 'payOnline', 'callWaiter', 'callBill'] as const;
+const FS_KEYS = ['mode', 'flow', 'autoAccept', 'counter', 'payOnline', 'callWaiter', 'callBill', 'outsideHours'] as const;
 const PAY_KEYS = ['checkOnline', 'split', 'tip'] as const;
 
 /** Eén schakelaar met één zin uitleg; uitgegrijsd altijd met de reden (en een link die het oplost). */
@@ -78,7 +81,7 @@ export function QrModeSettings() {
     queryKey: ['qr-mode', tenantId],
     enabled: !!tenantId,
     queryFn: async () => {
-      const [{ data: raw, error }, calls, pay, ts, fiscal] = await Promise.all([
+      const [{ data: raw, error }, calls, pay, ts, fiscal, hoursRule] = await Promise.all([
         supabase.from('fulfillment_settings').select('qr_mode, qr_pay_counter, qr_pay_online, qr_flow, qr_auto_accept' as 'qr_mode').eq('tenant_id', tenantId!).maybeSingle(),
         // QR-MODULES-1 — apart gelezen: zonder de nieuwe kolommen (migratie nog niet gedraaid) blijft de
         // rest van het scherm werken en verdwijnt enkel de groep "De bediening roepen".
@@ -88,6 +91,8 @@ export function QrModeSettings() {
         supabase.from('tenant_theme_settings').select('shop_live').eq('tenant_id', tenantId!).maybeSingle(),
         // Met een geregistreerde kassa (FDM) sluit enkel de kassa een rekening af: geen online afrekenen.
         supabase.from('pos_terminals').select('id', { count: 'exact', head: true }).eq('tenant_id', tenantId!).eq('settings->fiscal->>mode' as never, 'fdm' as never),
+        // UREN-1b — apart gelezen, zoals de oproepen: zonder de kolom verdwijnt enkel die schakelaar.
+        supabase.from('fulfillment_settings').select('qr_block_outside_hours' as 'qr_mode').eq('tenant_id', tenantId!).maybeSingle(),
       ]);
       if (error) throw error;
       if (pay.error) throw pay.error;
@@ -102,10 +107,12 @@ export function QrModeSettings() {
         payOnline: !!row?.qr_pay_online,
         checkOnline: o?.online_pay === true, split: o?.online_split !== false, tip: o?.online_tip !== false,
         callWaiter: c?.qr_call_waiter !== false, callBill: c?.qr_call_bill !== false,
+        outsideHours: (hoursRule.data as { qr_block_outside_hours?: boolean | null } | null)?.qr_block_outside_hours !== true,
       };
       return {
         state,
         callsAvailable: !calls.error,
+        hoursRuleAvailable: !hoursRule.error,
         fiscal: (fiscal.count ?? 0) > 0,
         // Onbekend (fout bij lezen) = geen melding: nooit een valse waarschuwing.
         shop_live: ts.error ? true : ts.data?.shop_live === true,
@@ -140,6 +147,7 @@ export function QrModeSettings() {
             tenant_id: tenantId, qr_mode: s.mode, qr_flow: s.flow, qr_auto_accept: s.flow === 'check' && s.autoAccept,
             qr_pay_counter: s.counter, qr_pay_online: s.payOnline,
             ...(data.callsAvailable ? { qr_call_waiter: s.callWaiter, qr_call_bill: s.callBill } : {}),
+            ...(data.hoursRuleAvailable ? { qr_block_outside_hours: !s.outsideHours } : {}),
             updated_at: now,
           } as never,
           { onConflict: 'tenant_id' },
@@ -224,6 +232,10 @@ export function QrModeSettings() {
                   </p>
                 ) : null}
               </div>
+            ) : null}
+            {data.hoursRuleAvailable ? (
+              <ToggleRow title={t('admin.qrTable.outside_hours')} desc={t('admin.qrTable.outside_hours_desc')} checked={s.outsideHours} onChange={(v) => set({ outsideHours: v })}
+                reason={<Link to={BUSINESS_HOURS_URL} className="font-medium text-primary underline">{t('settings.businessHours.edit_link')}</Link>} />
             ) : null}
           </Group>
 

@@ -28,6 +28,8 @@ export interface ThemeSchema {
 export interface PresetSection { section_type: string; title: string | null; subtitle?: string | null; content: Record<string, unknown>; settings: Record<string, unknown> }
 export interface ThemePreset {
   id: string; name: string; description: string;
+  /** UREN-1b — woordenschat van de site: 'horeca' (Menukaart, Bezoek ons) of 'shop' (standaard, ontbreekt). */
+  vocabulary?: 'shop' | 'horeca';
   preview: { background: string; text: string; accent: string | null; image: string | null };
   theme: { brand_color?: string; heading_font: string | null; body_font: string | null };
   settings: Record<string, unknown>;

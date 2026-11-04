@@ -9,7 +9,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import {
   ArrowLeft, ChevronRight, Eye, EyeOff, ExternalLink, GripVertical, Image, LayoutList, Loader2,
   Mail, Megaphone, MessageSquare, Monitor, Palette, PanelBottom, Play, Plus, Smartphone, Star, Grid3X3, Trash2,
-  BadgeCheck, HelpCircle, Clock, Menu as MenuIcon, ShoppingBag, Activity, Pipette, UtensilsCrossed, CalendarDays,
+  BadgeCheck, HelpCircle, Clock, Menu as MenuIcon, ShoppingBag, Activity, UtensilsCrossed, CalendarDays,
   GalleryHorizontalEnd, Award, Columns3, Type,
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -31,7 +31,6 @@ import type { Json } from '@/integrations/supabase/types';
 import { useTenant } from '@/hooks/useTenant';
 import { useStorefront } from '@/hooks/useStorefront';
 import { SectionEditor } from '@/components/admin/storefront/SectionEditor';
-import { BrandingUploader } from '@/components/admin/storefront/BrandingUploader';
 import { GOOGLE_FONTS, type HomepageSection, type HomepageSectionType } from '@/types/storefront';
 import { useCategories } from '@/hooks/useCategories';
 import { BlocksEditor, SchemaForm } from '@/components/admin/storefront/schema/SchemaForm';
@@ -45,6 +44,9 @@ import { schemaText } from '@/components/admin/storefront/schema/schemaText';
 import { assertRowsWritten, isNoRowsWrittenError } from '@/lib/supabaseWriteGuard';
 import { useTracks } from '@/hooks/useBusinessModules';
 import { canAddSection } from '@/lib/siteSections';
+import { shopOrigin } from '@/lib/shopOrigin';
+import { syncTenantBrand } from '@/lib/branding';
+import { useFrontendMode } from '@/hooks/useFrontendMode';
 
 // Thema-velden die de standaardshop echt gebruikt. Andere instellingen staan hier
 // bewust niet: een knop die niets doet, is erger dan geen knop.
@@ -85,38 +87,9 @@ const LABELED = new Set<string>([...ADDABLE.map((a) => a.type), 'external_review
 const sectionLabel = (type: string, t: TFunction, schemaLabel?: string | null) =>
   LABELED.has(type) ? t(`admin.storefrontCustomize.sec_${type}`) : schemaLabel ? schemaText(t, schemaLabel) : type;
 
-const SWATCHES = ['#0d9488', '#00a0a8', '#3b82f6', '#6366f1', '#8b5cf6', '#ec4899', '#ef4444', '#f97316', '#22c55e', '#374151'];
 
 type Panel = { kind: 'list' } | { kind: 'section'; id: string } | { kind: 'announcement' } | { kind: 'footer' }
   | { kind: 'menu' } | { kind: 'product' } | { kind: 'tracking' } | { kind: 'themes' };
-
-// Meest voorkomende, verzadigde kleur uit het logo (wit, zwart en grijs tellen niet mee).
-async function colorFromLogo(url: string): Promise<string | null> {
-  const img = new window.Image();
-  img.crossOrigin = 'anonymous';
-  img.src = url;
-  await img.decode();
-  const c = document.createElement('canvas');
-  c.width = 64; c.height = 64;
-  const ctx = c.getContext('2d');
-  if (!ctx) return null;
-  ctx.drawImage(img, 0, 0, 64, 64);
-  const { data } = ctx.getImageData(0, 0, 64, 64);
-  const buckets = new Map<string, { n: number; r: number; g: number; b: number }>();
-  for (let i = 0; i < data.length; i += 4) {
-    const [r, g, b, a] = [data[i], data[i + 1], data[i + 2], data[i + 3]];
-    if (a < 200) continue;
-    const max = Math.max(r, g, b), min = Math.min(r, g, b);
-    if (max < 40 || min > 225 || max - min < 40) continue;
-    const key = `${r >> 5}-${g >> 5}-${b >> 5}`;
-    const e = buckets.get(key) || { n: 0, r: 0, g: 0, b: 0 };
-    e.n++; e.r += r; e.g += g; e.b += b;
-    buckets.set(key, e);
-  }
-  const best = [...buckets.values()].sort((x, y) => y.n - x.n)[0];
-  if (!best) return null;
-  return '#' + [best.r, best.g, best.b].map((v) => Math.round(v / best.n).toString(16).padStart(2, '0')).join('');
-}
 
 const sectionTitle = (s: HomepageSection, t: TFunction, schemaLabel?: string | null) =>
   (s.title && s.title !== 'Hero Banner' ? s.title : sectionLabel(s.section_type, t, schemaLabel));
@@ -146,15 +119,6 @@ function themeForShop(t: ThemeDraft) {
     footer_text: t.footer_text ?? null,
     theme_config: asObj(t.theme_config),
   };
-}
-
-function shopOrigin(slug: string): string {
-  // ?shop=http://localhost:4321 voor lokaal testen van de standaardshop.
-  try {
-    const o = new URLSearchParams(window.location.search).get('shop');
-    if (o && /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(o)) return o;
-  } catch { /* ignore */ }
-  return `https://${slug}.sellqo.shop`;
 }
 
 function SortableRow({ section, schemaLabel, active, onOpen, onToggle }: {
@@ -226,6 +190,7 @@ function SchemaSectionFields({ section, def, icons, onChange }: {
 export default function StorefrontCustomizePage() {
   const { t } = useTranslation();
   const { hasTrack } = useTracks();
+  const { isCustomFrontend } = useFrontendMode();
   const { currentTenant } = useTenant();
   const { themeSettings, sections: serverSections, pages, settingsLoading, sectionsLoading } = useStorefront();
   const { categories } = useCategories();
@@ -350,21 +315,7 @@ export default function StorefrontCustomizePage() {
   const setField = (k: ThemeField, v: unknown) => setTheme((t) => ({ ...t, [k]: v }));
   const cfg = asObj(theme.theme_config);
   const setCfg = (part: string, v: unknown) => setTheme((t) => ({ ...t, theme_config: { ...asObj(t.theme_config), [part]: v } }));
-  const [pickingColor, setPickingColor] = useState(false);
-  const pickFromLogo = async () => {
-    const url = (theme.logo_url as string) || currentTenant?.logo_url;
-    if (!url) { toast.error(t('admin.storefrontCustomize.upload_logo_first')); return; }
-    setPickingColor(true);
-    try {
-      const c = await colorFromLogo(url);
-      if (c) { setField('brand_color', c); toast.success(t('admin.storefrontCustomize.brand_from_logo', { color: c })); }
-      else toast.error(t('admin.storefrontCustomize.no_logo_color'));
-    } catch {
-      toast.error(t('admin.storefrontCustomize.logo_unreadable'));
-    } finally {
-      setPickingColor(false);
-    }
-  };
+
   const updateSection = (s: HomepageSection) => setSections((list) => list.map((x) => (x.id === s.id ? { ...s } : x)));
   // SectionEditor kent alleen titel en inhoud; stijl en zichtbaarheid komen uit de editor zelf.
   const updateFromEditor = (s: HomepageSection) => setSections((list) => list.map((x) => (x.id === s.id ? { ...s, settings: x.settings, is_visible: x.is_visible } : x)));
@@ -445,6 +396,9 @@ export default function StorefrontCustomizePage() {
           : await supabase.from('tenant_theme_settings').insert({ ...payload, tenant_id: currentTenant.id } as never).select('id');
         if (error) throw error;
         assertRowsWritten(written);
+        // UREN-1b — een thema dat de merkkleur overnam (aangevinkt): zelfde bron als Branding, dus ook de kleur
+        // die facturen en mails lezen. Niet voor eigen frontends (eerste wet: dat pad blijft identiek).
+        if ('brand_color' in payload && theme.brand_color && !isCustomFrontend) await syncTenantBrand(currentTenant.id, { brand_color: theme.brand_color as string });
       }
       if (sectionsDirty) {
         for (const id of deleted) {
@@ -615,30 +569,17 @@ export default function StorefrontCustomizePage() {
                       </span>
                       <span className="text-sm font-medium text-primary">{t('admin.storefrontCustomize.thema_kiezen')}</span>
                     </button>
-                    <div className="space-y-2.5">
-                      <Label className="flex items-center gap-1.5"><Palette className="h-4 w-4" />{t('admin.storefrontCustomize.merkkleur')}</Label>
-                      <div className="flex flex-wrap gap-2">
-                        {SWATCHES.map((hex) => (
-                          <button key={hex} type="button" aria-label={hex} onClick={() => setField('brand_color', hex)}
-                            className={cn('h-8 w-8 rounded-full border-2', brand.toLowerCase() === hex ? 'border-foreground' : 'border-transparent')}
-                            style={{ background: hex }} />
-                        ))}
+                    {/* UREN-1b — logo, favicon en merkkleur hebben één plek: Instellingen › Branding (ook voor mails,
+                        facturen en kassabonnen). Hier enkel een voorbeeld met de link. */}
+                    <div className="space-y-2.5 rounded-lg border p-3">
+                      <Label className="flex items-center gap-1.5"><Palette className="h-4 w-4" />{t('admin.storefrontCustomize.brand_title')}</Label>
+                      <div className="flex items-center gap-3">
+                        {theme.logo_url ? <img src={theme.logo_url as string} alt="" className="h-10 max-w-[120px] object-contain" /> : <span className="text-sm text-muted-foreground">{t('admin.storefrontCustomize.no_logo')}</span>}
+                        <span className="h-8 w-8 shrink-0 rounded-full border" style={{ background: brand }} aria-label={brand} />
+                        <span className="font-mono text-xs text-muted-foreground">{brand}</span>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <input type="color" value={/^#[0-9a-f]{6}$/i.test(brand) ? brand : '#0d9488'} aria-label={t('admin.products.imageEditorDialog.presets.custom_color')}
-                          onChange={(e) => setField('brand_color', e.target.value)} className="h-9 w-11 cursor-pointer rounded border bg-transparent p-0" />
-                        <Input value={brand} onChange={(e) => /^#[0-9a-f]{0,6}$/i.test(e.target.value) && setField('brand_color', e.target.value)}
-                          className="h-9 font-mono text-sm" aria-label={t('admin.storefrontCustomize.hex_color')} />
-                      </div>
-                      <Button type="button" variant="outline" size="sm" onClick={pickFromLogo} disabled={pickingColor}>
-                        {pickingColor ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Pipette className="mr-1.5 h-4 w-4" />}Kleur uit mijn logo halen
-                      </Button>
-                      <p className="text-xs text-muted-foreground">{t('admin.storefrontCustomize.voor_knoppen_links_en_de_aankondigingsbalk')}</p>
-                    </div>
-                    <div className="space-y-2.5">
-                      <Label>{t('admin.storefrontCustomize.logo_en_favicon')}</Label>
-                      <BrandingUploader logoUrl={(theme.logo_url as string) || null} faviconUrl={(theme.favicon_url as string) || null}
-                        onLogoChange={(u) => setField('logo_url', u)} onFaviconChange={(u) => setField('favicon_url', u)} />
+                      <Link to="/admin/settings?section=branding" onClick={confirmLeave} className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline">{t('admin.storefrontCustomize.brand_link')}</Link>
+                      <p className="text-xs text-muted-foreground">{t('admin.storefrontCustomize.brand_hint')}</p>
                     </div>
                     <div className="space-y-3">
                       <Label>{t('admin.storefrontCustomize.lettertypes')}</Label>
@@ -711,7 +652,7 @@ export default function StorefrontCustomizePage() {
                   </div>
                 ) : panel.kind === 'themes' ? (
                   schema?.presets?.length ? (
-                    <ThemeGallery presets={schema.presets} current={(cfg.preset as string) || 'standaard'} hasSections={sections.length > 0} onApply={applyPreset} />
+                    <ThemeGallery presets={schema.presets} current={(cfg.preset as string) || 'standaard'} hasSections={sections.length > 0} onApply={applyPreset} horecaFirst={hasTrack('horeca')} />
                   ) : schemaError ? <p className="text-sm text-muted-foreground">{t('admin.storefrontCustomize.thema_s_konden_niet_geladen_worden')}</p>
                     : <p className="text-sm text-muted-foreground">{t('admin.kitchen.loading')}</p>
                 ) : panel.kind === 'menu' ? (

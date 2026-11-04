@@ -91,12 +91,13 @@ export function localYmd(ms: number, tz: string): string {
  * invulde (geen uren én geen komende sluitingen), zodat een site dan niets toont.
  * closures: enkel wat nog niet voorbij is, vroegste eerst, hoogstens 10.
  */
-export function publicBusinessHours(row: BusinessHoursRow | null | undefined, nowMs: number) {
+export function publicBusinessHours(row: BusinessHoursRow | null | undefined, nowMs: number, tableBlock = false) {
   if (!row) return null;
   const timezone = row.timezone || 'Europe/Brussels';
   const week = parseWeek(row.week);
   const today = localYmd(nowMs, timezone);
   const closures = parseClosures(row.closures).filter((c) => c.to >= today).slice(0, 10);
   if (!Object.keys(week).length && !closures.length) return null;
-  return { timezone, week, closures };
+  // UREN-1b: 'block' = bestellen aan tafel (QR) kan enkel binnen de openingsuren; de site toont dat vooraf.
+  return { timezone, week, closures, table_ordering_when_closed: tableBlock ? 'block' : 'allow' };
 }

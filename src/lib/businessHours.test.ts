@@ -101,3 +101,22 @@ describe('WEBSITE-HORECA-1: prijzenpagina', () => {
     }
   });
 });
+
+describe('UREN-1b: één bron voor logo en merkkleur', async () => {
+  const { brandDiverges } = await import('./branding');
+  it('gelijk = geen melding; ander logo of andere kleur = melding', () => {
+    expect(brandDiverges({ logo_url: 'a', brand_color: '#B3261E' }, { logo_url: 'a', primary_color: '#b3261e' })).toEqual({ logo: false, color: false });
+    expect(brandDiverges({ logo_url: 'a', brand_color: '#f97316' }, { logo_url: 'b', primary_color: '#3b82f6' })).toEqual({ logo: true, color: true });
+    expect(brandDiverges({ logo_url: 'a', brand_color: null }, { logo_url: null, primary_color: '#3b82f6' })).toEqual({ logo: true, color: false });
+  });
+});
+
+describe('UREN-1b: themagalerij en horecathema', async () => {
+  const { isHorecaPreset } = await import('@/hooks/useThemeSchema');
+  const schema = { presets: [{ id: 'bar', vocabulary: 'horeca' }, { id: 'standaard' }] } as never;
+  it('horeca enkel als het thema het zegt; onbekend schema = nooit een valse tip', () => {
+    expect(isHorecaPreset(schema, 'bar')).toBe(true);
+    expect(isHorecaPreset(schema, 'standaard')).toBe(false);
+    expect(isHorecaPreset(undefined, 'bar')).toBe(false);
+  });
+});
