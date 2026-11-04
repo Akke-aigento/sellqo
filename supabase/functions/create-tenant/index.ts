@@ -62,7 +62,7 @@ type TenantPayload = {
 serve(async (req) => {
   // Versiestempel om een deploy zonder neveneffect na te meten (geen auth, geen data).
   // KASSA-ACCOUNT-1: een kassatoestel (eigen account, app_metadata.kind = 'kassa') maakt nooit een winkel aan.
-  if (req.method === "GET") return new Response(JSON.stringify({ ok: true, version: "KASSA-ACCOUNT-1" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  if (req.method === "GET") return new Response(JSON.stringify({ ok: true, version: "UREN-1" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
