@@ -203,7 +203,7 @@ const salesItems: NavItem[] = [
     ],
   },
   // WEBSITE-HORECA-1 (4 nov): ook horeca krijgt het site-uiterlijk (thema, logo, kleuren, voettekst, pagina's,
-  // homepage, domein). In de horeca-zijbalk heet het "Website" (sidebarLabelKey); verzending, retouren,
+  // homepage; geen domein, UREN-1c). In de horeca-zijbalk heet het "Website" (sidebarLabelKey); verzending, retouren,
   // webshopkortingen en producten-als-webshop blijven bij het webshopspoor of de add-on.
   { id: 'storefront', tracks: ['webshop', 'horeca'], titleKey: 'navigation.items.storefront', url: '/admin/storefront', icon: Globe, featureKey: 'webshop_builder', excludeRoles: ['marketing'], requireRead: 'themes' },
   { id: 'payments', titleKey: 'navigation.items.payments', url: '/admin/payments', icon: Banknote, excludeRoles: ['marketing'], requireRead: 'payments' },

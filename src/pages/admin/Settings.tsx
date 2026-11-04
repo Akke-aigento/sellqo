@@ -124,8 +124,9 @@ const settingsGroups: SettingsGroup[] = [
     sections: [
       { id: 'company', titleKey: 'settings.sections.company', icon: Building2, component: BusinessSettings, requiredRead: 'settings_general' },
       { id: 'branding', titleKey: 'settings.sections.branding', icon: Palette, component: BrandingSettings, requiredRead: 'settings_general' },
-      // WEBSITE-HORECA-1: ook horeca koppelt een eigen domein aan haar website.
-      { id: 'domain', tracks: ['webshop', 'events', 'horeca'], titleKey: 'settings.sections.domain', icon: Globe, component: MultiDomainSettings, requiredRead: 'settings_general' },
+      // UREN-1c: niet voor horeca-only. Een eigen domein op het SellQo-thema is nog niet bewezen (de prijzenpagina
+      // zegt "Eigen domeinnaam (binnenkort)"); webshop en events zoals vóór WEBSITE-HORECA-1.
+      { id: 'domain', tracks: ['webshop', 'events'], titleKey: 'settings.sections.domain', icon: Globe, component: MultiDomainSettings, requiredRead: 'settings_general' },
       { id: 'modules', titleKey: 'settings.sections.modules', icon: Blocks, component: BusinessModulesSettings, adminOnly: true },
     ],
   },

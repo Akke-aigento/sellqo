@@ -1,3 +1,41 @@
+## UREN-1c — review-fixes op UREN-1 + UREN-1b + WEBSITE-HORECA-1 (2026.15d) — 4 november 2026
+
+Zelfde branch `uren-1` (sellqo) en `uren-1` (sellqo-storefront), nog niets live. Review-punten en hoe ze opgelost zijn.
+
+**Root cause / uitgevoerd per review-punt**
+1. **Docs-migratie niet idempotent.** `20261104120100_uren_1_docs.sql` blok 3 (horeca-werkplek): de vervangtekst bevat het anker (de regel Betalingen) zelf, dus een tweede run zette er een tweede Website-regel bij. Bewezen op een wegwerpdatabank met de HEAD-versie: md5 `c0bd9938…` → `e4d07780…`, 2 Website-regels. Fix: extra `and position('<li><strong>Website</strong>:' in content) = 0`. De andere vijf replace-blokken (120100 blok 2 en 4, 120300 theme-aanpassen en emailcampagnes) nagekeken: hun vervangtekst bevat hun anker niet. Live nageteld (read-only): elk anker precies één keer, nog geen Website-regel, nergens "domein".
+2. **Sluitingsdag rond middernacht: één regel.** Storefront (`hours.ts` `intervals`) toetste de sluiting al op de startdag; backend (`splitOvernight` + `closed_dates` per kalenderdag) en `tableClosedError` toetsten het deel na middernacht op de volgende dag. Gevolg: site "Nu open", API `OUTSIDE_HOURS` (en omgekeerd). Regel nu overal: **een blok hoort bij zijn startdag** (startdag dicht = hele blok weg; enkel de volgende dag dicht = staart blijft).
+   - `_shared/businessHours.ts`: `splitOvernight` weg; `safeTz`, `hoursTimezone`, `addDaysYmd`; `localYmd` met terugval.
+   - `_shared/fulfillmentSlots.ts`: `withBusinessHours` splitst niet meer, sluitingen vanaf gisteren, `overnight_types` (enkel "zelfde als openingsuren"; eigen uren FOOD-1 houden "tot vóór van = ongeldig"); `computeSlots` vanaf gisteren, blok over middernacht met sluiting op de startdag; `orderingBlocked` met optionele `week` (een lopend blok van gisteren telt een sluitingsdag van vandaag niet); `openState`/`closedMessage` met `safeTz`.
+   - `storefront-api/index.ts`: `tableClosedError` ongesplitst + sluitingen vanaf gisteren; `fulfillmentSlotsFor` geeft de uren mee aan `orderingBlocked`.
+   - `20261104120200_uren_1b.sql` `reservation_slots`: blokken van vandaag (`v_off = 0`) toetsen `p_date`, de staart van gisteren (`v_off = -1440`) toetst `p_date - 1`; eigen uren toetsen `p_date`.
+3. **Claim "eigen domein".** Geen werkend eigen domein op het SellQo-thema bewezen, prijzenpagina zegt "(binnenkort)". `Settings.tsx` `domain` terug naar `['webshop','events']` (zoals 4cf0e6b); `Storefront.tsx` tegel Eigen domein verborgen voor horeca-only; key `admin.storefront.page.own_domain_desc_site` weg (5 talen); commentaar `sidebarConfig.ts`. Docs en changelog beloofden geen domein voor horeca (nagekeken).
+4. **`syncTenantBrand`.** `.select('id')` + `assertRowsWritten` (0 rijen = fout, getoond via `settings.branding.sync_failed`). Logo enkel mee als ingevuld; wissen enkel na "Logo verwijderen" (`clear_logo`, `BrandingSettings.tsx` houdt dat bij) en dan op beide plekken. `brandDiverges` belooft geen logo zonder websitelogo. Eigen frontends: ongewijzigd (sync enkel `!isCustomFrontend`).
+5. **Tijdzone-validatie.** `20261104120000_uren_1.sql`: trigger `trg_business_hours_timezone` (`business_hours_timezone_guard`, toetst `pg_timezone_names`, 23514) bij insert en update van `timezone`. Terugval naar Europe/Brussels in `localYmd`/`openState`/`computeSlots`/`publicBusinessHours` (backend), `hours.ts` (storefront) en `reservation_slots` (SQL, exception-blok).
+6. **Eén bron voor de tijdzone:** `business_hours.timezone` → `fulfillment_settings.timezone` → Europe/Brussels, in `withBusinessHours`, `tableClosedError`, `get_config` (`publicBusinessHours`, tijdzone via `loadTableBlock`) en `reservation_slots`.
+7. **create-tenant horecaplan.** Nieuw `_shared/horecaStartTheme.ts` (preset bistro: `brand_color`/`primary_color` #2f5d46, Playfair Display, Lato), enkel op de net ingevoegde themarij (`!themeError`), plus `tenants.primary_color`. Kopie van `sellqo-storefront/src/theme/schema.json`, bewaakt door `_shared/horecaStartTheme.test.ts` (vaste waarden; met `SELLQO_STOREFRONT_SCHEMA` tegen het echte schema) en `sellqo-storefront/scripts/horeca-start.test.ts`.
+8. **Onboarding** `LogoUploadStep.tsx`: themalogo enkel met `.eq('use_custom_frontend', false)`.
+9. **Docs.** `openingsuren-instellen` (120100): alinea "een blok tot na middernacht hoort bij de dag waarop het begint" + "(nacht van gisteren)"; `logo-en-merkkleur` (120300): logo verwijderen = ook van facturen en mails.
+10. **Klein.** `reservation_slots` geeft `"night": true` bij uren uit de staart van gisteren (additief); de site toont "(nacht van gisteren)". Changelog 2026.15d `opening_hours` in 5 talen + newsletter-wachtrij: "Een sectie Openingsuren en contact toont voortaan je openingsuren, tenzij je kiest voor eigen tekst."
+
+**Security-keuzes:** triggerfunctie zonder `security definer`, `search_path ''`, execute ingetrokken voor public/anon/authenticated. `reservation_slots` blijft SECURITY DEFINER, `search_path ''`, enkel `service_role`. `tenants`-update uit Branding valt onder de bestaande policy en meldt nu een weigering.
+
+**Gedeelde-paden-waarschuwing:** `storefront-api`: geen nieuwe of gewijzigde sleutel behalve de eerder additieve; gedrag rond middernacht verandert enkel voor zaken met openingsuren over middernacht naast een sluitingsdag. `get_reservation_slots`: additieve sleutel `night` per uur (eigen frontends mogen hem negeren). `_shared/fulfillmentSlots.ts` en `businessHours.ts`: enkel `storefront-api`; `_shared/horecaStartTheme.ts`: enkel `create-tenant` (grep) → deploylijst storefront-api + create-tenant.
+
+**Samenhang:** Instellingen › Domeinen en de Website-tegel: weer enkel webshop/events (zie UREN-1). Branding blijft de enige bewerkplek; leeg logo wist niets meer stil. Reserveren op de site toont de nachturen met label. Geen nieuwe plek, geen nieuwe tekst buiten het label en de changelogzin.
+
+**Verificatie:** tsc exit 0 (leeg log), build exit 0 (sitemap teruggezet), lint "beter dan de baseline" 1457 → 1452, i18n-parity en used-keys groen, overige node-checks exit 0; vitest CI-stap 39 bestanden / 449 groen (nieuw `src/lib/branding.test.ts`); deno `_shared` CI-lijst 259 groen (addonBilling, pdfText, storefrontErrorStatus laden hier niet: deno.land, ook op HEAD), nieuw `horecaStartTheme.test.ts` ook tegen het echte schema; promo-compare CI-lijst 235 groen (4 nieuwe UREN-1c-tests, alle vier rood op de oude code); rooktest groen; deno check storefront-api dezelfde 7 stub-fouten, create-tenant 0. `scripts/gks/sql/run.sh` groen incl. nieuw `test_uren_1c.sql` (14 controles) en `test_uren_docs.sql` (docs 120100 + 120300 twee keer: zelfde md5 per artikel). Harnas `uren` 390/1280 groen (domeintegel 0 bij horeca, 1 bij webshop; Branding schrijft zonder logo enkel de kleur, na "Logo verwijderen" `logo_url: null`). Storefront: tsc 0, build 0, `npm run test:hours` 5 groen, Playwright 2 × 31 groen.
+
+**Uitrolvolgorde (definitief):**
+1. Migraties `20261104120000_uren_1.sql` → `20261104120200_uren_1b.sql`; natrekken op de live tabellen.
+2. Deploy `storefront-api` en `create-tenant`; vingerafdruk GET `storefront-api` → `UREN-1`.
+3. Push sellqo-storefront.
+4. Push sellqo, CI groen, publish sellqo.app (nieuwe string in de bundel).
+5. Blok 5 van `20261104120000_uren_1.sql` opnieuw (kopie sluitingsdagen).
+6. Docs `20261104120100_uren_1_docs.sql` → `20261104120300_uren_1b_docs.sql`.
+
+**Bewust ongemoeid / Vervolg:** `reservation_request_place` (RESERVATIE-2) rekent `starts_at` nog met `fulfillment_settings.timezone` alleen; zolang beide zones gelijk zijn (live: alle Europe/Brussels, 0 foute waarden) maakt dat niets uit. Voorstel: dezelfde volgorde in een volgende batch. Instellingen › Domeinen voor horeca: terug zodra DOMAIN-1 een eigen domein op het SellQo-thema bewijst.
+
 ## UREN-1b — laatste aankomst, bestellen buiten de openingsuren, horecathema's en logo/merkkleur op één plek (2026.15d) — 4 november 2026
 
 Vervolg op UREN-1 (hieronder), zelfde branch `uren-1`, na Akke's akkoord op het rapport.
@@ -65,9 +103,9 @@ Branch `uren-1` vanaf `origin/main` 4cf0e6b; storefront: branch `uren-1` in `Akk
   - `FulfillmentSettings.tsx`: per soort (tab Uren afhalen / Uren levering) "Zelfde als openingsuren" of "Eigen uren"; de oude kaart Sluitingsdagen is een link naar de openingsuren; `closed_dates` wordt niet meer geschreven.
   - `OnlineReservationsCard.tsx` + `src/lib/horeca/reservations.ts`: zelfde keuze (`online_hours_mode`), waarschuwing "geen uren" volgt de keuze.
   - `HorecaSettingsHub.tsx`: regels Openingsuren en Website (enkel links).
-  - WEBSITE-HORECA-1: `sidebarConfig.ts` `storefront` tracks `['webshop','horeca']`, in de horeca-zijbalk na Kaart; `bottomNav.ts` label "Website" zonder webshop (zijbalk en onderbalk); `Settings.tsx` `domain` ook horeca; `Storefront.tsx` woorden "Website" voor horeca zonder webshop/events + link Openingsuren voor iedereen; `StorefrontCustomize.tsx` + `src/lib/siteSections.ts`: horeca-only kan geen eventagenda, nieuwsbrief of winkelreviews toevoegen (bestaande blijven beheerbaar).
+  - WEBSITE-HORECA-1: `sidebarConfig.ts` `storefront` tracks `['webshop','horeca']`, in de horeca-zijbalk na Kaart; `bottomNav.ts` label "Website" zonder webshop (zijbalk en onderbalk); `Settings.tsx` `domain` ook horeca (teruggedraaid in UREN-1c: niet voor horeca-only); `Storefront.tsx` woorden "Website" voor horeca zonder webshop/events + link Openingsuren voor iedereen; `StorefrontCustomize.tsx` + `src/lib/siteSections.ts`: horeca-only kan geen eventagenda, nieuwsbrief of winkelreviews toevoegen (bestaande blijven beheerbaar).
   - `planLines.ts`: horecaplannen tonen `feat_site` ("Eigen website op jouwzaak.sellqo.shop: thema, logo, kleuren en pagina's") in plaats van `feat_webshop`.
-- i18n nl/en/fr/de/uk: `settings.businessHours.*`, `settings.horecaHub.hours_set|hours_not_set|website_status`, `navigation.items.website`, `admin.storefront.page.{title_site,site_on,your_site,view_site,own_domain_desc_site,hours_desc,customize_intro_site}`, `admin.storefront.food.closed_moved(_link)`, `reservations.businessHoursHint`, `reservations.hoursHint` herschreven; landing: `landing.pricing.feat_site`, changelog `opening_hours`, `website_horeca`.
+- i18n nl/en/fr/de/uk: `settings.businessHours.*`, `settings.horecaHub.hours_set|hours_not_set|website_status`, `navigation.items.website`, `admin.storefront.page.{title_site,site_on,your_site,view_site,own_domain_desc_site (weg in UREN-1c),hours_desc,customize_intro_site}`, `admin.storefront.food.closed_moved(_link)`, `reservations.businessHoursHint`, `reservations.hoursHint` herschreven; landing: `landing.pricing.feat_site`, changelog `opening_hours`, `website_horeca`.
 - Storefront (`sellqo-storefront`): voettekstblok, badge op `/menu` en bij afhalen/leveren in `/afrekenen`, `LocalBusiness` + `openingHoursSpecification` op de homepage, sectie `contact_hours` met `hours_source`; zie de role-audit daar.
 
 **Samenhang**
@@ -81,7 +119,7 @@ Branch `uren-1` vanaf `origin/main` 4cf0e6b; storefront: branch `uren-1` in `Akk
 | Homepage-sectie "Openingsuren en contact" | vrije tekst per dag | toont de openingsuren, tenzij "Eigen tekst" of nog niets ingevuld | gedaan (geen sleutel hernoemd; nieuwe sleutel `hours_source`) |
 | Kassa-dagafsluiting (Z om 06:00), PERSONEEL-uren | eigen begrippen | ongemoeid | geen dubbel |
 | Website / Webshop-pagina | enkel webshopspoor in het menu | horeca: "Website" na Kaart | gedaan |
-| Instellingen › Domeinen | webshop + events | + horeca | gedaan; de claim "eigen domein (binnenkort)" blijft (DOMAIN-1) |
+| Instellingen › Domeinen | webshop + events | ~~+ horeca~~ | UREN-1c: niet voor horeca-only (menu-item en tegel op Website weg), zolang een eigen domein op het SellQo-thema niet bewezen is; de prijzenpagina zegt "Eigen domeinnaam (binnenkort)" (DOMAIN-1) |
 | Logo: Bedrijfsgegevens (`tenants.logo_url`) / Branding (`tenant_theme_settings.logo_url, favicon, brand_color, primary_color`) / Aanpassen › Thema (zelfde themavelden) | Branding en Aanpassen bewerken dezelfde velden | niets | bestaand dubbel; voorstel: Branding wordt een link naar Aanpassen › Thema. Raakt ook eigen frontends (Branding is hun enige plek) → aparte go, zie Vervolg |
 | Prijzenpagina horecakolom | "Webshop op …" | "Eigen website op …: thema, logo, kleuren en pagina's" | gedaan (bron: menu-item + route) |
 
@@ -110,7 +148,7 @@ Branch `uren-1` vanaf `origin/main` 4cf0e6b; storefront: branch `uren-1` in `Akk
 - `ShopOpenCard` spreekt nog van "winkel"; de standaardhome zonder secties en de voettekstkolom "Shop · Alle producten" zijn webshopwoorden voor een horecasite (storefront weet niet of het horeca is). Voorstel: kleine vervolgbatch met een additief veld in `resolve_domain`.
 - Dubbele bewerkplek Branding / Aanpassen › Thema (zie Samenhang): aparte go.
 - "Zo snel mogelijk" bestellen buiten de openingsuren wordt (zoals vroeger) niet geweigerd; enkel sluitingsdagen en pauze blokkeren. Voorstel apart.
-- Live: zie de uitrolvolgorde in het rapport (migratie → deploy storefront-api → push storefront → publish sellqo.app → docs-migratie → kopie-blok 5 nog eens draaien).
+- Live: zie de definitieve uitrolvolgorde in UREN-1c (bovenaan).
 
 ## KASSA-MOBIEL-1 — kassa naast beheer op één toestel (eigen kassa-aanmelding, één-tik-koppelen), keukenkop op gsm, "Meldingen aanzetten" faalde (2026.15c, kassa 0.22.0) — 2 november 2026
 

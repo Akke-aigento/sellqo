@@ -19,6 +19,8 @@ const rows: Record<string, unknown> = {
   horeca_pay_settings: { online_pay: false, online_tip: true, online_split: true },
   pos_terminals: [],
   homepage_sections: [],
+  // UREN-1c: Branding schrijft tenants met .select('id') (0 rijen = fout).
+  tenants: { id: 't1' },
 };
 const w = window as unknown as { __writes?: unknown[] };
 w.__writes = [];

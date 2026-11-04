@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { HORECA_START_THEME, horecaStartThemePatch } from "../_shared/horecaStartTheme.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -305,8 +306,6 @@ serve(async (req) => {
     }
 
     // === Gekozen plan vastleggen (PRICE-2) ===
-    // UREN-1b: thema waarmee een nieuwe horecazaak start (preset-id uit het themaschema van sellqo-storefront).
-    const HORECA_START_PRESET = "bistro";
     // De trigger create_tenant_trial_subscription zet elke nieuwe winkel op een Pro-proef.
     // - Betaald plan: de proef loopt op dat plan, bij het einde start het abonnement.
     // - Plan zonder maandprijs (free, events_flex): geen proef. Vóór PRICE-2 bleef wie
@@ -329,12 +328,20 @@ serve(async (req) => {
           logStep("Subscription plan updated", { plan: plan.id, trial: !noMonthly });
         }
         // UREN-1b — een horecazaak start op een horecathema (de site spreekt dan van Menukaart, Bezoek ons, …).
-        // Enkel het thema-id: de standaardshop neemt de instellingen van dat thema over zolang de zaak er geen
-        // eigen heeft. Best effort: lukt het niet, dan blijft het standaardthema.
-        if (plan.track === "horeca") {
+        // UREN-1c — met de merkkleur en lettertypes van dat thema (anders bleven de standaardkleur en Inter staan),
+        // en dezelfde kleur op tenants.primary_color zodat facturen en mails meteen gelijk zijn. Enkel op de rij
+        // die hierboven net is aangemaakt (themeError leeg) en enkel voor deze nieuwe zaak. Waarden: zie
+        // _shared/horecaStartTheme.ts (kopie van de preset in sellqo-storefront, met test). Best effort.
+        if (plan.track === "horeca" && !themeError) {
           const { error: presetError } = await supabase.from("tenant_theme_settings")
-            .update({ theme_config: { preset: HORECA_START_PRESET } }).eq("tenant_id", tenant.id);
-          if (presetError) logStep("WARNING: horeca theme not set", { error: presetError.message });
+            .update(horecaStartThemePatch()).eq("tenant_id", tenant.id);
+          if (presetError) {
+            logStep("WARNING: horeca theme not set", { error: presetError.message });
+          } else {
+            const { error: colorError } = await supabase.from("tenants")
+              .update({ primary_color: HORECA_START_THEME.primary_color }).eq("id", tenant.id);
+            if (colorError) logStep("WARNING: horeca brand color not set on tenant", { error: colorError.message });
+          }
         }
       } else {
         logStep("WARNING: selected plan not active, keeping trial", { plan: selectedPlanId });

@@ -107,7 +107,7 @@ function ShopOverview({ slug, onNavigate, site }: { slug: string; onNavigate: (s
 
       <ShopOpenCard site={site} />
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className={`grid gap-3 sm:grid-cols-2 ${site ? 'xl:grid-cols-3' : 'xl:grid-cols-4'}`}>
         {[
           { id: 'pages', icon: FileText, title: t('admin.storefront.page.nav_pages'), text: t('admin.storefront.page.pages_desc') },
           { id: 'legal', icon: Scale, title: t('admin.storefront.page.nav_legal'), text: t('admin.storefront.page.legal_desc') },
@@ -122,16 +122,20 @@ function ShopOverview({ slug, onNavigate, site }: { slug: string; onNavigate: (s
             <ChevronRight className="mt-0.5 h-4 w-4 text-muted-foreground" />
           </button>
         ))}
-        {/* HONEST-SAVE-1: eigen domeinen koppelen bestaat al (Instellingen → Domein). */}
-        <Link to="/admin/settings?section=domain"
-          className="flex items-start gap-3 rounded-lg border bg-card p-4 text-left transition-colors hover:bg-muted/50">
-          <Link2 className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground" />
-          <span className="min-w-0 flex-1">
-            <span className="block font-medium">{t('admin.storefront.page.own_domain')}</span>
-            <span className="block text-sm text-muted-foreground">{site ? t('admin.storefront.page.own_domain_desc_site') : t('admin.storefront.page.own_domain_desc')}</span>
-          </span>
-          <ChevronRight className="mt-0.5 h-4 w-4 text-muted-foreground" />
-        </Link>
+        {/* HONEST-SAVE-1: eigen domeinen koppelen bestaat al (Instellingen → Domein).
+            UREN-1c: niet voor horeca-only (een eigen domein op het SellQo-thema is nog niet bewezen; Instellingen
+            › Domeinen staat voor horeca ook niet in het menu). */}
+        {site ? null : (
+          <Link to="/admin/settings?section=domain"
+            className="flex items-start gap-3 rounded-lg border bg-card p-4 text-left transition-colors hover:bg-muted/50">
+            <Link2 className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground" />
+            <span className="min-w-0 flex-1">
+              <span className="block font-medium">{t('admin.storefront.page.own_domain')}</span>
+              <span className="block text-sm text-muted-foreground">{t('admin.storefront.page.own_domain_desc')}</span>
+            </span>
+            <ChevronRight className="mt-0.5 h-4 w-4 text-muted-foreground" />
+          </Link>
+        )}
         {/* UREN-1: de openingsuren staan op je site (voettekst, menu); invullen doe je in Instellingen › Bedrijf. */}
         <Link to={BUSINESS_HOURS_URL}
           className="flex items-start gap-3 rounded-lg border bg-card p-4 text-left transition-colors hover:bg-muted/50">

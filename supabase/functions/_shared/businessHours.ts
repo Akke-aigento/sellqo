@@ -47,22 +47,29 @@ export function resolveHoursMode(mode: unknown, ownWeek: unknown): HoursMode {
   return weekHasRanges(ownWeek) ? 'own' : 'business';
 }
 
-/**
- * Weekschema met blokken binnen één kalenderdag: een blok over middernacht wordt gesplitst in
- * [van, "24:00"] op die dag en ["00:00", tot] op de volgende dag (computeSlots leest "24:00" als einde).
- */
-export function splitOvernight(week: Week): Week {
-  const out: Week = {};
-  const add = (d: string, r: [string, string]) => { (out[d] ||= []).push(r); };
-  for (const [d, ranges] of Object.entries(week)) {
-    for (const [a, b] of ranges) {
-      if (b > a) { add(d, [a, b]); continue; }
-      add(d, [a, '24:00']);
-      if (b !== '00:00') add(String((Number(d) + 1) % 7), ['00:00', b]);
-    }
+// UREN-1c — een blok over middernacht hoort bij zijn startdag: is die dag gesloten, dan vervalt het hele blok
+// (ook het deel na middernacht); is enkel de volgende dag gesloten, dan blijft het deel na middernacht staan.
+// Daarom wordt het weekschema niet meer in kalenderdagen gesplitst (splitOvernight, UREN-1): computeSlots en
+// openState lezen "tot" vóór "van" zelf als "tot na middernacht" en toetsen de sluiting op de startdag. Zelfde
+// regel in reservation_slots (SQL) en op de site (sellqo-storefront src/lib/hours.ts).
+
+export const DEFAULT_TZ = 'Europe/Brussels';
+
+/** Een tijdzone die Intl kent; anders Europe/Brussels. Een foute waarde mag nooit get_config laten falen. */
+export function safeTz(tz: unknown): string {
+  if (typeof tz !== 'string' || !tz.trim()) return DEFAULT_TZ;
+  try {
+    new Intl.DateTimeFormat('en-US', { timeZone: tz });
+    return tz;
+  } catch {
+    return DEFAULT_TZ;
   }
-  for (const d of Object.keys(out)) out[d].sort((x, y) => x[0].localeCompare(y[0]));
-  return out;
+}
+
+/** Eén bron voor de tijdzone: business_hours.timezone, dan fulfillment_settings.timezone, dan Europe/Brussels. */
+export function hoursTimezone(bhTz: unknown, fulfillmentTz?: unknown): string {
+  if (typeof bhTz === 'string' && bhTz.trim()) return safeTz(bhTz);
+  return safeTz(fulfillmentTz);
 }
 
 const pad = (n: number) => String(n).padStart(2, '0');
@@ -80,10 +87,20 @@ export function closureDates(closures: Closure[], fromYmd: string, days: number)
   return out;
 }
 
-/** Lokale datum (YYYY-MM-DD) van `ms` in `tz`. */
+/** Lokale datum (YYYY-MM-DD) van `ms` in `tz` (onbekende tijdzone: Europe/Brussels). */
 export function localYmd(ms: number, tz: string): string {
-  const f = new Intl.DateTimeFormat('en-CA', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit' });
-  return f.format(new Date(ms));
+  const opts = { year: 'numeric', month: '2-digit', day: '2-digit' } as const;
+  try {
+    return new Intl.DateTimeFormat('en-CA', { timeZone: tz, ...opts }).format(new Date(ms));
+  } catch {
+    return new Intl.DateTimeFormat('en-CA', { timeZone: DEFAULT_TZ, ...opts }).format(new Date(ms));
+  }
+}
+
+/** YYYY-MM-DD plus n kalenderdagen. */
+export function addDaysYmd(ymdStr: string, n: number): string {
+  const [y, m, d] = ymdStr.split('-').map(Number);
+  return ymd(new Date(Date.UTC(y, m - 1, d + n, 12)));
 }
 
 /**
@@ -91,9 +108,10 @@ export function localYmd(ms: number, tz: string): string {
  * invulde (geen uren én geen komende sluitingen), zodat een site dan niets toont.
  * closures: enkel wat nog niet voorbij is, vroegste eerst, hoogstens 10.
  */
-export function publicBusinessHours(row: BusinessHoursRow | null | undefined, nowMs: number, tableBlock = false) {
+export function publicBusinessHours(row: BusinessHoursRow | null | undefined, nowMs: number, tableBlock = false, fulfillmentTz?: string | null) {
   if (!row) return null;
-  const timezone = row.timezone || 'Europe/Brussels';
+  // UREN-1c: één bron (business_hours, dan fulfillment_settings, dan Brussel) en nooit een onbekende zone naar de site.
+  const timezone = hoursTimezone(row.timezone, fulfillmentTz);
   const week = parseWeek(row.week);
   const today = localYmd(nowMs, timezone);
   const closures = parseClosures(row.closures).filter((c) => c.to >= today).slice(0, 10);

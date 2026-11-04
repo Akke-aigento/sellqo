@@ -2508,7 +2508,7 @@
         },
         "opening_hours": {
           "title": "Openingsuren op één plek, ook op je website",
-          "description": "Onder Instellingen › Bedrijfsgegevens vul je je openingsuren in: per dag één tot drie blokken, ook tot na middernacht, en uitzonderlijke sluitingsdagen (een datum of een periode) met een korte reden. Je website toont ze in de voettekst en bovenaan je menukaart, met \"Nu open\" of wanneer je weer opengaat. Afhalen, leveren en online reserveren nemen ze standaard over; wil je daar andere uren, kies dan \"Eigen uren\". Had je al eigen afhaal-, lever- of reservatie-uren, dan blijven die gewoon staan. Sluitingsdagen die je bij afhalen en leveren had ingesteld, staan nu bij je openingsuren."
+          "description": "Onder Instellingen › Bedrijfsgegevens vul je je openingsuren in: per dag één tot drie blokken, ook tot na middernacht, en uitzonderlijke sluitingsdagen (een datum of een periode) met een korte reden. Je website toont ze in de voettekst en bovenaan je menukaart, met \"Nu open\" of wanneer je weer opengaat. Afhalen, leveren en online reserveren nemen ze standaard over; wil je daar andere uren, kies dan \"Eigen uren\". Had je al eigen afhaal-, lever- of reservatie-uren, dan blijven die gewoon staan. Sluitingsdagen die je bij afhalen en leveren had ingesteld, staan nu bij je openingsuren. Een sectie Openingsuren en contact toont voortaan je openingsuren, tenzij je kiest voor eigen tekst."
         },
         "website_horeca": {
           "title": "Je eigen website, ook met een horecapakket",

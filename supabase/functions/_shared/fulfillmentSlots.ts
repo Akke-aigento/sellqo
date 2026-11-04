@@ -1,7 +1,7 @@
 // FOOD-1 — tijdsloten voor afhalen en leveren (pizzeria, frituur, bakker, traiteur).
 // Pure functies zonder databank: de storefront-api telt de bestaande bestellingen per
 // slot en geeft die mee. Tijden worden in de tijdzone van de winkel gerekend.
-import { closureDates, localYmd, parseClosures, parseWeek, resolveHoursMode, splitOvernight, type BusinessHoursRow } from './businessHours.ts';
+import { addDaysYmd, closureDates, hoursTimezone, localYmd, parseClosures, parseWeek, resolveHoursMode, safeTz, type BusinessHoursRow } from './businessHours.ts';
 
 export type ServiceType = 'pickup' | 'local_delivery';
 export interface FulfillmentSettings {
@@ -17,6 +17,11 @@ export interface FulfillmentSettings {
   paused_until?: string | null;
   /** PAUSE-1: lokale datums (YYYY-MM-DD) waarop de zaak dicht is. */
   closed_dates?: string[] | null;
+  /**
+   * UREN-1c: soorten waarvan de uren de openingsuren zijn (withBusinessHours); daar loopt een blok met "tot"
+   * vóór "van" door tot na middernacht. Eigen uren (FOOD-1) kennen dat niet: zo'n blok blijft ongeldig.
+   */
+  overnight_types?: ServiceType[];
 }
 export interface Slot { start: string; date: string; label: string; available: boolean }
 
@@ -55,33 +60,46 @@ const pad = (n: number) => String(n).padStart(2, '0');
 /**
  * Alle tijdsloten voor `type` vanaf `nowMs` tot en met `days_ahead` dagen later.
  * `counts`: aantal bestaande bestellingen per slot (sleutel = ISO-start).
+ * UREN-1c: een blok met "tot" vóór "van" loopt door tot na middernacht en hoort bij zijn startdag: een
+ * sluitingsdag (closed_dates) op de startdag schrapt het hele blok, een sluitingsdag op de dag erna niet.
  */
 export function computeSlots(s: FulfillmentSettings, type: ServiceType, nowMs: number, counts: Record<string, number> = {}): Slot[] {
-  const tz = s.timezone || 'Europe/Brussels';
+  const tz = safeTz(s.timezone);
   const step = Math.max(5, Math.min(120, Number(s.slot_minutes) || 15));
   const pausedMs = s.paused_until ? new Date(s.paused_until).getTime() : NaN;
   const earliest = Math.max(nowMs + Math.max(0, Number(s.prep_minutes) || 0) * 60000, Number.isFinite(pausedMs) ? pausedMs : 0);
   const closed = new Set(s.closed_dates || []);
   const days = Math.max(0, Math.min(14, Number(s.days_ahead) || 0));
   const week = s.hours?.[type] || {};
+  const overnight = !!s.overnight_types?.includes(type);
   const out: Slot[] = [];
   const today = localDay(nowMs, tz);
-  for (let i = 0; i <= days; i++) {
+  // Vanaf gisteren (i = -1): de staart na middernacht van een blok dat gisteren begon.
+  for (let i = -1; i <= days; i++) {
     // Kalenderdag i dagen verder (niet "+24u": rond zomertijd zou dat een dag overslaan).
     const cal = new Date(Date.UTC(today.y, today.m - 1, today.d + i, 12));
     const day = { y: cal.getUTCFullYear(), m: cal.getUTCMonth() + 1, d: cal.getUTCDate(), weekday: cal.getUTCDay() };
+    // Startdag gesloten: het hele blok vervalt, ook het deel na middernacht.
     if (closed.has(`${day.y}-${pad(day.m)}-${pad(day.d)}`)) continue;
     const ranges = week[String(day.weekday)] || [];
     for (const [from, to] of ranges) {
-      const a = hm(from); const b = hm(to);
-      if (a == null || b == null || b <= a) continue;
+      const a = hm(from); let b = hm(to);
+      if (a == null || b == null || a === b) continue;
+      if (b < a) {
+        if (!overnight) continue; // eigen uren: ongeldig (FOOD-1)
+        b += 24 * 60; // openingsuren over middernacht
+      }
       for (let t = a; t + step <= b || t === a && b - a < step; t += step) {
         if (t >= b) break;
-        const utc = zonedToUtc(day.y, day.m, day.d, Math.floor(t / 60), t % 60, tz);
+        const off = Math.floor(t / 1440); const tt = t % 1440;
+        if (i + off < 0 || i + off > days) continue;
+        const sc = new Date(Date.UTC(day.y, day.m - 1, day.d + off, 12));
+        const sd = { y: sc.getUTCFullYear(), m: sc.getUTCMonth() + 1, d: sc.getUTCDate() };
+        const utc = zonedToUtc(sd.y, sd.m, sd.d, Math.floor(tt / 60), tt % 60, tz);
         if (utc < earliest) continue;
         const start = new Date(utc).toISOString();
         const full = !!s.max_orders_per_slot && (counts[start] || 0) >= s.max_orders_per_slot;
-        out.push({ start, date: `${day.y}-${pad(day.m)}-${pad(day.d)}`, label: `${pad(Math.floor(t / 60))}:${pad(t % 60)}`, available: !full });
+        out.push({ start, date: `${sd.y}-${pad(sd.m)}-${pad(sd.d)}`, label: `${pad(Math.floor(tt / 60))}:${pad(tt % 60)}`, available: !full });
       }
     }
   }
@@ -93,14 +111,21 @@ export function computeSlots(s: FulfillmentSettings, type: ServiceType, nowMs: n
 /**
  * PAUSE-1 — kan er nu "zo snel mogelijk" besteld worden (zonder tijdsloten)?
  * Nee als de zaak gepauzeerd is of vandaag een sluitingsdag is. Geeft de reden terug.
+ * UREN-1c: met `week` (de uren van die soort) telt een sluitingsdag niet zolang een blok van gisteren nog
+ * loopt (een blok hoort bij zijn startdag), zoals de site "Nu open" toont.
  */
-export function orderingBlocked(s: Pick<FulfillmentSettings, 'paused_until' | 'closed_dates' | 'timezone'> | null | undefined, nowMs: number):
+export function orderingBlocked(s: Pick<FulfillmentSettings, 'paused_until' | 'closed_dates' | 'timezone'> | null | undefined, nowMs: number,
+  week?: Record<string, [string, string][]> | null):
   { reason: 'paused'; until: string } | { reason: 'closed_today' } | null {
   if (!s) return null;
   const until = s.paused_until ? new Date(s.paused_until).getTime() : NaN;
   if (Number.isFinite(until) && until > nowMs) return { reason: 'paused', until: new Date(until).toISOString() };
-  const d = localDay(nowMs, s.timezone || 'Europe/Brussels');
-  if ((s.closed_dates || []).includes(`${d.y}-${pad(d.m)}-${pad(d.d)}`)) return { reason: 'closed_today' };
+  const tz = safeTz(s.timezone);
+  const d = localDay(nowMs, tz);
+  if ((s.closed_dates || []).includes(`${d.y}-${pad(d.m)}-${pad(d.d)}`)) {
+    if (week && openState(week, s.closed_dates, tz, nowMs)?.open) return null;
+    return { reason: 'closed_today' };
+  }
   return null;
 }
 
@@ -128,28 +153,32 @@ export function postalCodeAllowed(postal: string | null | undefined, list: strin
 export function withBusinessHours<T extends FulfillmentSettings & { pickup_hours_mode?: string | null; delivery_hours_mode?: string | null }>(
   s: T, bh: BusinessHoursRow | null, nowMs: number,
 ): T {
-  const week = splitOvernight(parseWeek(bh?.week));
+  // UREN-1c: niet meer gesplitst; een blok over middernacht blijft "tot" vóór "van" en hoort bij zijn startdag.
+  const week = parseWeek(bh?.week);
   const hours: FulfillmentSettings['hours'] = { ...(s.hours || {}) };
   const modes: [ServiceType, string | null | undefined][] = [['pickup', s.pickup_hours_mode], ['local_delivery', s.delivery_hours_mode]];
+  const overnight: ServiceType[] = [];
   for (const [type, mode] of modes) {
-    if (resolveHoursMode(mode, s.hours?.[type]) === 'business') hours[type] = week;
+    if (resolveHoursMode(mode, s.hours?.[type]) === 'business') { hours[type] = week; overnight.push(type); }
   }
-  const tz = s.timezone || 'Europe/Brussels';
-  // days_ahead is hoogstens 14; één dag extra voor sloten na middernacht.
-  const closed = closureDates(parseClosures(bh?.closures), localYmd(nowMs, tz), 15);
-  return { ...s, hours, closed_dates: closed };
+  // UREN-1c: één bron voor de tijdzone (business_hours, dan fulfillment_settings, dan Brussel).
+  const tz = bh ? hoursTimezone(bh.timezone, s.timezone) : safeTz(s.timezone);
+  // Vanaf gisteren (de staart van een blok dat gisteren begon), days_ahead is hoogstens 14.
+  const closed = closureDates(parseClosures(bh?.closures), addDaysYmd(localYmd(nowMs, tz), -1), 16);
+  return { ...s, timezone: tz, hours, closed_dates: closed, overnight_types: overnight };
 }
 
 /**
  * UREN-1b — is de zaak (of een soort) nu open volgens een weekschema, en wanneer opent ze weer?
- * `week` mag blokken tot "24:00" bevatten (splitOvernight) of "tot" vóór "van" (over middernacht).
- * `closed`: lokale datums (YYYY-MM-DD) waarop alles dicht is. Een leeg schema geeft `null` (geen regel:
+ * `week` mag "tot" vóór "van" bevatten (over middernacht); zo'n blok hoort bij zijn startdag (UREN-1c).
+ * `closed`: lokale datums (YYYY-MM-DD) waarop alles dicht is, getoetst op de startdag van elk blok. Een leeg schema geeft `null` (geen regel:
  * zonder uren kan niets geweigerd worden). opens_at: eerste opening binnen 8 dagen, anders null.
  */
 export function openState(week: Record<string, [string, string][]> | null | undefined, closed: string[] | null | undefined, tz: string, nowMs: number):
   { open: boolean; opens_at: string | null } | null {
   const w = week || {};
   if (!Object.values(w).some((r) => Array.isArray(r) && r.length)) return null;
+  tz = safeTz(tz);
   const shut = new Set(closed || []);
   const today = localDay(nowMs, tz);
   let next: number | null = null;
@@ -176,6 +205,7 @@ const DAY_NL = ['zondag', 'maandag', 'dinsdag', 'woensdag', 'donderdag', 'vrijda
 /** "Bestellen kan vanaf 17:30" / "vanaf morgen 11:30" / "vanaf donderdag 11:30" (Nederlands, zoals de andere API-meldingen). */
 export function closedMessage(opensAt: string | null, tz: string, nowMs: number): string {
   if (!opensAt) return 'We zijn nu gesloten.';
+  tz = safeTz(tz);
   const ms = new Date(opensAt).getTime();
   const at = localDay(ms, tz);
   const today = localDay(nowMs, tz);

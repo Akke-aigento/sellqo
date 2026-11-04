@@ -145,3 +145,58 @@ Deno.test('GET-stempel UREN-1', async () => {
   const r = await handler(new Request('https://f/storefront-api', { method: 'GET' }));
   assert((await r.json()).version === 'UREN-1' && r.headers.get('X-SellQo-Api-Rev') === 'uren-1', 'stempel');
 });
+
+// --- UREN-1c: sluitingsdag rond middernacht — een blok hoort bij zijn startdag ------------------------
+// Vaste klok: Date.now() vastgezet tijdens de test (de handler leest Date.now()).
+const SUN_0030 = Date.parse('2026-10-17T22:30:00Z'); // zondag 18 oktober 2026, 00:30 Brussel
+const SAT_0030 = Date.parse('2026-10-16T22:30:00Z'); // zaterdag 17 oktober 2026, 00:30 Brussel
+async function atClock<R>(ms: number, fn: () => Promise<R>): Promise<R> {
+  const real = Date.now;
+  Date.now = () => ms;
+  try { return await fn(); } finally { Date.now = real; }
+}
+async function scenario(week: Record<string, [string, string][]>, closed: string, now: number) {
+  const saved = { week: bh0().week, closures: bh0().closures, slots: fs0().slots_enabled };
+  bh0().week = week; bh0().closures = [{ from: closed, to: closed, reason: 'Dicht' }];
+  fs0().qr_mode = 'order'; fs0().qr_block_outside_hours = true; fs0().online_block_outside_hours = true;
+  fs0().slots_enabled = false; fs0().pickup_hours_mode = 'business';
+  db.tables.storefront_carts = [{ id: UUID(11), tenant_id: T, expires_at: '2999-01-01T00:00:00Z' }];
+  try {
+    return await atClock(now, async () => ({
+      table: (await call('checkout_table', T, { cart_id: UUID(11), table: '4' })).json,
+      slots: (await call('get_fulfillment_slots', T, { type: 'pickup' })).json.data,
+    }));
+  } finally {
+    bh0().week = saved.week; bh0().closures = saved.closures; fs0().slots_enabled = saved.slots; fs0().pickup_hours_mode = null;
+    delete fs0().qr_mode; delete fs0().qr_block_outside_hours; delete fs0().online_block_outside_hours;
+  }
+}
+
+Deno.test('UREN-1c: za 20:00–02:00, zondag gesloten, zo 00:30 → open (tafel en "zo snel mogelijk")', async () => {
+  const r = await scenario({ '6': [['20:00', '02:00']] }, '2026-10-18', SUN_0030);
+  assert(r.table.data?.error?.code !== 'OUTSIDE_HOURS', `tafel: ${JSON.stringify(r.table).slice(0, 200)}`);
+  assert(!('outside_hours' in r.slots) && !('blocked' in r.slots), `afhalen: ${JSON.stringify(r.slots)}`);
+});
+
+Deno.test('UREN-1c: vr 20:00–02:00, zaterdag gesloten, za 00:30 → open', async () => {
+  const r = await scenario({ '5': [['20:00', '02:00']] }, '2026-10-17', SAT_0030);
+  assert(r.table.data?.error?.code !== 'OUTSIDE_HOURS', `tafel: ${JSON.stringify(r.table).slice(0, 200)}`);
+  assert(!('outside_hours' in r.slots) && !('blocked' in r.slots), `afhalen: ${JSON.stringify(r.slots)}`);
+});
+
+Deno.test('UREN-1c: startdag gesloten → dicht, ook na middernacht', async () => {
+  const r = await scenario({ '6': [['20:00', '02:00']] }, '2026-10-17', SUN_0030);
+  assert(r.table.data?.success === false && r.table.data.error.code === 'OUTSIDE_HOURS', `tafel: ${JSON.stringify(r.table)}`);
+  assert(r.slots.outside_hours?.opens_at, `afhalen: ${JSON.stringify(r.slots)}`);
+});
+
+Deno.test('UREN-1c: get_config met een onbekende tijdzone faalt niet (terugval Europe/Brussels)', async () => {
+  const saved = bh0().timezone;
+  bh0().timezone = 'Europe/Leuven';
+  try {
+    const r = await call('get_config', T);
+    assert(r.status === 200 && r.json.data.business_hours.timezone === 'Europe/Brussels', JSON.stringify(r.json.data?.business_hours));
+    const s = await call('get_fulfillment_slots', T, { type: 'local_delivery' });
+    assert(s.status === 200 && s.json.data.enabled, JSON.stringify(s.json).slice(0, 200));
+  } finally { bh0().timezone = saved; }
+});

@@ -2508,7 +2508,7 @@
         },
         "opening_hours": {
           "title": "Opening hours in one place, also on your website",
-          "description": "Under Settings › Company details you fill in your opening hours: one to three blocks per day, also past midnight, and exceptional closing days (a date or a period) with a short reason. Your website shows them in the footer and at the top of your menu, with \"Open now\" or when you open again. Pickup, delivery and online reservations use them by default; if you want different hours there, choose \"Own hours\". If you already had your own pickup, delivery or reservation hours, they stay as they are. Closing days you had set for pickup and delivery are now with your opening hours."
+          "description": "Under Settings › Company details you fill in your opening hours: one to three blocks per day, also past midnight, and exceptional closing days (a date or a period) with a short reason. Your website shows them in the footer and at the top of your menu, with \"Open now\" or when you open again. Pickup, delivery and online reservations use them by default; if you want different hours there, choose \"Own hours\". If you already had your own pickup, delivery or reservation hours, they stay as they are. Closing days you had set for pickup and delivery are now with your opening hours. An Opening hours and contact section now shows your opening hours, unless you choose your own text."
         },
         "website_horeca": {
           "title": "Your own website, also with a hospitality plan",

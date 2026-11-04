@@ -133,4 +133,19 @@ echo "$out" | tail -1
 out=$($P -d $DB -f test_uren_1b.sql 2>&1 | grep -v NOTICE) || { echo "$out" | tail -5; echo "FOUT in test_uren_1b.sql"; exit 1; }
 if echo "$out" | grep -qE '^ f$'; then echo "$out" | grep -B3 -E '^ f$'; echo "FOUT: controle faalt in test_uren_1b.sql"; fail=1; fi
 echo "$out" | tail -1
+# UREN-1c: sluitingsdag rond middernacht (een blok hoort bij zijn startdag), "night", tijdzone en de trigger.
+out=$($P -d $DB -f test_uren_1c.sql 2>&1 | grep -v NOTICE) || { echo "$out" | tail -5; echo "FOUT in test_uren_1c.sql"; exit 1; }
+if echo "$out" | grep -qE '^ f$'; then echo "$out" | grep -B3 -E '^ f$'; echo "FOUT: controle faalt in test_uren_1c.sql"; fail=1; fi
+echo "$out" | tail -1
+# UREN-1c: de docs-migraties van UREN-1/1b twee keer (in de volgorde van de uitrol), md5 per artikel vergelijken.
+$P -d $DB -f 10_uren_docs_prelude.sql >/dev/null
+for RUN in 1 2; do
+  for M in ../../../supabase/migrations/20261104120100_uren_1_docs.sql ../../../supabase/migrations/20261104120300_uren_1b_docs.sql; do
+    $P -d $DB -f $M >/dev/null 2>/tmp/kassa_mig.err || { cat /tmp/kassa_mig.err; echo "FOUT in $M (run $RUN)"; exit 1; }
+  done
+  $P -d $DB -c "insert into public.uren_docs_md5 select $RUN, slug, md5(content) from public.doc_articles" >/dev/null
+done
+out=$($P -d $DB -f test_uren_docs.sql 2>&1 | grep -v NOTICE) || { echo "$out" | tail -5; echo "FOUT in test_uren_docs.sql"; exit 1; }
+if echo "$out" | grep -qE '^ f$'; then echo "$out" | grep -B3 -E '^ f$'; echo "FOUT: controle faalt in test_uren_docs.sql"; fail=1; fi
+echo "$out" | tail -1
 exit $fail

@@ -41,7 +41,7 @@ values (
   <li>Klik op <strong>Opslaan</strong>.</li>
 </ol>
 <p>In <strong>Website › Aanpassen</strong> (tab <em>Thema</em>) en bij je <strong>Bedrijfsgegevens</strong> zie je je logo en kleur, met een link naar Branding. Kies je in Aanpassen een ander thema, dan blijft je merkkleur staan, tenzij je <em>Ook de merkkleur van het thema overnemen</em> aanvinkt.</p>
-<p>Gebruiken je facturen of mails vandaag een ander logo of een andere kleur dan je website, dan zie je dat bovenaan Branding. Sla je op, dan krijgen ze allemaal hetzelfde logo en dezelfde kleur.</p>
+<p>Gebruiken je facturen of mails vandaag een ander logo of een andere kleur dan je website, dan zie je dat bovenaan Branding. Sla je op, dan krijgen ze allemaal hetzelfde logo en dezelfde kleur. Verwijder je je logo (het kruisje bij je logo, <em>Logo verwijderen</em>) en sla je op, dan verdwijnt het ook van je facturen en mails.</p>
 <p>Heb je een eigen website (eigen frontend)? Dan blijft Branding werken zoals voorheen, met een merkkleur en een aparte primaire kleur.</p>$doc$
 )
 on conflict (doc_level, slug) do update set

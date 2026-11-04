@@ -10,7 +10,8 @@
 --   (UREN-1b: ook laatste aankomst en bestellen buiten de openingsuren.)
 -- PAS DRAAIEN NA de publish van sellqo.app met UREN-1 (anders beschrijft het artikel wat nog niet live is).
 -- Idempotent: het nieuwe artikel via ON CONFLICT (doc_level, slug) DO UPDATE; elke replace() raakt enkel een rij
--- waarin het anker precies één keer voorkomt (na de eerste keer niet meer). Snapshot vooraf, één keer.
+-- waarin het anker precies één keer voorkomt én de nieuwe tekst nog niet staat (blok 3 houdt het anker in zijn
+-- vervangtekst, daarom daar een extra controle; UREN-1c). Snapshot vooraf, één keer.
 -- Handmatig terugdraaien:
 --   update public.doc_articles d set content = s.content, excerpt = s.excerpt, tags = s.tags
 --     from snapshots.sellqo_20261104_doc_uren_1 s where d.id = s.id;
@@ -43,6 +44,7 @@ values (
 
 <h2>Uitzonderlijke sluitingsdagen</h2>
 <p>Ga je op vakantie, is het een feestdag of ben je aan het verbouwen? Kies onder <strong>Uitzonderlijke sluitingsdagen</strong> een datum, of een begin- en einddatum voor een periode, met een korte reden als je wil (bijvoorbeeld "Kerstvakantie"), en klik op <strong>Toevoegen</strong>. Voorbije sluitingen verdwijnen vanzelf. Op die dagen kan er niet afgehaald, geleverd of online gereserveerd worden. Bestellen aan tafel via de QR-code blijft werken: dan zit je gast al in de zaak.</p>
+<p>Een blok tot na middernacht hoort bij de dag waarop het begint. Ben je zaterdag open van 20:00 tot 02:00 en zondag gesloten, dan ben je zondagnacht tot 02:00 nog open. Sluit je zaterdag, dan ben je ook na middernacht dicht. Bij online reserveren staan die uren na middernacht bij de volgende dag, met "(nacht van gisteren)".</p>
 <p>Had je vroeger sluitingsdagen ingesteld bij afhalen en leveren, dan staan die nu hier.</p>
 
 <h2>Waar je openingsuren verschijnen</h2>
@@ -91,7 +93,9 @@ update public.doc_articles
        updated_at = now()
  where doc_level = 'tenant' and slug = 'horeca-werkplek'
    and (length(content) - length(replace(content, '<li><strong>Betalingen</strong>, <strong>Rapporten</strong> en <strong>Inkoop</strong> (leveranciers en hun facturen).</li>', '')))
-       = length('<li><strong>Betalingen</strong>, <strong>Rapporten</strong> en <strong>Inkoop</strong> (leveranciers en hun facturen).</li>');
+       = length('<li><strong>Betalingen</strong>, <strong>Rapporten</strong> en <strong>Inkoop</strong> (leveranciers en hun facturen).</li>')
+   -- UREN-1c: de vervangtekst bevat het anker zelf; zonder deze regel kwam er bij een tweede run een tweede Website-regel bij.
+   and position('<li><strong>Website</strong>:' in content) = 0;
 
 -- 4. theme-aanpassen
 update public.doc_articles

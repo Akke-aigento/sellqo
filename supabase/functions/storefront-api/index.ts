@@ -12,7 +12,7 @@ import { resolveTableInput, tenantHasFloorPlan } from "../_shared/diningTables.t
 import { refundReasonText, settleTableCheckPayment, type RefundClient, type SettleRpcClient } from "../_shared/tableCheckPay.ts";
 import { AddonError, addonsLabel, applicableGroups, resolveAddonSelection, type AddonGroup } from "../_shared/productAddons.ts";
 import { closedMessage, computeSlots, openState, orderingBlocked, postalCodeAllowed, withBusinessHours, type FulfillmentSettings, type ServiceType } from "../_shared/fulfillmentSlots.ts";
-import { closureDates, localYmd, parseClosures, parseWeek, publicBusinessHours, splitOvernight, type BusinessHoursRow } from "../_shared/businessHours.ts";
+import { addDaysYmd, closureDates, hoursTimezone, localYmd, parseClosures, parseWeek, publicBusinessHours, type BusinessHoursRow } from "../_shared/businessHours.ts";
 import { CART_RESTORE_SESSION_PREFIX, verifyCartRestore } from "../_shared/cartRestoreToken.ts";
 import { amountMismatchNote, discountRoundingToleranceCents, stripeAmountMismatch } from "../_shared/stripeAmountCheck.ts";
 import { buildSizeChart, publicSizeChart, sellSizesFromVariants } from "../_shared/sizeChart.ts";
@@ -343,6 +343,7 @@ async function getConfig(supabase: any, tenantId: string, params: Record<string,
   if (!tenant) throw new Error('Tenant not found');
   // UREN-1 — openingsuren (aparte lees, al gestart naast de andere; foutbestendig: zonder tabel of rij null).
   const businessHours = await businessHoursP;
+  const tableBlock = await tableBlockP;
 
   let storeName = tenant.store_name || tenant.name;
   let storeDescription = tenant.store_description;
@@ -421,7 +422,7 @@ async function getConfig(supabase: any, tenantId: string, params: Record<string,
     },
     // UREN-1 — additief: { timezone, week: { "1": [["11:30","14:00"]], ... } (0 = zondag), closures: [{ from, to, reason }] }
     // met enkel de komende sluitingen; null als de zaak geen openingsuren invulde.
-    business_hours: publicBusinessHours(businessHours, Date.now(), await tableBlockP),
+    business_hours: publicBusinessHours(businessHours, Date.now(), tableBlock.block, tableBlock.timezone),
   };
 }
 
@@ -899,19 +900,23 @@ async function effectiveFulfillment(supabase: SupabaseLike, tenantId: string, se
 }
 
 // UREN-1b — staat "QR aan tafel buiten de openingsuren niet toestaan" aan? Fout (kolom nog niet gemigreerd) = nee.
-async function loadTableBlock(supabase: SupabaseLike, tenantId: string): Promise<boolean> {
-  const { data, error } = await supabase.from('fulfillment_settings').select('qr_block_outside_hours').eq('tenant_id', tenantId).maybeSingle();
-  return !error && data?.qr_block_outside_hours === true;
+// UREN-1c — ook de tijdzone van fulfillment_settings, als terugval na business_hours.timezone (één bron).
+async function loadTableBlock(supabase: SupabaseLike, tenantId: string): Promise<{ block: boolean; timezone: string | null }> {
+  const { data, error } = await supabase.from('fulfillment_settings').select('qr_block_outside_hours, timezone').eq('tenant_id', tenantId).maybeSingle();
+  if (error) return { block: false, timezone: null };
+  return { block: data?.qr_block_outside_hours === true, timezone: (data?.timezone as string | null | undefined) ?? null };
 }
 
 // UREN-1b — bestellen aan tafel geweigerd omdat de zaak volgens haar openingsuren dicht is (enkel als ze dat
 // zo instelde en uren invulde). null = mag.
 async function tableClosedError(supabase: SupabaseLike, tenantId: string, nowMs = Date.now()): Promise<{ code: string; message: string; opens_at: string | null } | null> {
-  if (!(await loadTableBlock(supabase, tenantId))) return null;
+  const table = await loadTableBlock(supabase, tenantId);
+  if (!table.block) return null;
   const bh = await loadBusinessHours(supabase, tenantId);
   if (!bh) return null;
-  const tz = bh.timezone || 'Europe/Brussels';
-  const st = openState(splitOvernight(parseWeek(bh.week)), closureDates(parseClosures(bh.closures), localYmd(nowMs, tz), 8), tz, nowMs);
+  const tz = hoursTimezone(bh.timezone, table.timezone);
+  // UREN-1c: ongesplitst weekschema en sluitingen vanaf gisteren: een blok hoort bij zijn startdag (zoals de site).
+  const st = openState(parseWeek(bh.week), closureDates(parseClosures(bh.closures), addDaysYmd(localYmd(nowMs, tz), -1), 10), tz, nowMs);
   if (!st || st.open) return null;
   return { code: 'OUTSIDE_HOURS', message: closedMessage(st.opens_at, tz, nowMs), opens_at: st.opens_at };
 }
@@ -954,7 +959,8 @@ async function fulfillmentSlotsFor(supabase: SupabaseLike, tenantId: string, typ
   // UREN-1 — openingsuren en sluitingsdagen erin verwerkt (zie effectiveFulfillment).
   const settings = raw ? await effectiveFulfillment(supabase, tenantId, raw, nowMs) : null;
   // PAUSE-1 — additief: alleen aanwezig als de zaak gepauzeerd of vandaag dicht is.
-  const blocked = orderingBlocked(settings, nowMs);
+  // UREN-1c: met de uren van deze soort, zodat een lopend blok van gisteren een sluitingsdag van vandaag niet raakt.
+  const blocked = orderingBlocked(settings, nowMs, settings?.hours?.[type]);
   const pause = blocked ? { blocked } : {};
   // UREN-1b — additief: zonder tijdsloten ("zo snel mogelijk") en met "buiten de uren niet toestaan": wanneer weer open.
   const st = settings && !settings.slots_enabled && (settings as { online_block_outside_hours?: boolean }).online_block_outside_hours === true

@@ -5,6 +5,8 @@
 --  2. fulfillment_settings.qr_block_outside_hours / online_block_outside_hours: bestellen buiten de openingsuren
 --     niet toestaan (QR aan tafel / afhalen en leveren "zo snel mogelijk"). Standaard false = het gedrag van vandaag
 --     (toegestaan). Afgedwongen in storefront-api; hier enkel de kolommen.
+--  3. UREN-1c: reservation_slots volgt de regel "een blok hoort bij zijn startdag" bij sluitingsdagen, markeert
+--     uren uit de staart van gisteren met "night": true, en neemt de tijdzone uit business_hours eerst.
 -- Idempotent. Handmatig terugdraaien:
 --   reservation_slots: de definitie uit 20261104120000_uren_1.sql opnieuw uitvoeren;
 --   de drie kolommen mogen blijven staan (standaardwaarden = gedrag van vóór deze migratie).
@@ -21,6 +23,13 @@ end $$;
 
 -- reservation_slots: zoals UREN-1, met de marge. Rekent in minuten vanaf p_date 00:00 (lokaal); een blok over
 -- middernacht loopt tot (sluiting + 1440). Gisteren telt mee voor de staart na middernacht.
+-- UREN-1c — één regel voor sluitingsdagen, zoals storefront-api en de site: een blok hoort bij zijn startdag.
+--   Is de startdag gesloten, dan vervalt het hele blok (ook het deel na middernacht): de blokken van vandaag
+--   (v_off = 0) toetsen p_date, de staart van gisteren (v_off = -1440) toetst p_date - 1. Is enkel vandaag
+--   gesloten, dan blijft de staart van gisteren staan. Eigen uren hebben geen staart: daar toetst p_date.
+--   Elk uur uit de staart van gisteren krijgt "night": true (additief), zodat de site "(nacht van gisteren)" toont.
+--   Tijdzone: business_hours.timezone, dan fulfillment_settings.timezone, dan Europe/Brussels (één bron,
+--   zoals storefront-api); een onbekende waarde valt terug op Europe/Brussels in plaats van te falen.
 create or replace function public.reservation_slots(p_tenant_id uuid, p_date date)
 returns jsonb
 language plpgsql
@@ -43,7 +52,11 @@ declare
   v_e integer;
   v_t integer;
   v_incl boolean;
+  v_closed_today boolean;
+  v_closed_yday boolean;
   v_cands integer[] := '{}';  -- minuten vanaf p_date 00:00, binnen [0, 1440)
+  v_day integer[] := '{}';    -- uit de blokken van vandaag
+  v_night integer[] := '{}';  -- uit de staart van gisteren
   v_m integer;
   v_time time;
   v_at timestamptz;
@@ -55,18 +68,31 @@ begin
     return jsonb_build_object('enabled', false, 'slots', '[]'::jsonb);
   end if;
   select * into bh from public.business_hours where tenant_id = p_tenant_id;
-  select coalesce(nullif(f.timezone, ''), 'Europe/Brussels') into v_tz from public.fulfillment_settings f where f.tenant_id = p_tenant_id;
-  v_tz := coalesce(v_tz, nullif(bh.timezone, ''), 'Europe/Brussels');
-  v_today := (now() at time zone v_tz)::date;
-  if p_date is null or p_date < v_today or p_date > v_today + s.days_ahead
-     or exists (select 1 from jsonb_array_elements(coalesce(bh.closures, '[]'::jsonb)) c
-                 where p_date between (c ->> 'from')::date and (c ->> 'to')::date) then
+  v_tz := nullif(bh.timezone, '');
+  if v_tz is null then
+    select nullif(f.timezone, '') into v_tz from public.fulfillment_settings f where f.tenant_id = p_tenant_id;
+  end if;
+  v_tz := coalesce(v_tz, 'Europe/Brussels');
+  begin
+    v_today := (now() at time zone v_tz)::date;
+  exception when others then
+    v_tz := 'Europe/Brussels';
+    v_today := (now() at time zone v_tz)::date;
+  end;
+  if p_date is null or p_date < v_today or p_date > v_today + s.days_ahead then
     return jsonb_build_object('enabled', true, 'max_party', s.max_party, 'days_ahead', s.days_ahead, 'slots', '[]'::jsonb);
   end if;
+  v_closed_today := exists (select 1 from jsonb_array_elements(coalesce(bh.closures, '[]'::jsonb)) c
+                             where p_date between (c ->> 'from')::date and (c ->> 'to')::date);
+  v_closed_yday := exists (select 1 from jsonb_array_elements(coalesce(bh.closures, '[]'::jsonb)) c
+                            where p_date - 1 between (c ->> 'from')::date and (c ->> 'to')::date);
 
   v_mode := coalesce(s.online_hours_mode, case when public.hours_week_has_ranges(s.online_hours) then 'own' else 'business' end);
   if v_mode = 'own' then
-    -- Eigen uren: eerste en laatste aankomstuur, beide inbegrepen (RESERVATIE-2).
+    -- Eigen uren: eerste en laatste aankomstuur, beide inbegrepen (RESERVATIE-2). Geen staart over middernacht.
+    if v_closed_today then
+      return jsonb_build_object('enabled', true, 'max_party', s.max_party, 'days_ahead', s.days_ahead, 'slots', '[]'::jsonb);
+    end if;
     v_ranges := coalesce(s.online_hours -> extract(dow from p_date)::int::text, '[]'::jsonb);
     if jsonb_typeof(v_ranges) <> 'array' then v_ranges := '[]'::jsonb; end if;
     for v_range in select * from jsonb_array_elements(v_ranges) loop
@@ -87,6 +113,8 @@ begin
     v_margin := coalesce(s.online_last_arrival_minutes, 0);
     v_incl := v_margin > 0;
     foreach v_off in array array[0, -1440] loop
+      -- Een blok hoort bij zijn startdag: is die gesloten, dan vervalt het hele blok.
+      if (v_off = 0 and v_closed_today) or (v_off < 0 and v_closed_yday) then continue; end if;
       v_ranges := coalesce(bh.week -> ((extract(dow from p_date)::int + case when v_off = 0 then 0 else 6 end) % 7)::text, '[]'::jsonb);
       if jsonb_typeof(v_ranges) <> 'array' then v_ranges := '[]'::jsonb; end if;
       for v_range in select * from jsonb_array_elements(v_ranges) loop
@@ -102,7 +130,10 @@ begin
         v_t := v_a;
         while (v_incl and v_t <= v_e) or (not v_incl and v_t < v_e) loop
           v_m := v_t + v_off;
-          if v_m >= 0 and v_m < 1440 and not (v_m = any(v_cands)) then v_cands := v_cands || v_m; end if;
+          if v_m >= 0 and v_m < 1440 then
+            if not (v_m = any(v_cands)) then v_cands := v_cands || v_m; end if;
+            if v_off = 0 then v_day := v_day || v_m; else v_night := v_night || v_m; end if;
+          end if;
           v_t := v_t + s.slot_minutes;
         end loop;
       end loop;
@@ -116,7 +147,9 @@ begin
       select coalesce(sum(r.guests), 0) into v_taken from public.table_reservations r
        where r.tenant_id = p_tenant_id and r.starts_at = v_at and r.status in ('requested', 'booked', 'seated');
       if v_taken < s.max_guests_per_slot then
-        v_slots := v_slots || jsonb_build_array(jsonb_build_object('time', to_char(v_time, 'HH24:MI'), 'left', s.max_guests_per_slot - v_taken));
+        v_slots := v_slots || jsonb_build_array(
+          jsonb_build_object('time', to_char(v_time, 'HH24:MI'), 'left', s.max_guests_per_slot - v_taken)
+          || case when v_m = any(v_night) and not (v_m = any(v_day)) then '{"night": true}'::jsonb else '{}'::jsonb end);
       end if;
     end if;
   end loop;

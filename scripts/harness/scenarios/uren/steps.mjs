@@ -7,6 +7,8 @@ const screens = [
   ['website', ''], ['website', '&tracks=webshop'], ['aanpassen', ''], ['hub', ''],
   // UREN-1b
   ['aanpassen-thema', ''], ['branding', ''], ['qr', ''], ['afhalen-zonder-sloten', ''],
+  // UREN-1c
+  ['branding', '&logo=set'],
 ];
 export async function run(page, { width, log }) {
   const base = page.url().split('?')[0];
@@ -54,13 +56,25 @@ export async function run(page, { width, log }) {
       }
     } else if (s === 'website') {
       log(name, 'kop:', await p.locator('h1').innerText(), '|', (await text()).slice(0, 700));
+      // UREN-1c: de tegel Eigen domein enkel voor webshop/events, niet voor horeca-only.
+      log(name, 'domein-tegel:', await p.locator('a[href="/admin/settings?section=domain"]').count());
     } else if (s === 'aanpassen-thema') {
       await p.getByRole('tab', { name: 'Thema' }).click();
       await p.getByText('Thema kiezen', { exact: true }).first().click();
       await p.waitForSelector('label[for="tg-brand"]');
       log(name, 'thema-volgorde:', (await p.locator('button span.text-lg.font-bold').allInnerTexts()).slice(0, 5).join(' | '));
       log(name, 'merk-checkbox:', await p.locator('label[for="tg-brand"]').innerText());
-    } else if (s === 'branding' || s === 'qr' || s === 'afhalen-zonder-sloten') {
+    } else if (s === 'branding') {
+      log(name, (await text()).slice(0, 600));
+      // UREN-1c: bewaren zonder logo raakt tenants.logo_url niet; "Logo verwijderen" wist het op beide plekken.
+      if (extra.includes('logo=set')) await p.getByRole('button', { name: 'Logo verwijderen' }).click();
+      else await p.getByRole('button', { name: '#ef4444' }).click();
+      await p.getByRole('button', { name: 'Opslaan', exact: true }).click();
+      await p.waitForTimeout(400);
+      const writes = await p.evaluate(() => window.__writes);
+      log(name, 'geschreven tenants:', JSON.stringify(writes.filter((x) => x.table === 'tenants').map((x) => x.v)));
+      log(name, 'foutmelding:', await p.getByText(/facturen en mails niet/).count());
+    } else if (s === 'qr' || s === 'afhalen-zonder-sloten') {
       log(name, (await text()).slice(0, 600));
     } else if (s === 'aanpassen') {
       await p.getByRole('tab', { name: 'Thema' }).click();

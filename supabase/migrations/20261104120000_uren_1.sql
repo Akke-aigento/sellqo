@@ -8,6 +8,7 @@
 --  * fulfillment_settings.pickup_hours_mode / delivery_hours_mode en reservation_settings.online_hours_mode:
 --    'business' = zelfde als de openingsuren, 'own' = eigen uren. NULL = afgeleid uit de bestaande data:
 --    eigen uren ingevuld → 'own', anders 'business'. Geen enkele bestaande rij wordt overschreven.
+--    UREN-1c: timezone wordt bij elke schrijfactie getoetst aan pg_timezone_names (trigger).
 --  * reservation_slots: volgt de keuze, en de sluitingsdagen komen uit business_hours.closures.
 --  * Bestaande sluitingsdagen (fulfillment_settings.closed_dates, PAUSE-1) die nog komen, worden gekopieerd
 --    naar business_hours.closures. De kolom blijft staan (DB-safety) maar wordt na deze batch niet meer gelezen.
@@ -23,7 +24,7 @@
 --   reservation_slots: de definitie uit 20261030220000_reservatie_2.sql opnieuw uitvoeren;
 --   drop table public.business_hours;
 --   drop function public.business_hours_week_valid(jsonb), public.business_closures_valid(jsonb),
---     public.hours_week_has_ranges(jsonb);
+--     public.hours_week_has_ranges(jsonb), public.business_hours_timezone_guard();
 --   de drie *_hours_mode-kolommen mogen blijven staan (NULL = oud gedrag zodra de code teruggedraaid is).
 
 -- ── 1. Validatie (ook als CHECK-constraint) ─────────────────────────────────────────────────────────────
@@ -118,6 +119,25 @@ do $$ begin
     alter table public.business_hours add constraint business_hours_timezone_check check (timezone ~ '^[A-Za-z]+(/[A-Za-z_+-]+){1,2}$');
   end if;
 end $$;
+
+-- UREN-1c — de tijdzone moet een echte zijn (pg_timezone_names). Een CHECK kan dat niet (niet IMMUTABLE),
+-- dus een trigger bij invoegen en bij een wijziging van timezone. De regex-CHECK hierboven blijft staan.
+create or replace function public.business_hours_timezone_guard()
+returns trigger
+language plpgsql
+set search_path to ''
+as $fn$
+begin
+  if new.timezone is null or not exists (select 1 from pg_catalog.pg_timezone_names where name = new.timezone) then
+    raise exception 'Onbekende tijdzone: %', new.timezone using errcode = '23514';
+  end if;
+  return new;
+end
+$fn$;
+revoke all on function public.business_hours_timezone_guard() from public, anon, authenticated;
+drop trigger if exists trg_business_hours_timezone on public.business_hours;
+create trigger trg_business_hours_timezone before insert or update of timezone on public.business_hours
+  for each row execute function public.business_hours_timezone_guard();
 
 drop trigger if exists trg_business_hours_updated_at on public.business_hours;
 create trigger trg_business_hours_updated_at before update on public.business_hours

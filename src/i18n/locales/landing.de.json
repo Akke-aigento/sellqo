@@ -2508,7 +2508,7 @@
         },
         "opening_hours": {
           "title": "Öffnungszeiten an einem Ort, auch auf deiner Website",
-          "description": "Unter Einstellungen › Unternehmensdaten trägst du deine Öffnungszeiten ein: ein bis drei Blöcke pro Tag, auch über Mitternacht hinaus, und Schließtage (ein Datum oder ein Zeitraum) mit kurzem Grund. Deine Website zeigt sie in der Fußzeile und oben auf deiner Karte, mit „Jetzt geöffnet“ oder wann du wieder öffnest. Abholung, Lieferung und Online-Reservierungen übernehmen sie standardmäßig; willst du dort andere Zeiten, wähle „Eigene Zeiten“. Hattest du schon eigene Abhol-, Liefer- oder Reservierungszeiten, bleiben sie, wie sie sind. Schließtage, die du bei Abholung und Lieferung eingestellt hattest, stehen jetzt bei deinen Öffnungszeiten."
+          "description": "Unter Einstellungen › Unternehmensdaten trägst du deine Öffnungszeiten ein: ein bis drei Blöcke pro Tag, auch über Mitternacht hinaus, und Schließtage (ein Datum oder ein Zeitraum) mit kurzem Grund. Deine Website zeigt sie in der Fußzeile und oben auf deiner Karte, mit „Jetzt geöffnet“ oder wann du wieder öffnest. Abholung, Lieferung und Online-Reservierungen übernehmen sie standardmäßig; willst du dort andere Zeiten, wähle „Eigene Zeiten“. Hattest du schon eigene Abhol-, Liefer- oder Reservierungszeiten, bleiben sie, wie sie sind. Schließtage, die du bei Abholung und Lieferung eingestellt hattest, stehen jetzt bei deinen Öffnungszeiten. Ein Abschnitt Öffnungszeiten und Kontakt zeigt ab jetzt deine Öffnungszeiten, außer du wählst einen eigenen Text."
         },
         "website_horeca": {
           "title": "Deine eigene Website, auch mit einem Gastro-Paket",

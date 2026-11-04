@@ -34,6 +34,8 @@ export function BrandingSettings() {
   });
   const [initial, setInitial] = useState(form);
   const [picking, setPicking] = useState(false);
+  // UREN-1c — enkel na "Logo verwijderen" mag het logo ook van facturen en mails verdwijnen.
+  const [logoRemoved, setLogoRemoved] = useState(false);
 
   useEffect(() => {
     if (themeSettings) {
@@ -46,6 +48,7 @@ export function BrandingSettings() {
       };
       setForm(next);
       setInitial(next);
+      setLogoRemoved(false);
     }
   }, [themeSettings]);
 
@@ -64,13 +67,15 @@ export function BrandingSettings() {
     const next = { ...form, primary_color: form.brand_color };
     await saveThemeSettings.mutateAsync(next as never);
     try {
-      if (tenant?.id) await syncTenantBrand(tenant.id, { logo_url: next.logo_url, brand_color: next.brand_color });
+      // Het logo enkel als het ingevuld is, of gewist na "Logo verwijderen" (dan op beide plekken).
+      if (tenant?.id) await syncTenantBrand(tenant.id, { logo_url: next.logo_url, brand_color: next.brand_color, clear_logo: logoRemoved && !next.logo_url });
       await refreshTenants();
     } catch (e) {
       toast.error(t('settings.branding.sync_failed', { reason: e instanceof Error ? e.message : String(e) }));
     }
     setForm(next);
     setInitial(next);
+    setLogoRemoved(false);
   };
 
   const pickFromLogo = async () => {
@@ -128,7 +133,7 @@ export function BrandingSettings() {
             logoUrl={form.logo_url}
             primaryColor={isCustomFrontend ? form.primary_color : form.brand_color}
             faviconUrl={form.favicon_url}
-            onLogoChange={(url) => setForm((p) => ({ ...p, logo_url: url }))}
+            onLogoChange={(url) => { setLogoRemoved(!url); setForm((p) => ({ ...p, logo_url: url })); }}
             onFaviconChange={(url) => setForm((p) => ({ ...p, favicon_url: url }))}
           />
 
@@ -176,7 +181,7 @@ export function BrandingSettings() {
         isDirty={isDirty}
         isSaving={saveThemeSettings.isPending}
         onSave={handleSave}
-        onCancel={() => setForm(initial)}
+        onCancel={() => { setForm(initial); setLogoRemoved(false); }}
       />
     </div>
   );
