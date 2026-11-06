@@ -9806,7 +9806,7 @@
       "shared_title": "Shared table basket",
       "shared_desc": "Everyone at the same table fills one basket. Once it is sent, it is empty for everyone.",
       "idle_title": "Table free after",
-      "idle_desc": "With no order or payment at the table, the next guests then start with an empty overview.",
+      "idle_desc": "With no order or payment at the table, the next guests then start with an empty overview. If the current guests still have something open, the table stays theirs until you settle it or free the table.",
       "idle_option": "{{n}} min without activity",
       "groups_note": "One party orders per table: whoever scans the QR joins the guests already seated and only sees what they ordered since arriving. Two parties at one table? Make it two tables in the floor plan. At 05:00, after paying at the till or with \"Free table\", the next guests start fresh.",
       "groups_note_link": "Go to Floor"

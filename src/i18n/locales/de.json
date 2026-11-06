@@ -9475,7 +9475,7 @@
       "shared_title": "Gemeinsamer Tischwarenkorb",
       "shared_desc": "Alle am selben Tisch füllen einen Warenkorb. Nach dem Absenden ist er für alle leer.",
       "idle_title": "Tisch frei nach",
-      "idle_desc": "Ohne Bestellung oder Zahlung am Tisch starten die nächsten Gäste danach mit einer leeren Übersicht.",
+      "idle_desc": "Ohne Bestellung oder Zahlung am Tisch starten die nächsten Gäste danach mit einer leeren Übersicht. Haben die jetzigen Gäste noch etwas offen, bleibt der Tisch ihrer, bis Sie abrechnen oder den Tisch freigeben.",
       "idle_option": "{{n}} Min. ohne Aktivität",
       "groups_note": "Pro Tisch bestellt eine Gruppe: Wer den QR-Code scannt, schließt sich den Gästen an, die schon dort sitzen, und sieht nur, was sie seit ihrer Ankunft bestellt haben. Zwei Gruppen an einem Tisch? Machen Sie im Raumplan zwei Tische daraus. Um 05:00 Uhr, nach dem Abrechnen an der Kasse oder mit „Tisch freigeben“ starten die nächsten Gäste neu.",
       "groups_note_link": "Zum Raum"

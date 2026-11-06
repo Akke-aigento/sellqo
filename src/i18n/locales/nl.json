@@ -9820,7 +9820,7 @@
       "shared_title": "Gedeeld tafelmandje",
       "shared_desc": "Iedereen aan dezelfde tafel vult één mandje. Na het doorgeven is het voor iedereen leeg.",
       "idle_title": "Tafel vrij na",
-      "idle_desc": "Zonder bestelling of betaling aan de tafel starten de volgende gasten daarna met een leeg overzicht.",
+      "idle_desc": "Zonder bestelling of betaling aan de tafel starten de volgende gasten daarna met een leeg overzicht. Staat er nog iets van de huidige gasten open, dan blijft de tafel van hen tot je afrekent of de tafel vrijgeeft.",
       "idle_option": "{{n}} min zonder activiteit",
       "groups_note": "Per tafel bestelt één gezelschap: wie de QR scant, sluit aan bij de gasten die er al zitten en ziet enkel wat zij sinds hun aankomst bestelden. Twee gezelschappen aan één tafel? Maak er twee tafels van in het zaalplan. Om 05:00, na het afrekenen aan de kassa of met \"Tafel vrijgeven\" starten de volgende gasten opnieuw.",
       "groups_note_link": "Naar Zaal"

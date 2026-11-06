@@ -48,9 +48,55 @@ Plan: `/home/claude/tafel-samen-1-plan.md` (recon 06-11), goedgekeurd door Akke 
 - De lade (CartDrawer) is geen volledig tafeloverzicht: ze toont het gedeelde mandje met "Iedereen aan tafel X ziet dit mandje" en linkt naar het overzicht (één plek per taak). Geen QR-code op het scherm (geen QR-bibliotheek in de storefront; de QR op tafel doet hetzelfde); wel "Deel met je tafel" (Web Share of kopiëren).
 - `ended_reason 'replaced'` vervalt (kan niet meer voorkomen).
 
+**Review-ronde (zelfde dag, vóór elke push)** — bevindingen van de review, opgelost in extra commits; de migratie
+`20261106160000` is in place aangepast (nog nergens gedraaid):
+- **B1 vertrokken gasten sluiten niet meer vanzelf aan.** `table_group_join` kreeg `p_fresh_scan` (enkel true als
+  `?t=` bij déze paginalading in de URL stond; storefront-api geeft `params.fresh === true` door). Zonder verse scan:
+  lid blijft lid, maar nooit aansluiten of een groep maken → `PREVIOUS_ENDED` (eigen groep afgelopen) of
+  `SCAN_REQUIRED`. De storefront wist dan alle tafelcookies (`forgetTable`, zoals `leaveTable`) en toont "Je bezoek
+  aan tafel X is afgesloten. Scan de QR-code op je tafel opnieuw". De poll en het tafeloverzicht sluiten nooit meer
+  automatisch aan; een open tab merkt het einde binnen 5 s. `?t=` en `?groep=` gaan na de scan uit de URL
+  (`router.navigate … replace`): herladen is geen nieuwe scan. Stripe-terugkeer na "alles betalen" toont de uitkomst
+  van de betaling zonder tafel en maakt geen groep.
+- **B2 dagreset rond zomer-/wintertijd.** `table_group_last_reset` rekent in lokale tijd:
+  `((sold_out_reset_at(p_now) at time zone 'Europe/Brussels') - interval '1 day') at time zone 'Europe/Brussels'`.
+  Getest met sessietijdzone UTC, Europe/Brussels en America/New_York op 25-10, 26-10, 28/29/30-03 rond 05:00.
+- **B3** een rekening die dichtgaat beëindigt de groep enkel als er iets van deze groep op stond (lijn van na haar
+  start of een aanvraag van haar); anders `check_id` los en later gekoppeld aan de nieuwe open rekening.
+- **B4 (beslissing Akke, 1 rekening per tafel): inactiviteit beëindigt een groep enkel als ze niets meer openstaan
+  heeft** (eigen lijnen met een open aantal of een aanvraag in afwachting). Activiteit telt nu ook bevestigingen aan
+  de kassa (`decided_at`) en nieuwe lijnen van de groep. Een groep met openstaande lijnen loopt door tot afrekenen,
+  kassa-sluiting, vrijgeven of de dagreset. Teksten (instelling, changelog, docs) zeggen dat.
+- **B5** oude betaalpogingen (`release_payment_ids`) worden vrijgegeven vóór de groepsberekening.
+- **B6** betalen per groep in één transactie: nieuwe `table_group_pay_start` neemt de rekening `FOR UPDATE`, bepaalt
+  in dezelfde transactie de lijnen van de groep en "gemengd", en roept de ongewijzigde `table_check_pay_start` aan.
+  De TS-functie `groupPayPlan` is weg.
+- **B7/K2** gemengd en (splitsen uit of al een voorschot op de rekening): `online_pay` uit met
+  `pay_note 'mixed_ask_staff'` → "Vraag de rekening aan het personeel"; de server weigert met `CHECK_PAY_MIXED`.
+- **K1** meer dan 60 eigen lijnen bij "alles": `CHECK_PAY_TOO_MANY`, nooit stil afgekapt.
+- **K3** `table_check_pay` zonder `group_id` weigert `full` en `share` (`CHECK_PAY_OLD_LINES`) als er lijnen van vóór de
+  dagreset openstaan (consistent met het vangnet van `table_check_get`; "mijn items" blijft). Extra gedragswijziging
+  op het pad zonder parameter, enkel gebruikt door de SellQo-storefront.
+- **K4** de groepsweergave volgt `table_group_cur_check` (open rekening van de tafel, anders haar laatst geziene
+  rekening als die nog open is): een rekening die de kassa naar een andere tafel verplaatste, blijft zichtbaar.
+- **K5** één bron: `table_group_hidden_open` voor `hidden_open`/`mixed` (gast) en `prev_open_lines` (Zaal).
+- **K6** de poll (`table_group_state`) is lezend: geen advisory lock of rijlock, tenzij de groep afloopt of haar
+  rekening wisselt. Gemeten: poll tijdens een doorgave die 2 s open blijft = 31 ms.
+- **K7** tweede gelijktijdige Doorgeven: de gsm stuurt het mandje mee dat hij toonde; is dat al doorgegeven →
+  `JUST_SENT` → "Net doorgegeven door je tafelgenoot. Je ziet het bij Al besteld."
+- **B8 (niet in deze batch)** de QR-token per tafel is statisch. Vervolg: "QR vernieuwen" per tafel in Zaal.
+- Verificatie na de review: PG16 84 SQL-checks groen (incl. DST onder 3 tijdzones, B1/B3/B4/B6/B7/K1/K2/K4/K5/K7),
+  `conc.sh` 20 en 40 (nu met 7 en 5 echte `CART_ROTATED`-herhalingen, niets verloren), `conc2.sh`, `conc3.sh` (K6);
+  `deno check` groen, promo-compare 268/268 (16 groepstests), rooktest groen; admin tsc 0, build 0, lint 1457 → 1454,
+  i18n-pariteit, CI-vitest 566, `vitest src/kassa` 366, harnas `tafel-samen` groen; storefront tsc 0, build 0,
+  test:hours 23/23, Playwright multi-context 80/80 (nieuw: `?t=` uit de URL en herladen = lid, open tab na vrijgeven en
+  na kassa-sluiting → melding, vertrokken gsm ziet niets van de nieuwe groep en maakt geen groep, Stripe-terugkeer
+  zonder nieuwe groep, "Net doorgegeven"); regressies ongewijzigd (SESSIE-1 80/80 zonder groepen, 78/80 met de twee
+  bedoelde verschillen; STAAT-1 598/0; NU-2 36/36). Docs-migratie opnieuw 2× gedraaid: idempotent.
+
 **Bewust ongemoeid / Vervolg**
 - Uitrolvolgorde: (1) migratie `20261106160000_tafel_samen_1.sql` + SQL-natrek; (2) deploy storefront-api, GET-stempel `TAFEL-SAMEN-1`; (3) publish admin (deploy_project) + bundelcheck; (4) push + deploy sellqo-storefront; (5) docs-migratie; (6) live natrek De Wissel tafel 8: Zaal toont de waarschuwing voor 3b44653b, `table_group_view` toont enkel lijnen na de groepsstart.
-- Open: een gsm met een oude tafelcookie (bv. vorige gasten, 3 u geldig) sluit na het vrijgeven bij de nieuwe groep aan en ziet haar mandje/rondes. Dat risico bestond al (statische QR-token, MENU-SNEL-1). Voorstel vervolg: zonder verse scan (`?t=`) niet automatisch aansluiten als de eigen groep beëindigd werd door vrijgeven of afrekenen.
+- Vervolg (B8): de QR-token per tafel is statisch. Wie de link met `?t=` bewaart, kan later opnieuw "scannen". Voorstel: knop "QR vernieuwen" per tafel in Zaal (nieuwe token, oude stickers ongeldig).
 - Open: De Wissel rekening 3b44653b (tafel 8, open sinds 05-11) rekent Akke af of verplaatst ze op de kassa; wij doen niets server-side.
 - Waarschuwing op het kassatoestel zelf = latere kassa-release (src/kassa niet aangeraakt).
 - Groepsmandjes die eindigen krijgen `checkout_status 'abandoned'`: tellen mee als verlaten mandje in statistieken, zonder e-mail (geen herinnering mogelijk).
