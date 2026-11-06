@@ -2577,6 +2577,10 @@
         "menu_card_print": {
           "title": "Print your menu as a booklet or A4 menu",
           "description": "The Menu now has a Print button. Choose from three templates: an A5 booklet (A4 landscape, folded), separate A4 pages for a menu folder, or the booklet with a photo on the cover (from your media library, a dish, or your own upload). You get a PDF in your venue's colours and with your logo, with prices, descriptions, allergens as numbers with a legend, and on the back your address, opening hours and a QR code to your online menu. The pages are already in the right order to print double-sided and fold. Your choices are remembered."
+        },
+        "horeca_orders_sidebar": {
+          "title": "Orders in your hospitality menu only when you receive online orders",
+          "description": "With a hospitality plan without a web shop, Orders now only appears in your menu when online ordering with pickup or delivery is on, or when you already have orders. What guests order with the QR code at the table goes to the table bill in the till, not to Orders. Turn on pickup or delivery later and Orders appears by itself. The page always stays reachable through the search bar in My venue or with ⌘K / Ctrl+K."
         }
       },
       "copyLink": "Copy link",

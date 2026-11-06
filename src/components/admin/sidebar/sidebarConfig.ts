@@ -365,15 +365,19 @@ const HORECA_GROUP_IDS = ['pos', 'ordering', 'kitchen', 'horeca-menu'];
 
 /**
  * HORECA-ZIJBALK-1 — de groepen zoals de zijbalk ze toont voor een zaak met deze sporen.
- * - Horeca als enige spoor: de korte horeca-lijst (HORECA_ONLY_LAYOUT).
+ * - Horeca als enige spoor: de korte horeca-lijst (HORECA_ONLY_LAYOUT); met `hideOrders` zonder Bestellingen
+ *   (useHorecaOrdersNav: online bestellen uit en nog geen bestellingen).
  * - Horeca met webshop of events: de gewone groepen, met de horeca-items in een eigen groep "Horeca".
  * - Anders: `sidebarGroups` ongewijzigd.
  * Zichtbaarheid (spoor, rol, abonnement) blijft per item gelden; dit bepaalt enkel volgorde en groep.
  */
-export function sidebarLayout(has: (t: Track) => boolean): NavGroup[] {
+export function sidebarLayout(has: (t: Track) => boolean, opts: { hideOrders?: boolean } = {}): NavGroup[] {
   if (!has('horeca')) return sidebarGroups;
   if (!has('webshop') && !has('events')) {
-    return HORECA_ONLY_LAYOUT.map((g) => ({ id: g.id, titleKey: g.titleKey, items: horecaOnlyItemsFor(g.ids) }));
+    // ZIJBALK-BESTELLINGEN-1: zonder online afhalen/leveren (en zonder bestaande bestellingen) geen
+    // Bestellingen; tafel-QR gaat naar de tafelrekening. De pagina blijft bereikbaar (route, zoeken).
+    const skip = opts.hideOrders ? ['orders'] : [];
+    return HORECA_ONLY_LAYOUT.map((g) => ({ id: g.id, titleKey: g.titleKey, items: horecaOnlyItemsFor(g.ids.filter((id) => !skip.includes(id))) }));
   }
   const out: NavGroup[] = [];
   for (const group of sidebarGroups) {

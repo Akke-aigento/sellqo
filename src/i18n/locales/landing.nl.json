@@ -2577,6 +2577,10 @@
         "menu_card_print": {
           "title": "Je menukaart afdrukken als boekje of A4-kaart",
           "description": "Op de Kaart staat een knop Afdrukken. Je kiest uit drie sjablonen: een A5-boekje (A4 liggend, dubbelgevouwen), losse A4-pagina's voor een menumap, of het boekje met een foto op de kaft (uit je mediabibliotheek, van een gerecht of zelf geüpload). Je krijgt een PDF in de kleuren en met het logo van je zaak, met prijzen, omschrijvingen, allergenen als nummers met legende en achteraan je adres, openingsuren en een QR-code naar je online kaart. De pagina's staan al in de juiste volgorde om dubbelzijdig af te drukken en te vouwen. Je keuzes worden onthouden."
+        },
+        "horeca_orders_sidebar": {
+          "title": "Bestellingen in je horeca-menu enkel als je online bestellingen krijgt",
+          "description": "Heb je een horecapakket zonder webshop, dan staat Bestellingen enkel nog in je menu als online bestellen met afhalen of leveren aan staat, of als je al bestellingen hebt. Wat gasten met de QR-code aan tafel bestellen, komt op de tafelrekening in de kassa en niet bij Bestellingen. Zet je afhalen of leveren later aan, dan verschijnt Bestellingen vanzelf. De pagina blijft altijd bereikbaar via de zoekbalk in Mijn zaak of met ⌘K / Ctrl+K."
         }
       },
       "copyLink": "Kopieer link",

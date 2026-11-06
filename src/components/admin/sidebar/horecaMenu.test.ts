@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import type { Track } from '@/lib/tracks';
 import { bottomNavUrl, sidebarLabelKey } from './bottomNav';
 import { findNavItems, findTrackRule, inSidebar, moreNavItems, sidebarGroups, sidebarLayout, visibleNavIds } from './sidebarConfig';
+import { onlineOrdersOn, showOrdersInHorecaSidebar } from '@/lib/horeca/onlineOrders';
 
 const KERN = ['dashboard', 'settings', 'help', 'billing'];
 const more = (tracks: Track[]) => moreNavItems((t) => tracks.includes(t)).map((i) => i.id);
@@ -109,5 +110,46 @@ describe('menu per spoor', () => {
     const c = { horeca: true, webshop: false, events: false };
     expect(bottomNavUrl({ id: 'pos', url: '/admin/pos' }, c)).toBe('/kassa');
     expect(bottomNavUrl({ id: 'pos', url: '/admin/pos' }, { ...c, webshop: true })).toBe('/admin/pos');
+  });
+  // ZIJBALK-BESTELLINGEN-1 (Akke, 6 nov): Bestellingen in de horeca-only-zijbalk enkel met online afhalen/leveren
+  // (of als er al bestellingen zijn). Tafel-QR gaat naar de tafelrekening, niet naar orders.
+  it('horeca-only zonder online bestellen: geen Bestellingen in Dagelijks; de rest ongewijzigd', () => {
+    const only = (t: Track) => t === 'horeca';
+    const ids = (hideOrders?: boolean) => sidebarLayout(only, hideOrders === undefined ? undefined : { hideOrders }).map((g) => g.items.map((i) => i.id));
+    expect(ids(true)).toEqual([
+      ['dashboard', 'pos', 'ordering', 'kitchen', 'reservations'],
+      ['horeca-menu', 'staff', 'storefront', 'reports', 'purchasing'],
+      ['settings', 'help'],
+    ]);
+    expect(ids(false)[0]).toContain('orders');
+    expect(ids()[0]).toContain('orders');
+    // De route blijft gewoon een menu-item (TrackGate, actieve markering): enkel de zijbalk laat hem weg.
+    expect(findTrackRule('/admin/orders')?.item.id).toBe('orders');
+  });
+
+  it('gemengde zaken en webshop: Bestellingen altijd, ook met hideOrders', () => {
+    for (const tracks of [['horeca', 'webshop'], ['horeca', 'events'], ['webshop'], ['events']] as Track[][]) {
+      const groups = sidebarLayout((t) => tracks.includes(t), { hideOrders: true });
+      expect(groups.flatMap((g) => g.items.map((i) => i.id)), tracks.join('+')).toContain('orders');
+    }
+  });
+
+  it('online bestellen: zelfde regels als ordering_state.online van de storefront-api', () => {
+    const base = { customFrontend: false, shopLive: true, shopOrdering: true, methods: ['pickup'] };
+    expect(onlineOrdersOn(base)).toBe(true);
+    expect(onlineOrdersOn({ ...base, methods: ['local_delivery'] })).toBe(true);
+    expect(onlineOrdersOn({ ...base, methods: [] })).toBe(false);
+    expect(onlineOrdersOn({ ...base, shopLive: false })).toBe(false);
+    expect(onlineOrdersOn({ ...base, shopOrdering: false })).toBe(false);
+    // Geen tenant_theme_settings-rij: geen beperking (zoals de storefront-api); eigen frontend negeert de schakelaars.
+    expect(onlineOrdersOn({ ...base, shopLive: null, shopOrdering: null })).toBe(true);
+    expect(onlineOrdersOn({ ...base, customFrontend: true, shopLive: false, shopOrdering: false })).toBe(true);
+  });
+
+  it('bestaande bestellingen houden Bestellingen in beeld, ook als online bestellen uit staat', () => {
+    const off = { shopLive: true, shopOrdering: false, methods: ['pickup'] };
+    expect(showOrdersInHorecaSidebar({ ...off, hasOrders: false })).toBe(false);
+    expect(showOrdersInHorecaSidebar({ ...off, hasOrders: true })).toBe(true);
+    expect(showOrdersInHorecaSidebar({ shopLive: true, shopOrdering: true, methods: ['pickup'], hasOrders: false })).toBe(true);
   });
 });

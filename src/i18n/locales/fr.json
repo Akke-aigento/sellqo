@@ -12809,7 +12809,8 @@
       "nu_dagschotel": "plat du jour, suggestion du jour, suggestion, menu du jour, aujourd’hui à la carte",
       "nu_uitverkocht": "épuisé, rupture, plus disponible, sold out, épuisé aujourd’hui",
       "nu_keuken": "pause cuisine, pause, trop de monde, rush, arrêter les commandes en ligne, cuisine fermée",
-      "nu_dicht": "fermé aujourd’hui, fermeture exceptionnelle, malade, jour fermé"
+      "nu_dicht": "fermé aujourd’hui, fermeture exceptionnelle, malade, jour fermé",
+      "bestellingen_lijst": "commandes, commandes en ligne, liste des commandes, commandes boutique"
     }
   }
 }

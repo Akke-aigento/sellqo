@@ -14,6 +14,7 @@ import { allNavGroups, sidebarLayout, platformGroup, getAllMenuItems, inSidebar,
 import { isHorecaOnly } from '@/lib/tracks';
 import { mijnZaakUrl } from '@/lib/mijnZaak';
 import { useNavItemVisibility } from './sidebar/useNavItemVisibility';
+import { useHorecaOrdersNav } from './sidebar/useHorecaOrdersNav';
 import { bottomNavUrl, sidebarLabelKey } from './sidebar/bottomNav';
 import { useTracks } from '@/hooks/useBusinessModules';
 import { InboxBadge } from './sidebar/InboxBadge';
@@ -75,7 +76,9 @@ export function AdminSidebar() {
   const sidebarHref = (item: NavItem) => bottomNavUrl(item, navCtx);
   // HORECA-ZIJBALK-1: "Vandaag" en "Kassa-app" bij horeca; volgorde en groepen per spoor.
   const label = (item: NavItem) => t(sidebarLabelKey(item, navCtx));
-  const groups = sidebarLayout(hasTrack);
+  // ZIJBALK-BESTELLINGEN-1: horeca-only zonder online afhalen/leveren → geen Bestellingen.
+  const { hideOrders } = useHorecaOrdersNav();
+  const groups = sidebarLayout(hasTrack, { hideOrders });
   const horecaOnly = isHorecaOnly(hasTrack);
   // TRACKS-3: een item kan bereikbaar zijn maar niet in de zijbalk staan (Instellingen › Meer onderdelen).
   const hideInSidebar = (item: NavItem) => shouldHideItem(item) || !inSidebar(item, hasTrack);

@@ -76,6 +76,8 @@ describe('zoeken (nl)', () => {
     ['logo', 'zaak.merk'], ['kleur', 'zaak.merk'],
     ['dagschotel', 'nu.dagschotel'], ['uitverkocht', 'nu.uitverkocht'], ['keuken pauzeren', 'nu.keuken'],
     ['vandaag dicht', 'nu.dicht'], ['terras dicht', 'nu.zone'],
+    // ZIJBALK-BESTELLINGEN-1: Bestellingen blijft vindbaar als hij niet in de zijbalk staat.
+    ['bestellingen', 'bestellingen.lijst'], ['orders', 'bestellingen.lijst'],
   ])('"%s" → %s', (q, id) => {
     expect(first(q)).toBe(id);
   });

@@ -42,4 +42,12 @@ describe('onderbalk', () => {
     expect(bottomNavLabelKey({ id: 'settings', titleKey: 'navigation.settings' }, mixed)).toBe('navigation.settings');
     expect(defaultBottomNavIds(horecaOnly)).toEqual(['dashboard', 'pos', 'kitchen', 'horeca-menu']);
   });
+  // ZIJBALK-BESTELLINGEN-1: de horeca-only-standaard had al geen Bestellingen (Vandaag · Kassa · Keuken · Kaart),
+  // dus de zijbalkregel verandert de balk niet; gemengde zaken houden Bestellingen.
+  it('Bestellingen: niet in de horeca-only-standaard, wel bij gemengd en webshop', () => {
+    expect(defaultBottomNavIds(horecaOnly)).not.toContain('orders');
+    expect(defaultBottomNavIds(mixed)).toContain('orders');
+    expect(defaultBottomNavIds({ horeca: true, webshop: false, events: true })).toContain('orders');
+    expect(defaultBottomNavIds(shop)).toContain('orders');
+  });
 });

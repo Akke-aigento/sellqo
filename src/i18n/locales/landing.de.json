@@ -2577,6 +2577,10 @@
         "menu_card_print": {
           "title": "Drucke deine Speisekarte als Heft oder A4-Karte",
           "description": "Auf der Karte gibt es jetzt einen Button Drucken. Du wählst aus drei Vorlagen: ein A5-Heft (A4 quer, gefaltet), einzelne A4-Seiten für eine Menümappe oder das Heft mit einem Foto auf dem Umschlag (aus deiner Mediathek, von einem Gericht oder selbst hochgeladen). Du bekommst ein PDF in den Farben und mit dem Logo deines Betriebs, mit Preisen, Beschreibungen, Allergenen als Nummern mit Legende und auf der Rückseite deiner Adresse, deinen Öffnungszeiten und einem QR-Code zu deiner Online-Karte. Die Seiten stehen schon in der richtigen Reihenfolge, um beidseitig zu drucken und zu falten. Deine Auswahl wird gespeichert."
+        },
+        "horeca_orders_sidebar": {
+          "title": "Bestellungen im Gastro-Menü nur, wenn du Online-Bestellungen bekommst",
+          "description": "Mit einem Gastro-Paket ohne Webshop steht Bestellungen nur noch in deinem Menü, wenn Online-Bestellen mit Abholung oder Lieferung aktiv ist oder du schon Bestellungen hast. Was Gäste mit dem QR-Code am Tisch bestellen, landet auf der Tischrechnung in der Kasse, nicht unter Bestellungen. Schaltest du Abholung oder Lieferung später ein, erscheint Bestellungen von selbst. Die Seite bleibt immer über die Suchleiste in Mein Betrieb oder mit ⌘K / Strg+K erreichbar."
         }
       },
       "copyLink": "Link kopieren",

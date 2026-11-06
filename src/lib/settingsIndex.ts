@@ -44,6 +44,9 @@ function buildIndex(): SettingsEntry[] {
     { id: 'reservaties.lijst', labelKey: 'reservations.title', groupKey: 'navigation.groups.daily', path: RESERVATIONS_PATH, synKey: syn('reservaties.lijst'), rule: { requiredRead: 'orders' } },
     { id: 'kaart.extras', labelKey: 'admin.orderingHub.tab_extras', groupKey: 'admin.orderingHub.tab_menu', path: `${KAART_PATH}?tab=extras`, synKey: syn('kaart.extras'), rule: { requiredRead: 'orders' } },
     { id: 'kaart.allergens', labelKey: 'admin.orderingHub.tab_allergens', groupKey: 'admin.orderingHub.tab_menu', path: `${KAART_PATH}?tab=allergens`, synKey: syn('kaart.allergens'), rule: { requiredRead: 'orders' } },
+    // ZIJBALK-BESTELLINGEN-1: zonder online afhalen/leveren staat Bestellingen niet in de zijbalk; de pagina
+    // blijft vindbaar via het zoeken.
+    { id: 'bestellingen.lijst', labelKey: 'navigation.orders', groupKey: 'navigation.groups.daily', path: '/admin/orders', synKey: syn('bestellingen.lijst'), rule: { requiredRead: 'orders' } },
   );
   // HORECA-NU-1 (samenvoeging met HORECA-INSTELLINGEN-1): de schakelaars voor tijdens de dienst wonen in het
   // Nu-paneel bovenaan Vandaag (/admin), niet in Mijn zaak. Rechten zoals de tegels (NowPanel.tsx): zones voor

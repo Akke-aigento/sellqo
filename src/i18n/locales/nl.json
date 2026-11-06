@@ -12811,7 +12811,8 @@
       "nu_dagschotel": "dagschotel, dagsuggestie, suggestie, dagmenu, plat du jour, vandaag op de kaart",
       "nu_uitverkocht": "uitverkocht, op, niet meer, sold out, vandaag op, schrappen",
       "nu_keuken": "keuken pauze, pauzeren, te druk, rush, online bestellingen stoppen, keuken dicht",
-      "nu_dicht": "vandaag dicht, vandaag gesloten, uitzonderlijk dicht, ziek, dag dicht"
+      "nu_dicht": "vandaag dicht, vandaag gesloten, uitzonderlijk dicht, ziek, dag dicht",
+      "bestellingen_lijst": "bestellingen, orders, online bestellingen, bestellijst, webshopbestellingen"
     }
   }
 }

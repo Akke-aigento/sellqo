@@ -4,6 +4,11 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.15l — Bestellingen in je horeca-menu enkel als je online bestellingen krijgt (improvement, 06-11-2026)
+Heb je een horecapakket zonder webshop, dan staat Bestellingen enkel nog in je menu als online bestellen met afhalen of leveren aan staat, of als je al bestellingen hebt. Wat gasten met de QR-code aan tafel bestellen, komt op de tafelrekening in de kassa. De pagina vind je altijd terug via de zoekbalk in Mijn zaak.
+Geldt voor: Horeca Small en Horeca Big zonder webshop- of eventspakket.
+i18n: `public.changelog.changes.horeca_orders_sidebar`
+
 ### 2026.15k — Je menukaart afdrukken als boekje of A4-kaart (feature, 06-11-2026)
 Op de Kaart staat een knop Afdrukken. Kies een A5-boekje, losse A4-pagina's voor een menumap of een boekje met een foto op de kaft, en je krijgt een PDF in de stijl van je zaak, met allergenen, je openingsuren en een QR-code naar je online kaart. De pagina's staan al in de juiste volgorde om te vouwen.
 Beschikbaar vanaf: Horeca Small en Horeca Big.

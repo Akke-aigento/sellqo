@@ -1,3 +1,42 @@
+## ZIJBALK-BESTELLINGEN-1 — Bestellingen in de horeca-zijbalk enkel met online afhalen/leveren — 6 november 2026
+
+Beslissing van Akke: in de horeca-only-zijbalk staat Bestellingen (`/admin/orders`) enkel nog als de zaak online afhalen of leveren aan heeft, of al bestellingen heeft. Branch `zijbalk-bestellingen-1` vanaf origin/main 7c89c25. Changelog 2026.15l. Nog niets live, niet gepusht.
+
+**Root cause** `HORECA_ONLY_LAYOUT` (`src/components/admin/sidebar/sidebarConfig.ts`, groep `daily`) zette `orders` vast in de zijbalk van elke horecazaak. Tafel-QR-bestellingen gaan naar de tafelrekening (Zaal/Keuken), niet naar `orders`; live hebben de vier horeca-only-zaken 0 orders (nagetrokken 6-11, read-only). Voor een zaak zonder online bestellen was het item een lege lijst.
+
+**Bron van de schakelaar** Dezelfde rijen en regels als storefront-api: `loadOrderingState` (`supabase/functions/storefront-api/index.ts:923-955`) → `computeOrderingState` (`supabase/functions/_shared/orderingState.ts`, online-blok r. 163-167): `tenant_theme_settings.shop_live` = false → dicht, `shop_ordering` = false → dicht, geen actieve `shipping_methods`-rij → dicht (eigen frontend negeert shop_live/shop_ordering; geen rij = geen beperking). Afhaal- en levermethodes zelf = `shipping_methods.fulfillment_type in ('pickup','local_delivery')`, beheerd in Mijn zaak › Je gasten › Afhalen & leveren (`FulfillmentSettings.tsx`). Bewust niet overgenomen: wat met het uur verandert (vandaag dicht, keukenpauze, buiten de uren, tijdsloten zonder uren); een menu-item dat tijdens een pauze verdwijnt helpt niemand.
+
+**Uitgevoerd**
+- `src/lib/horeca/onlineOrders.ts` (nieuw, puur): `onlineOrdersOn` (spiegel van het statische deel van `ordering_state.online`) en `showOrdersInHorecaSidebar` (= online aan of er bestaan al bestellingen).
+- `src/components/admin/sidebar/useHorecaOrdersNav.ts` (nieuw): enkel voor horeca-only; leest `tenant_theme_settings` + actieve `shipping_methods`; staat online uit, dan één `orders`-id (`limit(1)`, geen telling). react-query `['horeca-orders-nav', tenantId]`, staleTime 5 min. Onbekend (laden, leesfout) = item blijft staan.
+- `sidebarConfig.ts`: `sidebarLayout(has, { hideOrders })` laat `orders` weg uit `HORECA_ONLY_LAYOUT`; gemengde zaken en webshop/events negeren de optie. `findTrackRule`/TrackGate en de route blijven ongewijzigd.
+- `AdminSidebar.tsx`: gebruikt de hook.
+- `useShopOpen.ts` (Online bestellen aan/uit, Nu-paneel en Website) en `FulfillmentSettings.tsx` (methodes): invalideren de nieuwe query, zodat de zijbalk meteen volgt.
+- `src/lib/settingsIndex.ts`: zoekitem `bestellingen.lijst` → `/admin/orders` (recht `orders`), synoniemen `settingsSearch.syn.bestellingen_lijst` in alle talen: zonder zijbalk-item vindbaar via de zoekbalk van Mijn zaak en ⌘K.
+- Onderbalk: geen wijziging nodig. De horeca-only-standaard (`bottomNav.ts:22`) was al Vandaag · Kassa · Keuken · Kaart zonder Bestellingen; regel 23 is de gemengde zaak (horeca + webshop/events), die volgens de beslissing ongewijzigd blijft. Een zelf gekozen onderbalk met Bestellingen blijft gerespecteerd.
+- Changelog 2026.15l `horeca_orders_sidebar` (improvement) in alle talen van `SUPPORTED_LANGUAGES`.
+- Migratie `20261106140000_zijbalk_bestellingen_1_docs.sql`: helpartikel `horeca-werkplek` (beschreef Bestellingen als "alle bestellingen, van de kassa, de QR-code aan tafel en online"). Snapshot + idempotente replace. NIET gedraaid.
+- Harnas-scenario `scripts/harness/scenarios/zijbalk-bestellingen` (zijbalk + onderbalk, `?online=on|off|orders`, gemengde zaak als bewijs).
+- Tests: `horecaMenu.test.ts` (+4), `bottomNav.test.ts` (+1), `settingsIndex.test.ts` (zoeken "bestellingen"/"orders").
+
+**Security-keuzes** n.v.t.: enkel lezen met de bestaande RLS van `tenant_theme_settings`, `shipping_methods` en `orders`. Een rol zonder leesrecht op orders ziet het item toch al niet (`requireRead: 'orders'`); een leesfout houdt het item zichtbaar (status quo). Geen tabellen, policies, functies of grants geraakt.
+
+**Gedeelde-paden-waarschuwing** Geen gedeeld pad geraakt: geen wijziging aan storefront-api, storefront-customer-api, storefront-resolve, `_shared/orderingState.ts` of gedeelde tabellen. De regel is client-side nagebouwd; verandert `computeOrderingState.online` ooit (bv. een nieuwe statische reden), dan moet `onlineOrders.ts` mee. `src/kassa` niet aangeraakt.
+
+**Plan-scope** Geen nieuwe functie of feature-sleutel: enkel zichtbaarheid van een bestaand menu-item.
+
+**Verificatie**
+- vitest `horecaMenu.test.ts`, `bottomNav.test.ts`, `settingsIndex.test.ts`, `tracks.test.ts`: 71/71 groen.
+- `npx tsc --noEmit -p tsconfig.app.json` exit 0; `npm run build` ok; eslint op de gewijzigde bestanden 0 fouten, gelijk aan de baseline (HEAD) 0.
+- `i18n-parity.mjs` volledige pariteit (5 talen), `check-i18n-used-keys.mjs` groen.
+- Harnas 390/1280: online aan → Bestellingen staat er; online uit zonder orders → weg (queries: tenant_theme_settings, shipping_methods, orders); uit met een oude bestelling → staat er; gemengde zaak → staat er, zonder één extra query. Onderbalk 390 horeca-only: Vandaag · Kassa · Keuken · Kaart.
+
+**Bewust ongemoeid / Vervolg**
+- Live staan alle drie de echte horeca-only-zaken (Bistro Mirabelle, Café De Wissel, Pizzeria Fiamma) op online + afhalen: voor hen verandert er niets. Test Starter + Horeca (geen theme-rij, geen methodes) verliest het item.
+- Tijdens het laden blijft het item staan (één flits weg bij een zaak zonder online bestellen); een cache zoals `sq_last_tracks` kan dat later wegwerken.
+- Tijdsloten aan zonder uren maken afhalen in de storefront onbruikbaar (`usable`); de zijbalk telt de methode wel mee. Bewust: configuratie die dat oplost, hoort het item niet te doen verdwijnen.
+- Uitrol: push → publish sellqo.app → daarna de docs-migratie draaien, md5 natrekken.
+
 ## MENUKAART-PRINT-1 — papieren menukaart afdrukken vanuit de Kaart (boekje A5, A4-kaart, fotokaft) — 6 november 2026
 
 Vraag van Akke: Belgaleiro werkt ook nog met een papieren kaart. Een afdrukknop op de Kaart, drie sjablonen (A4 liggend gevouwen tot A5-boekje, gewone A4-kaart, kaft met een gekozen of geüploade foto), en de keuze onthouden. Branch `menukaart-print-1` vanaf bb46985. Changelog 2026.15k (2026.15j is voor TAFEL-SESSIE-1). Nog niets live.

@@ -8,6 +8,7 @@ import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from '@/hooks/useTenant';
+import { horecaOrdersNavKey } from '@/components/admin/sidebar/useHorecaOrdersNav';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -229,6 +230,8 @@ export function FulfillmentSettings() {
       toast.success(t('admin.storefront.food.fulfillment_saved'));
       await qc.invalidateQueries({ queryKey: ['fulfillment', tenantId] });
       await qc.invalidateQueries({ queryKey: ['shipping-methods'] });
+      // ZIJBALK-BESTELLINGEN-1 — afhaal-/levermethodes bepalen of Bestellingen in de horeca-zijbalk staat.
+      await qc.invalidateQueries({ queryKey: horecaOrdersNavKey(tenantId) });
     } catch (e) {
       toast.error(t('admin.storefront.food.save_failed_reason', { reason: e instanceof Error ? e.message : t('admin.storefront.food.unknown_error') }));
     } finally {

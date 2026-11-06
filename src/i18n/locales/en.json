@@ -12809,7 +12809,8 @@
       "nu_dagschotel": "dish of the day, daily special, special, menu of the day, today on the menu",
       "nu_uitverkocht": "sold out, out of stock, gone, 86, none left today",
       "nu_keuken": "kitchen pause, pause, too busy, rush, stop online orders, kitchen closed",
-      "nu_dicht": "closed today, shut today, exceptionally closed, sick, day off"
+      "nu_dicht": "closed today, shut today, exceptionally closed, sick, day off",
+      "bestellingen_lijst": "orders, online orders, order list, web shop orders"
     }
   }
 }

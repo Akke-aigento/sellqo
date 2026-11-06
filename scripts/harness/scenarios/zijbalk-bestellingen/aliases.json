@@ -1,0 +1,18 @@
+{
+  "@/integrations/supabase/client": "mocks/supabase.ts",
+  "@/hooks/useTenant": "../mijn-zaak/mocks/tenant.ts",
+  "/^\\./useTenant$/": "../mijn-zaak/mocks/tenant.ts",
+  "@/hooks/useBusinessModules": "../mijn-zaak/mocks/tracks.ts",
+  "@/hooks/useAuth": "../mijn-zaak/mocks/auth.ts",
+  "/^\\./useAuth$/": "../mijn-zaak/mocks/auth.ts",
+  "@/hooks/useSidebarPreferences": "../mijn-zaak/mocks/sidebarHooks.ts",
+  "@/hooks/useTenantPageOverrides": "../mijn-zaak/mocks/sidebarHooks.ts",
+  "@/hooks/usePlatformViewMode": "../mijn-zaak/mocks/sidebarHooks.ts",
+  "@/hooks/useTenantSubscription": "../mijn-zaak/mocks/subscription.ts",
+  "/^\\./SidebarCustomizeDialog$/": "../mijn-zaak/mocks/sidebarHooks.ts",
+  "/^\\./sidebar/InboxBadge$/": "../mijn-zaak/mocks/sidebarHooks.ts",
+  "/^\\./sidebar/AdsAiBadge$/": "../mijn-zaak/mocks/sidebarHooks.ts",
+  "/^\\./sidebar/useNavItemVisibility$/": "../mijn-zaak/mocks/visibility.ts",
+  "@/components/admin/sidebar/useNavItemVisibility": "../mijn-zaak/mocks/visibility.ts",
+  "@/hooks/useUnreadMessagesCount": "../onderbalk/mocks/unread.ts"
+}

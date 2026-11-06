@@ -12809,7 +12809,8 @@
       "nu_dagschotel": "Tagesgericht, Tagesempfehlung, Empfehlung, Tagesmenü, heute auf der Karte",
       "nu_uitverkocht": "ausverkauft, aus, nicht mehr da, sold out, heute aus",
       "nu_keuken": "Küche pausieren, Pause, zu viel los, Ansturm, Online-Bestellungen stoppen, Küche zu",
-      "nu_dicht": "heute zu, heute geschlossen, ausnahmsweise geschlossen, krank, Ruhetag heute"
+      "nu_dicht": "heute zu, heute geschlossen, ausnahmsweise geschlossen, krank, Ruhetag heute",
+      "bestellingen_lijst": "Bestellungen, Online-Bestellungen, Bestellliste, Webshop-Bestellungen"
     }
   }
 }

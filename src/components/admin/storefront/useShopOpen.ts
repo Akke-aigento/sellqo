@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from '@/hooks/useTenant';
+import { horecaOrdersNavKey } from '@/components/admin/sidebar/useHorecaOrdersNav';
 
 export interface ShopOpenState { shop_live: boolean; shop_ordering: boolean; products: number; legal: number; payments: boolean }
 export type ShopOpenPatch = Partial<Pick<ShopOpenState, 'shop_live' | 'shop_ordering'>>;
@@ -63,6 +64,8 @@ export function useShopOpen() {
     await qc.invalidateQueries({ queryKey: ['qr-mode', tenantId] });
     // HORECA-NU-1 — de pauzeknop hangt af van online bestellen.
     await qc.invalidateQueries({ queryKey: ['kitchen-pause', tenantId] });
+    // ZIJBALK-BESTELLINGEN-1 — Bestellingen in de horeca-zijbalk hangt af van online bestellen.
+    await qc.invalidateQueries({ queryKey: horecaOrdersNavKey(tenantId) });
     return { ok: true };
   };
 
