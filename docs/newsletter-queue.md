@@ -4,6 +4,11 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.15k — Je menukaart afdrukken als boekje of A4-kaart (feature, 06-11-2026)
+Op de Kaart staat een knop Afdrukken. Kies een A5-boekje, losse A4-pagina's voor een menumap of een boekje met een foto op de kaft, en je krijgt een PDF in de stijl van je zaak, met allergenen, je openingsuren en een QR-code naar je online kaart. De pagina's staan al in de juiste volgorde om te vouwen.
+Beschikbaar vanaf: Horeca Small en Horeca Big.
+i18n: `public.changelog.changes.menu_card_print`
+
 ### 2026.15i — QR-codes en allergenenkaart afdrukken werkt overal (bugfix, 06-11-2026)
 De QR-codes voor je menukaart (affiche, tafelkaartjes en stickers) en je allergenenkaart download je nu als PDF. Dat werkt ook op je gsm en in de app.
 i18n: `public.changelog.changes.qr_print_pdf`

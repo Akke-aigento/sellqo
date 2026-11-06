@@ -9692,6 +9692,68 @@
         "none": "geen allergenen",
         "missing": "allergenen niet ingevuld",
         "banner": "Bij {{count}} product(en) op je kaart zijn de allergenen nog niet ingevuld. Bekijk welke."
+      },
+      "print": {
+        "button": "Afdrukken",
+        "title": "Menukaart afdrukken",
+        "desc": "Een papieren kaart met je gerechten, prijzen en allergenen, in de kleuren en met het logo van je zaak. Je keuzes worden onthouden.",
+        "template_label": "Sjabloon",
+        "tpl": {
+          "booklet_a5": {
+            "title": "Boekje A5",
+            "text": "A4 liggend, dubbelgevouwen tot een boekje"
+          },
+          "a4": {
+            "title": "A4-kaart",
+            "text": "Losse A4-pagina's staand, voor een menumap"
+          },
+          "photo_cover": {
+            "title": "Fotokaft",
+            "text": "Het A5-boekje met een grote foto op de kaft"
+          }
+        },
+        "cover_label": "Foto op de kaft",
+        "cover_pick": "Kies of upload een foto",
+        "cover_none": "Nog geen foto gekozen. Zonder foto krijgt de kaart een kaft met je logo.",
+        "cover_from_menu": "Of neem een foto van een gerecht:",
+        "cover_use_photo": "Deze foto op de kaft",
+        "opt": {
+          "descriptions": "Omschrijvingen",
+          "allergens": "Allergenen (nummers met legende)",
+          "info": "Adres en openingsuren achteraan",
+          "qr": "QR-code naar je online kaart achteraan"
+        },
+        "subtitle_label": "Ondertitel op de kaft (mag leeg)",
+        "subtitle_placeholder": "bv. Keuken van het huis sinds 1998",
+        "language_label": "Taal van de kaart",
+        "language_hint": "Voor de vaste teksten zoals \"Allergenen\" en \"Openingsuren\". Je gerechten staan erop zoals je ze invulde.",
+        "summary": "{{categories}} categorieën, {{count}} gerechten op de kaart",
+        "empty": "Er staat nog niets op je kaart. Producten die \"Op de kaart\" staan, komen op de papieren kaart.",
+        "hint_booklet": "Druk dubbelzijdig af op A4, omslaan langs de korte kant, op ware grootte (100 %). Leg de vellen in volgorde op elkaar en vouw ze samen dubbel.",
+        "hint_a4": "Druk dubbelzijdig af op A4, omslaan langs de lange kant, op ware grootte (100 %).",
+        "download": "PDF downloaden",
+        "download_pages": "Losse pagina's (drukkerij of scherm)",
+        "done": "PDF klaar: {{pages}} pagina's, {{sheets}} vel(len) papier.",
+        "failed": "PDF maken mislukt: {{reason}}",
+        "warn_logo": "Je logo kon niet geladen worden; de naam van je zaak staat er in de plaats.",
+        "warn_cover": "De kaftfoto kon niet geladen worden, dus de kaft is zonder foto. Kies een andere foto (jpg, png of webp).",
+        "pdf": {
+          "cover_title": "Menu",
+          "continued": "vervolg",
+          "allergens_title": "Allergenen",
+          "hours_title": "Openingsuren",
+          "qr_caption": "Scan voor de online kaart",
+          "price_note": "Prijzen in euro, inclusief btw.",
+          "other": "Overige",
+          "closed": "gesloten",
+          "diet": {
+            "vegetarian": "V",
+            "vegan": "VG",
+            "spicy": "P",
+            "halal": "H",
+            "gluten_free": "GV"
+          }
+        }
       }
     },
     "horecaPay": {

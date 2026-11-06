@@ -2569,6 +2569,10 @@
         "qr_print_pdf": {
           "title": "QR-codes en allergenenkaart afdrukken werkt overal",
           "description": "De QR-codes voor je menukaart (affiche, tafelkaartjes en stickers) en je allergenenkaart download je nu als PDF. Dat werkt ook op je gsm en in de app; open de PDF en druk af."
+        },
+        "menu_card_print": {
+          "title": "Je menukaart afdrukken als boekje of A4-kaart",
+          "description": "Op de Kaart staat een knop Afdrukken. Je kiest uit drie sjablonen: een A5-boekje (A4 liggend, dubbelgevouwen), losse A4-pagina's voor een menumap, of het boekje met een foto op de kaft (uit je mediabibliotheek, van een gerecht of zelf geüpload). Je krijgt een PDF in de kleuren en met het logo van je zaak, met prijzen, omschrijvingen, allergenen als nummers met legende en achteraan je adres, openingsuren en een QR-code naar je online kaart. De pagina's staan al in de juiste volgorde om dubbelzijdig af te drukken en te vouwen. Je keuzes worden onthouden."
         }
       },
       "copyLink": "Kopieer link",

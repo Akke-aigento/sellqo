@@ -2569,6 +2569,10 @@
         "qr_print_pdf": {
           "title": "Printing QR codes and the allergen chart works everywhere",
           "description": "You now download the QR codes for your menu (poster, table cards and stickers) and your allergen chart as a PDF. That also works on your phone and in the app; open the PDF and print."
+        },
+        "menu_card_print": {
+          "title": "Print your menu as a booklet or A4 menu",
+          "description": "The Menu now has a Print button. Choose from three templates: an A5 booklet (A4 landscape, folded), separate A4 pages for a menu folder, or the booklet with a photo on the cover (from your media library, a dish, or your own upload). You get a PDF in your venue's colours and with your logo, with prices, descriptions, allergens as numbers with a legend, and on the back your address, opening hours and a QR code to your online menu. The pages are already in the right order to print double-sided and fold. Your choices are remembered."
         }
       },
       "copyLink": "Copy link",

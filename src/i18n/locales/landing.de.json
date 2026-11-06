@@ -2569,6 +2569,10 @@
         "qr_print_pdf": {
           "title": "QR-Codes und Allergenkarte drucken funktioniert überall",
           "description": "Die QR-Codes für deine Speisekarte (Plakat, Tischkarten und Sticker) und deine Allergenkarte lädst du jetzt als PDF herunter. Das funktioniert auch auf dem Handy und in der App; öffne das PDF und drucke es."
+        },
+        "menu_card_print": {
+          "title": "Drucke deine Speisekarte als Heft oder A4-Karte",
+          "description": "Auf der Karte gibt es jetzt einen Button Drucken. Du wählst aus drei Vorlagen: ein A5-Heft (A4 quer, gefaltet), einzelne A4-Seiten für eine Menümappe oder das Heft mit einem Foto auf dem Umschlag (aus deiner Mediathek, von einem Gericht oder selbst hochgeladen). Du bekommst ein PDF in den Farben und mit dem Logo deines Betriebs, mit Preisen, Beschreibungen, Allergenen als Nummern mit Legende und auf der Rückseite deiner Adresse, deinen Öffnungszeiten und einem QR-Code zu deiner Online-Karte. Die Seiten stehen schon in der richtigen Reihenfolge, um beidseitig zu drucken und zu falten. Deine Auswahl wird gespeichert."
         }
       },
       "copyLink": "Link kopieren",

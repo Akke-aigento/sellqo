@@ -7,7 +7,7 @@ import { Link } from 'react-router-dom';
 import { allergenState } from '@/components/admin/storefront/food/allergenState';
 import { supabase } from '@/integrations/supabase/client';
 import { useTranslation } from 'react-i18next';
-import { ArrowUpDown, Calculator, Camera, Check, ChevronDown, ChevronRight, ClipboardPaste, FolderPlus, GripVertical, Loader2, Plus, Search, Settings2, Sparkles, TriangleAlert, X } from 'lucide-react';
+import { ArrowUpDown, Calculator, Camera, Check, ChevronDown, ChevronRight, ClipboardPaste, FolderPlus, GripVertical, Loader2, Plus, Printer, Search, Settings2, Sparkles, TriangleAlert, X } from 'lucide-react';
 import { DndContext, KeyboardSensor, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, arrayMove, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -26,6 +26,7 @@ import { KaartImportDialog, type ImportSource, type PreviewRow } from './KaartIm
 import { KaartPhotoButton } from './KaartPhotoButton';
 import { onAllergenChart, kaartErrorKey, kaartKey, useKaart, useKaartMutations, useKaartVat, type BulkChange, type KaartCategory, type KaartProduct } from './useKaart';
 import { KaartProductSheet } from './KaartProductSheet';
+import { MenuPrintDialog } from './MenuPrintDialog';
 import { FOODCOST_WARN_PCT, foodCostLabel, foodCostPct, isFoodCostHigh } from './foodCost';
 import { useTenant } from '@/hooks/useTenant';
 
@@ -60,6 +61,8 @@ export function KaartManager() {
   // KAART-LOOK-1: selecteren en volgorde zijn een modus; anders staan greep en vinkje niet op elke rij.
   const [mode, setMode] = useState<'none' | 'select' | 'sort'>('none');
   const [addOpen, setAddOpen] = useState(false);
+  // MENUKAART-PRINT-1: papieren menukaart als PDF.
+  const [printOpen, setPrintOpen] = useState(false);
   const photoOpen = useRef<(() => void) | null>(null);
   const qc = useQueryClient();
   const { currentTenant } = useTenant();
@@ -169,6 +172,11 @@ export function KaartManager() {
             <Calculator className="mr-2 h-4 w-4" />{t('admin.kaart.cost.toggle')}
           </Button>
         ) : null}
+        {products.length ? (
+          <Button variant="ghost" className="h-11 sm:h-10" onClick={() => setPrintOpen(true)}>
+            <Printer className="mr-2 h-4 w-4" />{t('admin.kaart.print.button')}
+          </Button>
+        ) : null}
       </div>
       <p className="text-sm text-muted-foreground">
         {mode === 'sort' ? t('admin.kaart.mode.sortHint') : mode === 'select' ? t('admin.kaart.mode.selectHint')
@@ -258,6 +266,8 @@ export function KaartManager() {
           canSeeCost={canSeeCost} canEditCost={canEditCost}
           onClose={() => setOpenId(null)} onOpen={setOpenId} onError={fail} />
       ) : null}
+
+      {printOpen ? <MenuPrintDialog open onOpenChange={setPrintOpen} canWrite={canFull} /> : null}
 
       {dialog ? (
         <KaartImportDialog open onOpenChange={(o) => { if (!o) setDialog(null); }} source={dialog.source} initialRows={dialog.rows}

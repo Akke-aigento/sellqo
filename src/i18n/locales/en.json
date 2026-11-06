@@ -9678,6 +9678,68 @@
         "none": "no allergens",
         "missing": "allergens not filled in",
         "banner": "Allergens are not filled in yet for {{count}} product(s) on your menu. See which ones."
+      },
+      "print": {
+        "button": "Print",
+        "title": "Print your menu",
+        "desc": "A paper menu with your dishes, prices and allergens, in the colours and with the logo of your venue. Your choices are remembered.",
+        "template_label": "Template",
+        "tpl": {
+          "booklet_a5": {
+            "title": "A5 booklet",
+            "text": "A4 landscape, folded into a booklet"
+          },
+          "a4": {
+            "title": "A4 menu",
+            "text": "Separate A4 pages in portrait, for a menu folder"
+          },
+          "photo_cover": {
+            "title": "Photo cover",
+            "text": "The A5 booklet with a large photo on the cover"
+          }
+        },
+        "cover_label": "Cover photo",
+        "cover_pick": "Choose or upload a photo",
+        "cover_none": "No photo chosen yet. Without a photo, the menu gets a cover with your logo.",
+        "cover_from_menu": "Or use a photo of a dish:",
+        "cover_use_photo": "Use this photo on the cover",
+        "opt": {
+          "descriptions": "Descriptions",
+          "allergens": "Allergens (numbers with legend)",
+          "info": "Address and opening hours on the back",
+          "qr": "QR code to your online menu on the back"
+        },
+        "subtitle_label": "Cover subtitle (optional)",
+        "subtitle_placeholder": "e.g. Home cooking since 1998",
+        "language_label": "Menu language",
+        "language_hint": "For the fixed texts such as \"Allergens\" and \"Opening hours\". Your dishes appear as you entered them.",
+        "summary": "{{categories}} categories, {{count}} dishes on the menu",
+        "empty": "Your menu is still empty. Products set to \"On the menu\" appear on the paper menu.",
+        "hint_booklet": "Print double-sided on A4, flip on the short edge, at actual size (100%). Stack the sheets in order and fold them in half together.",
+        "hint_a4": "Print double-sided on A4, flip on the long edge, at actual size (100%).",
+        "download": "Download PDF",
+        "download_pages": "Single pages (print shop or screen)",
+        "done": "PDF ready: {{pages}} pages, {{sheets}} sheet(s) of paper.",
+        "failed": "Could not create the PDF: {{reason}}",
+        "warn_logo": "Your logo could not be loaded; the name of your venue is shown instead.",
+        "warn_cover": "The cover photo could not be loaded, so the cover has no photo. Choose another photo (jpg, png or webp).",
+        "pdf": {
+          "cover_title": "Menu",
+          "continued": "continued",
+          "allergens_title": "Allergens",
+          "hours_title": "Opening hours",
+          "qr_caption": "Scan for the online menu",
+          "price_note": "Prices in euro, VAT included.",
+          "other": "Other",
+          "closed": "closed",
+          "diet": {
+            "vegetarian": "V",
+            "vegan": "VG",
+            "spicy": "S",
+            "halal": "H",
+            "gluten_free": "GF"
+          }
+        }
       }
     },
     "horecaPay": {

@@ -9347,6 +9347,68 @@
         "none": "keine Allergene",
         "missing": "Allergene nicht angegeben",
         "banner": "Bei {{count}} Produkt(en) auf deiner Karte sind die Allergene noch nicht angegeben. Sieh nach, welche."
+      },
+      "print": {
+        "button": "Drucken",
+        "title": "Speisekarte drucken",
+        "desc": "Eine Papierkarte mit deinen Gerichten, Preisen und Allergenen, in den Farben und mit dem Logo deines Betriebs. Deine Auswahl wird gespeichert.",
+        "template_label": "Vorlage",
+        "tpl": {
+          "booklet_a5": {
+            "title": "A5-Heft",
+            "text": "A4 quer, zu einem Heft gefaltet"
+          },
+          "a4": {
+            "title": "A4-Karte",
+            "text": "Einzelne A4-Seiten hochkant, für eine Menümappe"
+          },
+          "photo_cover": {
+            "title": "Fotoumschlag",
+            "text": "Das A5-Heft mit einem großen Foto auf dem Umschlag"
+          }
+        },
+        "cover_label": "Foto auf dem Umschlag",
+        "cover_pick": "Foto wählen oder hochladen",
+        "cover_none": "Noch kein Foto gewählt. Ohne Foto bekommt die Karte einen Umschlag mit deinem Logo.",
+        "cover_from_menu": "Oder nimm das Foto eines Gerichts:",
+        "cover_use_photo": "Dieses Foto auf den Umschlag",
+        "opt": {
+          "descriptions": "Beschreibungen",
+          "allergens": "Allergene (Nummern mit Legende)",
+          "info": "Adresse und Öffnungszeiten auf der Rückseite",
+          "qr": "QR-Code zur Online-Karte auf der Rückseite"
+        },
+        "subtitle_label": "Untertitel auf dem Umschlag (optional)",
+        "subtitle_placeholder": "z. B. Hausmannskost seit 1998",
+        "language_label": "Sprache der Karte",
+        "language_hint": "Für die festen Texte wie „Allergene“ und „Öffnungszeiten“. Deine Gerichte erscheinen so, wie du sie eingegeben hast.",
+        "summary": "{{categories}} Kategorien, {{count}} Gerichte auf der Karte",
+        "empty": "Deine Karte ist noch leer. Produkte mit „Auf der Karte“ erscheinen auf der Papierkarte.",
+        "hint_booklet": "Drucke beidseitig auf A4, an der kurzen Kante wenden, in Originalgröße (100 %). Leg die Blätter der Reihe nach aufeinander und falte sie gemeinsam in der Mitte.",
+        "hint_a4": "Drucke beidseitig auf A4, an der langen Kante wenden, in Originalgröße (100 %).",
+        "download": "PDF herunterladen",
+        "download_pages": "Einzelseiten (Druckerei oder Bildschirm)",
+        "done": "PDF fertig: {{pages}} Seiten, {{sheets}} Blatt Papier.",
+        "failed": "PDF konnte nicht erstellt werden: {{reason}}",
+        "warn_logo": "Dein Logo konnte nicht geladen werden; stattdessen steht der Name deines Betriebs da.",
+        "warn_cover": "Das Umschlagfoto konnte nicht geladen werden, der Umschlag ist daher ohne Foto. Wähle ein anderes Foto (jpg, png oder webp).",
+        "pdf": {
+          "cover_title": "Speisekarte",
+          "continued": "Fortsetzung",
+          "allergens_title": "Allergene",
+          "hours_title": "Öffnungszeiten",
+          "qr_caption": "Scannen für die Online-Karte",
+          "price_note": "Preise in Euro, inklusive MwSt.",
+          "other": "Sonstiges",
+          "closed": "geschlossen",
+          "diet": {
+            "vegetarian": "V",
+            "vegan": "VG",
+            "spicy": "S",
+            "halal": "H",
+            "gluten_free": "GF"
+          }
+        }
       }
     },
     "horecaPay": {

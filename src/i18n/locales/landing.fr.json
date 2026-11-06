@@ -2569,6 +2569,10 @@
         "qr_print_pdf": {
           "title": "L'impression des QR codes et du tableau des allergènes fonctionne partout",
           "description": "Tu télécharges maintenant les QR codes de ta carte (affiche, chevalets de table et autocollants) et ton tableau des allergènes en PDF. Cela fonctionne aussi sur ton téléphone et dans l'app ; ouvre le PDF et imprime."
+        },
+        "menu_card_print": {
+          "title": "Imprimez votre carte en livret ou en A4",
+          "description": "La Carte a désormais un bouton Imprimer. Vous choisissez parmi trois modèles : un livret A5 (A4 paysage, plié), des pages A4 séparées pour un porte-menu, ou le livret avec une photo en couverture (de votre médiathèque, d'un plat ou téléversée). Vous obtenez un PDF aux couleurs et avec le logo de votre établissement, avec les prix, les descriptions, les allergènes en numéros avec légende et, au dos, votre adresse, vos horaires et un QR code vers votre carte en ligne. Les pages sont déjà dans le bon ordre pour imprimer en recto verso et plier. Vos choix sont mémorisés."
         }
       },
       "copyLink": "Copier le lien",

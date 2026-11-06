@@ -1,3 +1,39 @@
+## MENUKAART-PRINT-1 — papieren menukaart afdrukken vanuit de Kaart (boekje A5, A4-kaart, fotokaft) — 6 november 2026
+
+Vraag van Akke: Belgaleiro werkt ook nog met een papieren kaart. Een afdrukknop op de Kaart, drie sjablonen (A4 liggend gevouwen tot A5-boekje, gewone A4-kaart, kaft met een gekozen of geüploade foto), en de keuze onthouden. Branch `menukaart-print-1` vanaf bb46985. Changelog 2026.15k (2026.15j is voor TAFEL-SESSIE-1). Nog niets live.
+
+**Root cause (nieuw gat)** Er bestond geen gedrukte menukaart. Wel een allergenenkaart (`AllergenChart.tsx`) en menu-QR's (`MenuQrManager.tsx`), beide sinds QR-PRINT-1 als pdf-lib-PDF. De Kaart (`/admin/bestellen`, `KaartManager.tsx`) had geen afdrukmogelijkheid.
+
+**Uitgevoerd**
+- `src/lib/menuPrint.ts` (puur): sjablonen en instellingen (`parseMenuPrintSettings`, onbekend = standaard, kaft enkel `https://`), `buildMenuSections` met dezelfde selectie als het QR-menu (storefront-api `get_products` channel `menu`: actief, niet `hide_from_storefront`, kanaal `menu` of `table`, niet in een verborgen of inactieve categorie; volgorde categorie `sort_order`, dan `menu_position`, dan naam; zonder categorie achteraan als "Overige"). `sold_out_until` en `daily_special_until` tellen bewust niet: een papieren kaart gaat maanden mee, een dagschotel is gewoon een product. Omschrijving = `short_description`, anders `description` zonder HTML, ingekort op een woord. Imposition `bookletSheets`/`bookletPrintOrder` (vel s: voor n−2s | 1+2s, achter 2+2s | n−1−2s) en `totalPages` (boekje veelvoud van 4, A4 even).
+- `src/utils/menuCardPdf.ts`: lay-out met de echte fontbreedtes (Times voor de kaart, Helvetica voor labels, gehard met `hardenPdfFont`; fontkit zit niet in het project, dus geen eigen font). Gerecht nooit gesplitst, categoriekop gaat mee met zijn eerste gerecht, doorlopende categorie krijgt de kop opnieuw met "vervolg". Stippellijn naam–prijs, allergenen als kleine nummers achter de naam + legende, dieetlabels als korte letters in de merkkleur. Letterschaal 1 → 0,82 als dat een vel scheelt. Kaft: dubbele kaderlijn, logo of naam, ornament, "MENU"; fotokaft: foto bijgesneden (clip) met een band in de merkkleur (88 %) en het logo op een wit kaartje. Achterkant: logo/naam, adres, telefoon, website, openingsuren, QR naar `/menu`, prijsvermelding incl. btw. Opvulpagina's met een rustig ornament vlak vóór de achterkant. Boekje: A5-pagina's op A4 liggend, geplaatst rond de vouw (148,5 mm), via `embedPdf` ná `save()` (anders verwijzen de pagina's naar nog niet ingebedde fonts, gemeten met pdftoppm). Optie losse pagina's in leesvolgorde (drukkerij/scherm).
+- `src/lib/menuPrintImages.ts`: logo en kaftfoto ophalen; kleine png/jpg zoals ze zijn, anders via canvas verkleind (kaft max 2000 px jpg, logo 1200 px png) — zo werken ook webp-productfoto's. Mislukt = null, en de dialoog meldt het (toast), geen stil gat.
+- `src/components/admin/horeca/kaart/MenuPrintDialog.tsx`: sjabloonkeuze met schets, kaftfoto via de bestaande `VisualMediaPicker` (mediabibliotheek + upload naar de bestaande bucket `tenant-assets`) plus snelkeuze uit de productfoto's van de kaart, vier schakelaars, ondertitel (60 tekens), kaarttaal (enkel Latijnse talen uit `SUPPORTED_LANGUAGES`: de standaardfonts kennen geen Cyrillisch), download. Merkkleur/logo uit dezelfde bron als `MenuQrManager` (`brand_color` → `primary_color`, `logo_url`). Teksten in de PDF via `i18n.getFixedT(kaarttaal)`.
+- `src/components/admin/horeca/kaart/useMenuPrintSettings.ts`: lezen/bewaren per zaak, met localStorage als terugval (tabel nog niet gemigreerd of rol zonder schrijfrecht).
+- `KaartManager.tsx`: knop **Afdrukken** in de werkbalk (enkel als er producten zijn), opent de dialoog. Geen nieuw zijbalk-item, geen tweede plek.
+- Migratie `20261106130000_menukaart_print_1.sql`: nieuwe tabel `menu_print_settings` (tenant_id PK, template met check, options jsonb object, cover_image_url https ≤ 2000, updated_at). NIET gedraaid.
+- Migratie `20261106130100_menukaart_print_1_docs.sql`: helpartikel `menukaart-afdrukken` (context_path `/admin/bestellen`). NIET gedraaid.
+- i18n `admin.kaart.print.*` en changelog `menu_card_print` in alle talen van `SUPPORTED_LANGUAGES`.
+- Harnas-scenario `scripts/harness/scenarios/menukaart-print` (Kaart + dialoog, maakt echt een PDF in chromium). Test `src/utils/menuCardPdf.test.ts` in de CI-vitest-stap.
+
+**Security-keuzes** Nieuwe tabel `menu_print_settings`: anon alles ingetrokken; authenticated select/insert/update (geen delete/truncate). RLS select = `tenant_id in get_user_tenant_ids(auth.uid())` of `is_platform_admin`; insert/update = `has_tenant_role(tenant_id, {tenant_admin, staff})` (zelfde rollen als de `kaart_*`-functies). Inhoud niet gevoelig (sjabloon, schakelaars, ondertitel, taalcode, publieke afbeeldings-URL zoals `products.featured_image`, geen signed URL). Geen definer-functies.
+
+**Gedeelde-paden-waarschuwing** Geen gedeeld pad geraakt: geen wijziging aan `storefront-api`, `storefront-customer-api`, `storefront-resolve` of gedeelde tabellen. Bewust een eigen tabel in plaats van een kolom op `tenant_theme_settings` (stroomt via `select('*')` naar alle eigen frontends) of `fulfillment_settings` (`select('*')` in storefront-api, enkel zaakvoerder). `src/kassa` niet aangeraakt.
+
+**Plan-scope** De Kaart hangt aan de horecamodule (`useHorecaModule`, featureKey `horeca`: Horeca-plan of ontgrendeld); de knop zit op dat scherm en valt dus onder dezelfde gating. Geen nieuwe sleutel in `pricing_plans.features`, geen grandfathering nodig.
+
+**Verificatie**
+- `menuCardPdf.test.ts` (16 tests): selectie, HTML-omschrijving, instellingen-parser, imposition (8 pagina's = [8,1],[2,7],[6,3],[4,5]; voor n = 4…40 elke pagina één keer en elke zijde telt op tot n+1), opvullen, lay-out op schaal 1 en 0,82 voor A5 en A4 (geen blok buiten de marges, geen kop zonder gerecht eronder, 60/60 gerechten precies één keer, naamregels passen), PDF-paginagroottes, kapotte kaftfoto = waarschuwing, Cyrillisch/emoji crasht niet.
+- Voorbeeld-PDF's (8 categorieën, 60 gerechten) gerenderd met pdftoppm en bekeken, vouwvolgorde nagekeken: `/home/claude/mkp-shots/`.
+- Harnas 390/1280: Kaart zonder horizontale overloop, dialoog per sjabloon, PDF echt gemaakt in chromium (boekje 8 p./2 vellen, fotokaft met webp-foto via canvas), bewaarde rijen gelogd.
+- `tsc` exit 0, `npm run build` ok, lint-baseline 1457 → 1454 (geen nieuwe), `npm run ci:local` groen (i18n-pariteit, gebruikte keys, dode knoppen, vitest).
+
+**Bewust ongemoeid / Vervolg**
+- Migraties draaien (eerst de tabel, na de publish het helpartikel) en daarna natrekken in `information_schema`/`pg_policies`. Tot dan bewaart het beheer de keuze enkel per toestel.
+- Eén echte klik op sellqo.app in een testzaak (R14): bewaren in `menu_print_settings` en een PDF met een echte productfoto (CORS van de opslag).
+- Kaarttaal Oekraïens kan niet (standaardfonts); vraagt fontkit + een ingebed font, eigen batch.
+- Productvarianten (maten als variant) staan niet apart op de kaart; horeca maakt maten als aparte producten (KAART-3), die staan er wel op.
+
 ## QR-PRINT-1 — menu-QR's en allergenenkaart afdrukken werkt overal (PDF in plaats van afdrukvenster) — 6 november 2026
 
 Melding van Akke: de QR-codes voor het menu (tafelkaartjes en A4-affiche) afdrukken lukt niet; de QR per tafel uit het zaalplan wel.
