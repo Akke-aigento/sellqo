@@ -77,7 +77,14 @@ Deno.test('join: enkel met een zaalplan-tafel; cookie- en linkgroep gaan door', 
   const r = await call('table_group_join', { table_token: TOKEN, group_id: G, join: 'geen-uuid' });
   const a = rpcCalls.find((c) => c.fn === 'table_group_join')?.args ?? {};
   assert(r.json.data?.group_id === G && r.json.data.table_label === '8', JSON.stringify(r.json));
-  assert(a.p_table_id === TABLE && a.p_group_id === G && a.p_link === null, JSON.stringify(a));
+  assert(a.p_table_id === TABLE && a.p_group_id === G && a.p_link === null && a.p_fresh_scan === false, JSON.stringify(a));
+  // B1: enkel een verse scan (fresh: true) mag aansluiten of een groep maken.
+  reset();
+  await call('table_group_join', { table_token: TOKEN, fresh: true });
+  assert(rpcCalls.find((c) => c.fn === 'table_group_join')?.args.p_fresh_scan === true, 'fresh doorgegeven');
+  reset();
+  await call('table_group_join', { table_token: TOKEN, fresh: 'true' });
+  assert(rpcCalls.find((c) => c.fn === 'table_group_join')?.args.p_fresh_scan === false, 'enkel boolean true telt');
 });
 
 Deno.test('state: zonder geldige groep → ended, geen databankaanroep', async () => {
@@ -136,9 +143,16 @@ Deno.test('table_group_place: afgelopen groep → GROUP_ENDED; gedeeld → mandj
   reset();
   rpcResults.table_group_state = { data: { ended: false, shared: true, cart_id: CART }, error: null };
   rpcResults.table_group_request_place = { data: { request_id: REQ, status: 'pending', duplicate: false, cart_id: CART_NEW }, error: null };
-  const r = await call('table_group_place', { table_token: TOKEN, group_id: G, request_id: REQ, cart_id: 'genegeerd', guest_name: ' Akke ' });
+  const r = await call('table_group_place', { table_token: TOKEN, group_id: G, request_id: REQ, cart_id: 'geen-uuid', guest_name: ' Akke ' });
   const a = rpcCalls.find((c) => c.fn === 'table_group_request_place')?.args ?? {};
   assert(r.json.data?.cart_id === CART_NEW && a.p_cart_id === CART && a.p_group_id === G && a.p_guest_name === 'Akke' && a.p_table_label === '8', JSON.stringify({ r: r.json, a }));
+  // K7: het mandje dat de gsm toonde gaat mee; de databank zegt JUST_SENT als het intussen doorgegeven werd.
+  reset();
+  rpcResults.table_group_state = { data: { ended: false, shared: true, cart_id: CART_NEW }, error: null };
+  rpcResults.table_group_request_place = { data: null, error: { message: 'JUST_SENT', code: '55000' } };
+  const js = await call('table_group_place', { table_token: TOKEN, group_id: G, request_id: REQ, cart_id: CART });
+  const aj = rpcCalls.find((c) => c.fn === 'table_group_request_place')?.args ?? {};
+  assert(aj.p_cart_id === CART && js.json.data?.error?.code === 'JUST_SENT' && /tafelgenoot/.test(js.json.data.error.message), JSON.stringify(js.json));
   reset();
   rpcResults.table_group_state = { data: { ended: false, shared: true, cart_id: CART }, error: null };
   rpcResults.table_group_request_place = { data: null, error: { message: 'SOLD_OUT:Wit bier', code: '22023' } };
@@ -180,37 +194,54 @@ Deno.test('table_check_get zonder groep (vangnet): na dagreset; oudere open lijn
 });
 
 const pay = (extra: Record<string, unknown>) => call('table_check_pay', { table_token: TOKEN, payment_id: PAY, success_url: 'https://s/ok', cancel_url: 'https://s/no', ...extra });
-Deno.test('betalen per groep: gemengd → gelijk delen geweigerd, alles = enkel de eigen vrije lijnen', async () => {
+Deno.test('betalen per groep: één databanktransactie (table_group_pay_start), oude pogingen eerst vrijgegeven (B5/B6)', async () => {
   reset();
-  rpcResults.table_group_view = { data: view(true), error: null };
-  const share = await pay({ kind: 'share', share_n: 2, share_k: 1, group_id: G });
-  assert(share.json.data?.error?.code === 'CHECK_PAY_NO_SHARE' && !rpcCalls.some((c) => c.fn === 'table_check_pay_start'), JSON.stringify(share.json));
-  reset();
-  rpcResults.table_group_view = { data: view(true), error: null };
-  rpcResults.table_check_pay_start = { data: null, error: { message: 'CHECK_PAY_BUSY', code: '55000' } };
-  await pay({ kind: 'full', group_id: G });
-  const a = rpcCalls.find((c) => c.fn === 'table_check_pay_start')?.args ?? {};
-  assert(a.p_kind === 'lines' && JSON.stringify(a.p_lines) === JSON.stringify([{ line_id: L_MINE, qty: 2 }]), JSON.stringify(a));
+  (db as any).tables.dining_checks = [{ id: 'chk8', tenant_id: T, table_id: TABLE, status: 'open', split_of: null, opened_at: '2026-11-06T10:00:00Z' }];
+  (db as any).tables.check_online_payments = [{ id: '67676767-6767-4767-8767-676767676767', tenant_id: T, status: 'expired', check_id: 'chk8' }];
+  rpcResults.table_group_pay_start = { data: null, error: { message: 'CHECK_PAY_NO_SHARE', code: '55000' } };
+  const r = await pay({ kind: 'share', share_n: 2, share_k: 1, group_id: G, release_payment_ids: ['67676767-6767-4767-8767-676767676767'] });
+  assert(r.json.data?.error?.code === 'CHECK_PAY_NO_SHARE' && /vorige gasten/.test(r.json.data.error.message), JSON.stringify(r.json));
+  const names = rpcCalls.map((c) => c.fn);
+  assert(!names.includes('table_check_pay_start') && !names.includes('table_group_view'), 'geen losse weergave of pay_start: ' + JSON.stringify(names));
+  const a = rpcCalls.find((c) => c.fn === 'table_group_pay_start')?.args ?? {};
+  assert(a.p_group_id === G && a.p_kind === 'share' && a.p_share_n === 2 && a.p_payment_id === PAY, JSON.stringify(a));
+  // De vrijgave (QR-IDEMP-1) gebeurt vóór de groepsberekening: de leesactie op de oude poging komt eerst.
+  const firstPayRpc = rpcCalls.findIndex((c) => c.fn === 'table_group_pay_start');
+  assert(firstPayRpc >= 0, 'pay_start aangeroepen');
+  (db as any).tables.dining_checks = [];
+  (db as any).tables.check_online_payments = [];
 });
 
-Deno.test('betalen per groep: een lijn van vorige gasten kiezen → CHECK_LINES_CHANGED; niet gemengd → ongewijzigd', async () => {
+Deno.test('betalen per groep: groep van een andere tafel → GROUP_ENDED, geen databankbetaling', async () => {
   reset();
-  rpcResults.table_group_view = { data: view(false), error: null };
-  const bad = await pay({ kind: 'lines', lines: [{ line_id: L_OLD, qty: 1 }], group_id: G });
-  assert(bad.json.data?.error?.code === 'CHECK_LINES_CHANGED' && !rpcCalls.some((c) => c.fn === 'table_check_pay_start'), JSON.stringify(bad.json));
-  reset();
-  rpcResults.table_group_view = { data: view(false), error: null };
-  rpcResults.table_check_pay_start = { data: null, error: { message: 'CHECK_PAY_BUSY', code: '55000' } };
-  await pay({ kind: 'share', share_n: 3, share_k: 1, group_id: G });
-  const a = rpcCalls.find((c) => c.fn === 'table_check_pay_start')?.args ?? {};
-  assert(a.p_kind === 'share' && a.p_share_n === 3, JSON.stringify(a));
+  const r = await pay({ kind: 'full', group_id: G9 });
+  assert(r.json.data?.error?.code === 'GROUP_ENDED' && !rpcCalls.some((c) => c.fn.endsWith('pay_start')), JSON.stringify(r.json));
 });
 
-Deno.test('betalen zonder group_id: geen groepsfunctie (bestaand pad)', async () => {
+Deno.test('betalen per groep: gemengd zonder splitsen → leesbare melding (B7); te veel lijnen → K1', async () => {
+  reset();
+  rpcResults.table_group_pay_start = { data: null, error: { message: 'CHECK_PAY_MIXED', code: '55000' } };
+  const m = await pay({ kind: 'full', group_id: G });
+  assert(m.json.data?.error?.code === 'CHECK_PAY_MIXED' && /personeel/.test(m.json.data.error.message), JSON.stringify(m.json));
+  rpcResults.table_group_pay_start = { data: null, error: { message: 'CHECK_PAY_TOO_MANY', code: '54000' } };
+  const k = await pay({ kind: 'full', group_id: G });
+  assert(k.json.data?.error?.code === 'CHECK_PAY_TOO_MANY' && /in delen/.test(k.json.data.error.message), JSON.stringify(k.json));
+});
+
+Deno.test('betalen zonder group_id: bestaand pad; alles/delen geweigerd als er lijnen van vóór de dagreset openstaan (K3)', async () => {
   reset();
   rpcResults.table_check_pay_start = { data: null, error: { message: 'CHECK_PAY_BUSY', code: '55000' } };
   await pay({ kind: 'full' });
   assert(!rpcCalls.some((c) => c.fn.startsWith('table_group')) && rpcCalls.find((c) => c.fn === 'table_check_pay_start')?.args.p_kind === 'full', JSON.stringify(rpcCalls));
+  reset();
+  rpcResults.table_check_view_since = { data: { check: { hidden_open: 2 } }, error: null };
+  const old = await pay({ kind: 'full' });
+  assert(old.json.data?.error?.code === 'CHECK_PAY_OLD_LINES' && !rpcCalls.some((c) => c.fn === 'table_check_pay_start'), JSON.stringify(old.json));
+  reset();
+  rpcResults.table_check_view_since = { data: { check: { hidden_open: 2 } }, error: null };
+  rpcResults.table_check_pay_start = { data: null, error: { message: 'CHECK_PAY_BUSY', code: '55000' } };
+  await pay({ kind: 'lines', lines: [{ line_id: L_MINE, qty: 1 }] });
+  assert(rpcCalls.find((c) => c.fn === 'table_check_pay_start')?.args.p_kind === 'lines', 'mijn items blijft kunnen: ' + JSON.stringify(rpcCalls));
 });
 
 Deno.test('GET-stempel TAFEL-SAMEN-1', async () => {

@@ -1471,6 +1471,12 @@ const CHECK_PAY_ERRORS: Record<string, string> = {
   CHECK_LINES_CHANGED: 'De rekening veranderde net. Kies je items opnieuw.',
   CHECK_LINES_TAKEN: 'Iemand anders betaalt een van die items al. Kies je items opnieuw.',
   CHECK_PAY_INVALID: 'Betalen lukte niet, probeer het opnieuw.',
+  // TAFEL-SAMEN-1 — additief: betalen per tafelgroep en het vangnet zonder groep.
+  CHECK_PAY_NO_SHARE: 'Gelijk delen kan hier niet: er staan nog items van vorige gasten op deze rekening. Kies je items of betaal alles van jullie tafel.',
+  CHECK_PAY_MIXED: 'Vraag de rekening aan het personeel: er staan nog items van vorige gasten op deze rekening.',
+  CHECK_PAY_TOO_MANY: 'Dat zijn te veel items om in één keer te betalen. Betaal in delen via Mijn items, of vraag de rekening aan het personeel.',
+  CHECK_PAY_OLD_LINES: 'Vraag de rekening aan het personeel: er staan nog items van vorige gasten op deze rekening.',
+  GROUP_ENDED: 'Je tafelsessie is afgelopen. Scan de QR-code op je tafel opnieuw.',
 };
 async function tableForCheck(supabase: SupabaseLike, tenantId: string, params: Record<string, unknown>) {
   const resolved = await resolveTableInput(supabase, tenantId, { table: params.table, table_token: params.table_token });
@@ -1527,15 +1533,6 @@ async function tableCheckPay(supabase: SupabaseLike, tenantId: string, params: R
     ? (params.lines as Record<string, unknown>[]).slice(0, 60).map((l) => ({ line_id: String(l?.line_id ?? ''), qty: int(l?.qty) }))
     : [];
   if (lines.some((l) => !UUID_RE.test(l.line_id) || l.qty == null)) return { success: false, error: { code: 'CHECK_PAY_INVALID', message: CHECK_PAY_ERRORS.CHECK_PAY_INVALID } };
-  // TAFEL-SAMEN-1 — additief: met group_id betaalt de groep enkel haar eigen lijnen. Zonder group_id: ongewijzigd.
-  let payKind = kind;
-  let payLines = lines;
-  if (params.group_id != null) {
-    const plan = await groupPayPlan(supabase, tenantId, String(params.group_id), t.table.table_id, kind, lines);
-    if ('error' in plan) return { success: false, error: plan.error };
-    payKind = plan.kind;
-    payLines = plan.lines;
-  }
   // QR-IDEMP-1 — additief: oude pogingen van deze browser (na een netwerkfout) eerst vrijgeven,
   // anders houden ze 10 min de rekening of de items vast. Enkel pogingen op de rekening van
   // déze tafel; onbekende of afgeronde id's worden stil overgeslagen.
@@ -1553,10 +1550,29 @@ async function tableCheckPay(supabase: SupabaseLike, tenantId: string, params: R
       }
     }
   }
-  const { data, error } = await supabase.rpc('table_check_pay_start', {
-    p_tenant_id: tenantId, p_table_id: t.table.table_id, p_payment_id: paymentId, p_kind: payKind, p_lines: payLines,
-    p_share_n: int(params.share_n), p_share_k: int(params.share_k), p_tip_cents: int(params.tip_cents) ?? 0,
-  });
+  // TAFEL-SAMEN-1 — additief: met group_id betaalt de groep enkel haar eigen lijnen, in één databanktransactie
+  // (table_group_pay_start: rekening FOR UPDATE, lijnen van de groep, dan de ongewijzigde table_check_pay_start).
+  // Oude pogingen zijn hierboven al vrijgegeven, zodat ze de berekening niet beïnvloeden.
+  const groupId = params.group_id != null ? uuidOrNull(params.group_id) : null;
+  if (params.group_id != null && !groupId) return { success: false, error: { code: 'GROUP_ENDED', message: CHECK_PAY_ERRORS.GROUP_ENDED } };
+  if (groupId && !(await groupOfTable(supabase, tenantId, groupId, t.table.table_id))) return { success: false, error: { code: 'GROUP_ENDED', message: CHECK_PAY_ERRORS.GROUP_ENDED } };
+  // TAFEL-SAMEN-1 — vangnet zonder groep (oude tabbladen): "alles" of "gelijk delen" rekenen op de hele rekening;
+  // staan er nog lijnen van vóór de dagreset open, dan niet online (consistent met table_check_get). Fail-open.
+  if (!groupId && (kind === 'full' || kind === 'share')) {
+    const since = await supabase.rpc('table_check_view_since', { p_tenant_id: tenantId, p_table_id: t.table.table_id });
+    if (!since.error && Number((since.data as { check?: { hidden_open?: number } | null } | null)?.check?.hidden_open ?? 0) > 0) {
+      return { success: false, error: { code: 'CHECK_PAY_OLD_LINES', message: CHECK_PAY_ERRORS.CHECK_PAY_OLD_LINES } };
+    }
+  }
+  const { data, error } = groupId
+    ? await supabase.rpc('table_group_pay_start', {
+      p_tenant_id: tenantId, p_group_id: groupId, p_payment_id: paymentId, p_kind: kind, p_lines: lines,
+      p_share_n: int(params.share_n), p_share_k: int(params.share_k), p_tip_cents: int(params.tip_cents) ?? 0,
+    })
+    : await supabase.rpc('table_check_pay_start', {
+      p_tenant_id: tenantId, p_table_id: t.table.table_id, p_payment_id: paymentId, p_kind: kind, p_lines: lines,
+      p_share_n: int(params.share_n), p_share_k: int(params.share_k), p_tip_cents: int(params.tip_cents) ?? 0,
+    });
   if (error) { const m = checkPayError(error); if (m) return m; throw error; }
   const start = data as { payment_id: string; status: string; amount_cents: number; tip_cents: number; table_label: string | null; stripe_session_id?: string | null; duplicate?: boolean };
   if (start.status !== 'pending') return { success: false, error: { code: 'CHECK_PAY_INVALID', message: CHECK_PAY_ERRORS.CHECK_PAY_INVALID } };
@@ -1683,11 +1699,13 @@ async function tableCheckPayCancel(supabase: SupabaseLike, tenantId: string, par
 // start. Alle regels (aansluiten, einde, slot op het mandje, welke lijnen) zitten in de databank
 // (table_group_*-functies), zodat geen frontend ze kan omzeilen. Enkel met een QR-token uit het zaalplan.
 const TABLE_GROUP_ERRORS: Record<string, string> = {
+  PREVIOUS_ENDED: 'Je bezoek aan deze tafel is afgesloten. Scan de QR-code op je tafel opnieuw.',
   GROUP_ENDED: 'Je tafelsessie is afgelopen. Scan de QR-code op je tafel opnieuw.',
   CART_ROTATED: 'Jullie bestelling werd net doorgegeven. Je toevoeging staat in het nieuwe mandje.',
   ITEM_GONE: 'Dit werd net aangepast door iemand aan je tafel.',
   TABLE_GROUPS_OFF: 'Samen bestellen aan tafel staat uit in deze zaak.',
   QTY_LIMIT: 'Meer dan 99 van hetzelfde kan je niet in één keer bestellen.',
+  JUST_SENT: 'Net doorgegeven door je tafelgenoot. Je ziet het bij Al besteld.',
   CHECK_PAY_NO_SHARE: 'Gelijk delen kan hier niet: er staan nog items van vorige gasten op deze rekening. Kies je items of betaal alles van jullie tafel.',
 };
 const uuidOrNull = (v: unknown) => (typeof v === 'string' && UUID_RE.test(v) ? v.toLowerCase() : null);
@@ -1711,6 +1729,9 @@ async function tableGroupJoin(supabase: SupabaseLike, tenantId: string, params: 
   if (!t.ok) return { success: false, error: t.error };
   const { data, error } = await supabase.rpc('table_group_join', {
     p_tenant_id: tenantId, p_table_id: t.table.table_id, p_group_id: uuidOrNull(params.group_id), p_link: uuidOrNull(params.join),
+    // Enkel true als de gast de QR-code bij deze paginalading scande (?t=): zonder verse scan sluit een gsm nooit
+    // aan bij een andere groep en wordt er geen groep gemaakt (review B1).
+    p_fresh_scan: params.fresh === true,
   });
   if (error) {
     const [code] = dbCode(error);
@@ -1774,14 +1795,16 @@ async function tableGroupPlace(supabase: SupabaseLike, tenantId: string, params:
   if (stErr) throw stErr;
   const state = (st ?? {}) as { ended?: boolean; shared?: boolean; cart_id?: string | null };
   if (state.ended) return { success: false, error: { code: 'GROUP_ENDED', message: TABLE_GROUP_ERRORS.GROUP_ENDED } };
-  // Gedeeld mandje: dat van de groep. Uit (mandje per gsm): het meegegeven mandje.
+  // Gedeeld mandje: dat van de groep (de databank controleert dat het het mandje is dat de gsm toonde, anders
+  // JUST_SENT). Uit (mandje per gsm): het meegegeven mandje.
   const cartId = state.shared ? state.cart_id ?? null : uuidOrNull(params.cart_id);
+  const shownCart = state.shared ? uuidOrNull(params.cart_id) ?? cartId : cartId;
   if (!cartId) return { success: false, error: { code: 'CART_EMPTY', message: TABLE_REQUEST_ERRORS.CART_EMPTY } };
   const closed = await orderingBlockError(supabase, tenantId, 'table', () => cartBlockProducts(supabase, tenantId, cartId));
   if (closed) return { success: false, error: closed };
   const str = (v: unknown, n: number) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, n) : null);
   const { data, error } = await supabase.rpc('table_group_request_place', {
-    p_tenant_id: tenantId, p_group_id: gid, p_request_id: requestId, p_cart_id: cartId, p_table_label: t.table.label,
+    p_tenant_id: tenantId, p_group_id: gid, p_request_id: requestId, p_cart_id: shownCart, p_table_label: t.table.label,
     p_guest_name: str(params.guest_name, 100), p_note: str(params.note, 500),
   });
   if (error) {
@@ -1817,37 +1840,6 @@ async function tableGroupCartPut(supabase: SupabaseLike, tenantId: string, cartI
     throw error;
   }
   return cartGet(supabase, tenantId, { cart_id: cartId });
-}
-
-type PayLine = { line_id: string; qty: number | null };
-type GroupLine = { id: string; open_qty: number; held_qty: number };
-/**
- * Wat betaalt de groep? Altijd enkel haar eigen lijnen:
- *  - lines: elke lijn moet van de groep zijn (anders CHECK_LINES_CHANGED);
- *  - share: enkel als de rekening niet gemengd is (geen open lijnen van vorige gasten);
- *  - full:  niet gemengd = het bestaande "alles"; gemengd = "mijn items" met alle vrije lijnen van de groep.
- */
-async function groupPayPlan(supabase: SupabaseLike, tenantId: string, groupId: string, tableId: string | null | undefined, kind: string, lines: PayLine[]):
-  Promise<{ kind: string; lines: PayLine[] } | { error: { code: string; message: string } }> {
-  const gid = uuidOrNull(groupId);
-  const view = gid ? await groupView(supabase, tenantId, gid, tableId) : null;
-  if (!view) return { error: { code: 'GROUP_ENDED', message: TABLE_GROUP_ERRORS.GROUP_ENDED } };
-  const check = view.check as { mixed?: boolean; lines?: GroupLine[] } | null;
-  if (!check) return { error: { code: 'CHECK_NOT_FOUND', message: CHECK_PAY_ERRORS.CHECK_NOT_FOUND } };
-  const mine = new Map((check.lines ?? []).map((l) => [String(l.id).toLowerCase(), l]));
-  if (kind === 'lines') {
-    if (lines.some((l) => !mine.has(l.line_id.toLowerCase()))) return { error: { code: 'CHECK_LINES_CHANGED', message: CHECK_PAY_ERRORS.CHECK_LINES_CHANGED } };
-    return { kind, lines };
-  }
-  if (!check.mixed) return { kind, lines };
-  if (kind === 'share') return { error: { code: 'CHECK_PAY_NO_SHARE', message: TABLE_GROUP_ERRORS.CHECK_PAY_NO_SHARE } };
-  const all = [...mine.values()].map((l) => ({ line_id: String(l.id), qty: Math.max(0, Number(l.open_qty) - Number(l.held_qty)) })).filter((l) => l.qty > 0);
-  if (!all.length) {
-    return [...mine.values()].some((l) => Number(l.held_qty) > 0)
-      ? { error: { code: 'CHECK_PAY_BUSY', message: CHECK_PAY_ERRORS.CHECK_PAY_BUSY } }
-      : { error: { code: 'CHECK_NOTHING_OPEN', message: CHECK_PAY_ERRORS.CHECK_NOTHING_OPEN } };
-  }
-  return { kind: 'lines', lines: all.slice(0, 60) };
 }
 
 // ZAAL-H1 — nieuwe actie: QR-token (of vrij tafelnummer) → tafel, voor de storefront.
