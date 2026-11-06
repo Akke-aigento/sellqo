@@ -4,8 +4,8 @@
 --
 -- Anker: "<li>Hij kan daarna gewoon nog iets bestellen. Elke bestelling komt apart binnen.</li>" uit de
 -- oorspronkelijke tekst (20261028121000_qr_rekening_1_docs.sql); geen latere migratie in de repo raakt die regel.
--- NIET live nagetrokken (geen databanktoegang in deze run): vóór het draaien read-only nakijken dat het anker
--- precies één keer in het artikel staat (query onderaan). Staat het er niet, dan doet deze update niets.
+-- Live nagetrokken op 6-11-2026 (read-only): anker = 1, al_gedaan = 0 (query hieronder). Staat het anker er bij het
+-- draaien niet (meer), dan doet deze update niets.
 --
 -- Bewust een geankerde replace() en geen INSERT ... ON CONFLICT (doc_level, slug) DO UPDATE: het artikel bestaat al
 -- en zijn huidige tekst is in zeven migraties stap voor stap opgebouwd. Een volledige nieuwe content zou wijzigingen

@@ -13,6 +13,7 @@ const REQ = '11111111-1111-4111-8111-111111111111';
 const CART = '22222222-2222-4222-8222-222222222222';
 const CART7 = '77777777-7777-4777-8777-777777777777';
 const CART4 = '44444444-4444-4444-8444-444444444444';
+const CART_GONE = '55555555-5555-4555-8555-555555555555';
 const db = new FakeDb({
   dining_tables: [],
   dining_areas: [],
@@ -25,6 +26,8 @@ const db = new FakeDb({
   storefront_carts: [
     { id: CART7, tenant_id: T, service_type: 'eat_in', table_label: '7', dining_table_id: null },
     { id: CART4, tenant_id: T, service_type: 'eat_in', table_label: '4', dining_table_id: null },
+    // Gebonden aan een zaalplan-tafel die niet meer bestaat, met de naam '4' (tafel opnieuw aangemaakt).
+    { id: CART_GONE, tenant_id: T, service_type: 'eat_in', table_label: '4', dining_table_id: 'verwijderd' },
   ],
 });
 
@@ -107,4 +110,11 @@ Deno.test('TAFEL-SESSIE-1: checkout_table met een mandje van een andere tafel â†
   const r = await call('checkout_table', { cart_id: CART7, table: '4' });
   assert(r.json.data?.success === false && r.json.data.error.code === 'CART_OTHER_TABLE', JSON.stringify(r.json));
   assert(!db.writes.slice(before).some((w: any) => w.table === 'storefront_carts'), 'mandje mocht niet bijgewerkt worden');
+});
+
+Deno.test('TAFEL-SESSIE-1: gebonden tafel bestaat niet meer, zelfde naam â†’ geen CART_OTHER_TABLE', async () => {
+  rpcCalls.length = 0;
+  rpcResult = { data: { request_id: REQ, status: 'pending', duplicate: false }, error: null };
+  const r = await call('table_request_place', { request_id: REQ, cart_id: CART_GONE, table: '4' });
+  assert(r.json.success === true && rpcCalls.length === 1, JSON.stringify(r.json));
 });

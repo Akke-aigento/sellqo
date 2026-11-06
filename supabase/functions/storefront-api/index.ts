@@ -1118,7 +1118,12 @@ async function checkoutService(supabase: SupabaseLike, tenantId: string, params:
 async function cartBoundElsewhere(supabase: SupabaseLike, tenantId: string, cartId: string, table: Parameters<typeof cartOtherTableError>[1]) {
   const { data, error } = await supabase.from('storefront_carts').select('id, service_type, table_label, dining_table_id').eq('id', cartId).eq('tenant_id', tenantId).maybeSingle();
   if (error || !data) return null;
-  return cartOtherTableError(data, table);
+  const first = cartOtherTableError(data, table);
+  if (!first || !data.dining_table_id) return first;
+  // Bestaat de gebonden tafel nog? Zo niet (opnieuw aangemaakt) en de naam klopt: geen fout. Leesfout: fail-open.
+  const { data: tb, error: tbErr } = await supabase.from('dining_tables').select('id').eq('tenant_id', tenantId).eq('id', String(data.dining_table_id)).maybeSingle();
+  if (tbErr) return null;
+  return cartOtherTableError(data, table, !!tb);
 }
 
 // HORECA-1 — bestellen aan tafel via het QR-menu: geen adres, geen verzending; het

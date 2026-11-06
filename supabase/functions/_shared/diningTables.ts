@@ -127,12 +127,17 @@ export const CART_OTHER_TABLE = "CART_OTHER_TABLE" as const;
 export function cartOtherTableError(
   cart: { service_type?: unknown; table_label?: unknown; dining_table_id?: unknown } | null | undefined,
   table: ResolvedTable,
+  /** false = de gebonden tafel bestaat niet meer (verwijderd en opnieuw aangemaakt); onbekend = undefined. */
+  boundTableExists?: boolean,
 ): { code: typeof CART_OTHER_TABLE; message: string } | null {
   if (!cart || cart.service_type !== "eat_in") return null;
   const boundId = cart.dining_table_id ? String(cart.dining_table_id) : null;
   const boundLabel = cart.table_label ? String(cart.table_label) : null;
   let same = true;
-  if (boundId) same = !!table.table_id && boundId === table.table_id;
-  else if (boundLabel) same = boundLabel === table.label;
+  if (boundId) {
+    same = !!table.table_id && boundId === table.table_id;
+    // Tafel opnieuw aangemaakt (oude id bestaat niet meer) met dezelfde naam: dezelfde tafel voor de gast.
+    if (!same && boundTableExists === false && boundLabel === table.label) same = true;
+  } else if (boundLabel) same = boundLabel === table.label;
   return same ? null : { code: CART_OTHER_TABLE, message: "Dit mandje hoort bij een andere tafel. Kies je bestelling opnieuw aan deze tafel." };
 }

@@ -115,3 +115,12 @@ Deno.test("TAFEL-SESSIE-1: mandje van een andere tafel → CART_OTHER_TABLE; zel
   assertEquals(cartOtherTableError({ service_type: "pickup", table_label: "Blauw 2", dining_table_id: "tb2" }, t1), null);
   assertEquals(cartOtherTableError(null, t1), null);
 });
+
+Deno.test("TAFEL-SESSIE-1: gebonden tafel bestaat niet meer en de naam klopt → geen fout; andere naam of bestaat nog → fout", () => {
+  const t9 = { table_id: "tb9", label: "Blauw 1", area: null };
+  const cart = { service_type: "eat_in", table_label: "Blauw 1", dining_table_id: "tb1" };
+  assertEquals(cartOtherTableError(cart, t9, false), null);
+  assertEquals(cartOtherTableError(cart, t9, true)?.code, "CART_OTHER_TABLE");
+  assertEquals(cartOtherTableError(cart, t9)?.code, "CART_OTHER_TABLE");
+  assertEquals(cartOtherTableError(cart, { ...t9, label: "Blauw 2" }, false)?.code, "CART_OTHER_TABLE");
+});

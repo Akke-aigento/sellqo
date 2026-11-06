@@ -6,7 +6,7 @@
 //   - zonder tabel business_hours (fout van de databank): het oude gedrag;
 //   - UREN-1b: "buiten de openingsuren niet toestaan" voor afhalen/leveren zonder tijdsloten (outside_hours,
 //     OUTSIDE_HOURS) en voor QR aan tafel (checkout_table, table_request_place); standaard toegestaan;
-//   - GET-stempel HORECA-STAAT-1.
+//   - GET-stempel TAFEL-SESSIE-1.
 // Run (vanuit de repo-root, netwerkloos):
 //   DENO_NO_PACKAGE_JSON=1 deno test --allow-env --no-lock --node-modules-dir=none \
 //     --import-map=scripts/promo-compare/import_map.resolve.json scripts/promo-compare/businessHours.test.ts
