@@ -1,0 +1,10 @@
+{
+  "@/integrations/supabase/client": "mocks/supabase.ts",
+  "@/kassa/app/kassaSupabase": "mocks/kassaSupabase.ts",
+  "@/hooks/useTenant": "mocks/tenant.ts",
+  "@/hooks/useBusinessModules": "mocks/tracks.ts",
+  "@/hooks/useCan": "mocks/can.ts",
+  "@/hooks/useAuth": "mocks/auth.ts",
+  "@/hooks/useFloorPlan": "mocks/floorplan.ts",
+  "/^\\.\\./horeca/useCatalog$/": "mocks/catalog.ts"
+}

@@ -9802,7 +9802,14 @@
       "offline_title": "Your QR menu isn't visible to guests yet",
       "offline_desc": "Your venue is still offline. Put it online under Webshop › Open your store; ordering for delivery or pickup stays off.",
       "offline_link": "Go to Open your store",
-      "check_short": "On the table's bill, at the end"
+      "check_short": "On the table's bill, at the end",
+      "shared_title": "Shared table basket",
+      "shared_desc": "Everyone at the same table fills one basket. Once it is sent, it is empty for everyone.",
+      "idle_title": "Table free after",
+      "idle_desc": "With no order or payment at the table, the next guests then start with an empty overview.",
+      "idle_option": "{{n}} min without activity",
+      "groups_note": "One party orders per table: whoever scans the QR joins the guests already seated and only sees what they ordered since arriving. Two parties at one table? Make it two tables in the floor plan. At 05:00, after paying at the till or with \"Free table\", the next guests start fresh.",
+      "groups_note_link": "Go to Floor"
     },
     "horecaPrint": {
       "printers_title": "Printers",
@@ -10028,7 +10035,17 @@
       "counter": "Bar",
       "unnamed": "Unnamed bill",
       "readonly_hint": "This overview is read-only and refreshes every 10 seconds. SellQo Kassa itself shows changes right away.",
-      "open_kassa": "Open SellQo Kassa"
+      "open_kassa": "Open SellQo Kassa",
+      "qr_guests_since": "QR guests since {{time}}",
+      "stale": "Open since yesterday",
+      "prev_lines": "Lines from previous guests open: {{count}}",
+      "prev_hint": "The current guests do not see these and cannot pay them. Settle or move them on the till.",
+      "release": "Free table",
+      "release_title": "Free table {{table}}?",
+      "release_desc": "The next guests start with an empty overview and an empty basket. You settle or move the bill itself on the till.",
+      "release_done": "Table {{table}} is free. The next guests start fresh.",
+      "release_none": "There were no QR guests at this table any more.",
+      "release_failed": "Freeing the table failed. Please try again."
     },
     "kassaLock": {
       "title": "Lock the till",
@@ -10189,6 +10206,11 @@
         "on_toast": "{{name}} is today’s dish of the day",
         "off_toast": "{{name}} is no longer a dish of the day",
         "none_toast": "No dish of the day today"
+      },
+      "prevGuests": {
+        "title": "Previous guests",
+        "count": "Open bills: {{count}}",
+        "sub": "View in Floor"
       }
     }
   },

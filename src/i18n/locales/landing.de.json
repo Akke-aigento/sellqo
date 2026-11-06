@@ -2581,6 +2581,10 @@
         "horeca_orders_sidebar": {
           "title": "Bestellungen im Gastro-Menü nur, wenn du Online-Bestellungen bekommst",
           "description": "Mit einem Gastro-Paket ohne Webshop steht Bestellungen nur noch in deinem Menü, wenn Online-Bestellen mit Abholung oder Lieferung aktiv ist oder du schon Bestellungen hast. Was Gäste mit dem QR-Code am Tisch bestellen, landet auf der Tischrechnung in der Kasse, nicht unter Bestellungen. Schaltest du Abholung oder Lieferung später ein, erscheint Bestellungen von selbst. Die Seite bleibt immer über die Suchleiste in Mein Betrieb oder mit ⌘K / Strg+K erreichbar."
+        },
+        "table_together": {
+          "title": "Gemeinsam am Tisch bestellen: ein Warenkorb und nie die Rechnung früherer Gäste",
+          "description": "Auf der Tischrechnung teilen sich jetzt alle Handys am selben Tisch einen Warenkorb. Was jemand am Tisch hinzufügt, siehst du innerhalb von Sekunden, und nach dem Absenden ist der Warenkorb für alle leer. Ein Bildschirm zeigt euren gemeinsamen Warenkorb, alles schon Bestellte mit dem Stand in der Küche und die Rechnung mit Bezahlen oder Rechnung anfordern. Deine Gäste sehen nur, was sie seit ihrer Ankunft bestellt haben, auch was dein Personal für sie bonniert, und nie etwas von früheren Gästen. Ein Tisch startet neu nach dem täglichen Reset um 05:00 Uhr, wenn die Rechnung an der Kasse geschlossen ist, nach 120 Minuten ohne Aktivität (einstellbar) oder mit dem neuen Knopf Tisch freigeben im Raum. Raum und das Jetzt-Panel warnen dich vor einer Rechnung, die seit gestern offen ist oder noch Positionen früherer Gäste enthält; die rechnest du an der Kasse ab oder verschiebst sie dort. Den gemeinsamen Warenkorb und die Zeit ohne Aktivität stellst du unter QR am Tisch ein."
         }
       },
       "copyLink": "Link kopieren",

@@ -9471,7 +9471,14 @@
       "offline_title": "Votre menu QR n'est pas encore visible pour les clients",
       "offline_desc": "Votre établissement est encore hors ligne. Mettez-le en ligne sous Boutique en ligne › Ouvrir la boutique ; la commande à domicile reste désactivée.",
       "offline_link": "Aller à « Ouvrir la boutique »",
-      "check_short": "Sur l'addition de la table, à la fin"
+      "check_short": "Sur l'addition de la table, à la fin",
+      "shared_title": "Panier partagé à table",
+      "shared_desc": "Tout le monde à la même table remplit un seul panier. Une fois transmis, il est vide pour tous.",
+      "idle_title": "Table libre après",
+      "idle_desc": "Sans commande ni paiement à la table, les clients suivants repartent ensuite d’un aperçu vide.",
+      "idle_option": "{{n}} min sans activité",
+      "groups_note": "Un seul groupe commande par table : qui scanne le QR rejoint les clients déjà installés et ne voit que ce qu’ils ont commandé depuis leur arrivée. Deux groupes à une table ? Créez deux tables dans le plan de salle. À 05:00, après l’encaissement à la caisse ou avec « Libérer la table », les clients suivants repartent de zéro.",
+      "groups_note_link": "Vers la salle"
     },
     "horecaPrint": {
       "printers_title": "Imprimantes",
@@ -9697,7 +9704,17 @@
       "counter": "Comptoir",
       "unnamed": "Addition sans nom",
       "readonly_hint": "Cette vue est en lecture seule et s’actualise toutes les 10 secondes. SellQo Kassa affiche les changements immédiatement.",
-      "open_kassa": "Ouvrir SellQo Kassa"
+      "open_kassa": "Ouvrir SellQo Kassa",
+      "qr_guests_since": "Clients QR depuis {{time}}",
+      "stale": "Ouvert depuis hier",
+      "prev_lines": "Lignes de clients précédents ouvertes : {{count}}",
+      "prev_hint": "Les clients actuels ne les voient pas et ne peuvent pas les payer. Encaissez-les ou déplacez-les sur la caisse.",
+      "release": "Libérer la table",
+      "release_title": "Libérer la table {{table}} ?",
+      "release_desc": "Les clients suivants démarrent avec un aperçu et un panier vides. L’addition elle-même s’encaisse ou se déplace sur la caisse.",
+      "release_done": "La table {{table}} est libre. Les clients suivants repartent de zéro.",
+      "release_none": "Il n’y avait plus de clients QR à cette table.",
+      "release_failed": "La libération a échoué. Réessayez."
     },
     "kassaLock": {
       "title": "Verrouiller la caisse",
@@ -9858,6 +9875,11 @@
         "on_toast": "{{name}} est le plat du jour",
         "off_toast": "{{name}} n’est plus un plat du jour",
         "none_toast": "Pas de plat du jour aujourd’hui"
+      },
+      "prevGuests": {
+        "title": "Clients précédents",
+        "count": "Additions ouvertes : {{count}}",
+        "sub": "Voir dans la salle"
       }
     }
   },

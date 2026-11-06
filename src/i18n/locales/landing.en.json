@@ -2581,6 +2581,10 @@
         "horeca_orders_sidebar": {
           "title": "Orders in your hospitality menu only when you receive online orders",
           "description": "With a hospitality plan without a web shop, Orders now only appears in your menu when online ordering with pickup or delivery is on, or when you already have orders. What guests order with the QR code at the table goes to the table bill in the till, not to Orders. Turn on pickup or delivery later and Orders appears by itself. The page always stays reachable through the search bar in My venue or with ⌘K / Ctrl+K."
+        },
+        "table_together": {
+          "title": "Ordering together at the table: one basket, and never the previous guests' bill",
+          "description": "On the table bill, every phone at the same table now shares one basket. What a tablemate adds shows up within seconds, and once the order is sent the basket is empty for everyone. One screen shows your shared basket, everything already ordered with its kitchen status, and the bill with Pay or Ask for the bill. Your guests only see what they ordered since they arrived, including what your staff rang up for them, and never anything from previous guests. A table starts fresh after the daily reset at 05:00, when the bill is closed at the till, after 120 minutes without activity (adjustable), or with the new Free table button in Floor. Floor and the Now panel warn you about a bill that has been open since yesterday or still holds lines from previous guests; settle or move it on the till. You set the shared basket and the idle time under QR at the table."
         }
       },
       "copyLink": "Copy link",

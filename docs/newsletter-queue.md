@@ -4,6 +4,11 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.15m — Samen bestellen aan tafel: één mandje, en nooit de rekening van vorige gasten (feature, 06-11-2026)
+Op de tafelrekening delen alle gsm's aan dezelfde tafel nu één mandje: wat een tafelgenoot toevoegt, zie je meteen, en na het doorgeven is het voor iedereen leeg. Eén scherm toont het mandje, alles wat de tafel al bestelde en de rekening. Je gasten zien enkel wat zij sinds hun aankomst bestelden, nooit iets van vorige gasten. In Zaal zie je welke rekeningen nog iets van vorige gasten bevatten, en met Tafel vrijgeven start de volgende tafel meteen opnieuw.
+Geldt voor: zaken die bestellen via de QR-code op de tafelrekening gebruiken, met tafels uit het zaalplan.
+i18n: `public.changelog.changes.table_together`
+
 ### 2026.15l — Bestellingen in je horeca-menu enkel als je online bestellingen krijgt (improvement, 06-11-2026)
 Heb je een horecapakket zonder webshop, dan staat Bestellingen enkel nog in je menu als online bestellen met afhalen of leveren aan staat, of als je al bestellingen hebt. Wat gasten met de QR-code aan tafel bestellen, komt op de tafelrekening in de kassa. De pagina vind je altijd terug via de zoekbalk in Mijn zaak.
 Geldt voor: Horeca Small en Horeca Big zonder webshop- of eventspakket.

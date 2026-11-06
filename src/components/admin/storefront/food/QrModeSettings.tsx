@@ -7,6 +7,8 @@
 //      (qr_pay_counter / qr_pay_online); op de tafelrekening: de rekening online afrekenen, gelijk
 //      delen, fooi (horeca_pay_settings.online_pay / online_split / online_tip, REKENING-ONLINE-1).
 //   4. De bediening roepen — Ober roepen / Rekening vragen (qr_call_waiter / qr_call_bill, nieuw).
+// TAFEL-SAMEN-1 — bij "op de tafelrekening": gedeeld tafelmandje (qr_shared_cart) en wanneer een tafel vrij
+// komt na inactiviteit (qr_group_idle_minutes). Apart gelezen: zonder de kolommen verdwijnen enkel die twee.
 // Dezelfde kolommen blijven de bron; Kassa › Betalen (HorecaPaySettings) houdt enkel de
 // kassa-betaalwijzen en linkt hiernaartoe. Een uitgegrijsde schakelaar zegt altijd waarom, met een
 // link die het oplost.
@@ -38,8 +40,14 @@ interface QrState {
   callWaiter: boolean; callBill: boolean;
   /** UREN-1b: bestellen aan tafel ook buiten de openingsuren (standaard aan = gedrag van vroeger). */
   outsideHours: boolean;
+  /** TAFEL-SAMEN-1: één mandje voor de hele tafel (standaard aan). */
+  sharedCart: boolean;
+  /** TAFEL-SAMEN-1: een tafel komt vrij na zoveel minuten zonder activiteit (standaard 120). */
+  idleMinutes: number;
 }
-const FS_KEYS = ['mode', 'flow', 'autoAccept', 'counter', 'payOnline', 'callWaiter', 'callBill', 'outsideHours'] as const;
+const FS_KEYS = ['mode', 'flow', 'autoAccept', 'counter', 'payOnline', 'callWaiter', 'callBill', 'outsideHours', 'sharedCart', 'idleMinutes'] as const;
+/** TAFEL-SAMEN-1: keuzes binnen de grenzen van de databank (30–480 min). */
+const IDLE_OPTIONS = [30, 60, 90, 120, 180, 240, 360, 480] as const;
 const PAY_KEYS = ['checkOnline', 'split', 'tip'] as const;
 
 /** Eén schakelaar met één zin uitleg; uitgegrijsd altijd met de reden (en een link die het oplost). */
@@ -85,7 +93,7 @@ export function QrModeSettings() {
     queryKey: ['qr-mode', tenantId],
     enabled: !!tenantId,
     queryFn: async () => {
-      const [{ data: raw, error }, calls, pay, ts, fiscal, hoursRule] = await Promise.all([
+      const [{ data: raw, error }, calls, pay, ts, fiscal, hoursRule, group] = await Promise.all([
         supabase.from('fulfillment_settings').select('qr_mode, qr_pay_counter, qr_pay_online, qr_flow, qr_auto_accept' as 'qr_mode').eq('tenant_id', tenantId!).maybeSingle(),
         // QR-MODULES-1 — apart gelezen: zonder de nieuwe kolommen (migratie nog niet gedraaid) blijft de
         // rest van het scherm werken en verdwijnt enkel de groep "De bediening roepen".
@@ -97,7 +105,10 @@ export function QrModeSettings() {
         supabase.from('pos_terminals').select('id', { count: 'exact', head: true }).eq('tenant_id', tenantId!).eq('settings->fiscal->>mode' as never, 'fdm' as never),
         // UREN-1b — apart gelezen, zoals de oproepen: zonder de kolom verdwijnt enkel die schakelaar.
         supabase.from('fulfillment_settings').select('qr_block_outside_hours' as 'qr_mode').eq('tenant_id', tenantId!).maybeSingle(),
+        // TAFEL-SAMEN-1 — apart gelezen: zonder de kolommen verdwijnen enkel die twee instellingen.
+        supabase.from('fulfillment_settings').select('qr_shared_cart, qr_group_idle_minutes' as 'qr_mode').eq('tenant_id', tenantId!).maybeSingle(),
       ]);
+      const gr = group.data as { qr_shared_cart?: boolean | null; qr_group_idle_minutes?: number | null } | null;
       if (error) throw error;
       if (pay.error) throw pay.error;
       const row = raw as { qr_mode?: string | null; qr_pay_counter?: boolean | null; qr_pay_online?: boolean | null; qr_flow?: string | null; qr_auto_accept?: boolean | null } | null;
@@ -112,11 +123,14 @@ export function QrModeSettings() {
         checkOnline: o?.online_pay === true, split: o?.online_split !== false, tip: o?.online_tip !== false,
         callWaiter: c?.qr_call_waiter !== false, callBill: c?.qr_call_bill !== false,
         outsideHours: (hoursRule.data as { qr_block_outside_hours?: boolean | null } | null)?.qr_block_outside_hours !== true,
+        sharedCart: gr?.qr_shared_cart !== false,
+        idleMinutes: Number(gr?.qr_group_idle_minutes) || 120,
       };
       return {
         state,
         callsAvailable: !calls.error,
         hoursRuleAvailable: !hoursRule.error,
+        groupAvailable: !group.error,
         fiscal: (fiscal.count ?? 0) > 0,
         // Onbekend (fout bij lezen) = geen melding: nooit een valse waarschuwing.
         shop_live: ts.error ? true : ts.data?.shop_live === true,
@@ -153,6 +167,7 @@ export function QrModeSettings() {
             qr_pay_counter: s.counter, qr_pay_online: s.payOnline,
             ...(data.callsAvailable ? { qr_call_waiter: s.callWaiter, qr_call_bill: s.callBill } : {}),
             ...(data.hoursRuleAvailable ? { qr_block_outside_hours: !s.outsideHours } : {}),
+            ...(data.groupAvailable ? { qr_shared_cart: s.sharedCart, qr_group_idle_minutes: s.idleMinutes } : {}),
             updated_at: now,
           } as never,
           { onConflict: 'tenant_id' },
@@ -235,6 +250,27 @@ export function QrModeSettings() {
                     <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />{t('admin.qrFlow.auto_warning')}
                   </p>
                 ) : null}
+                {data.groupAvailable ? <>
+                  <ToggleRow title={t('admin.qrFlow.shared_title')} desc={t('admin.qrFlow.shared_desc')} checked={s.sharedCart} onChange={(v) => set({ sharedCart: v })} />
+                  <div className="space-y-1 border-t pt-3">
+                    <label htmlFor="qr-idle" className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+                      <span>
+                        <span className="block text-sm font-medium">{t('admin.qrFlow.idle_title')}</span>
+                        <span className="block text-xs text-muted-foreground">{t('admin.qrFlow.idle_desc')}</span>
+                      </span>
+                      <select id="qr-idle" value={s.idleMinutes} onChange={(e) => set({ idleMinutes: Number(e.target.value) })}
+                        className="h-9 rounded-md border bg-background px-2 text-sm">
+                        {[...new Set([...IDLE_OPTIONS, s.idleMinutes])].sort((a, b) => a - b).map((m) => (
+                          <option key={m} value={m}>{t('admin.qrFlow.idle_option', { n: m })}</option>
+                        ))}
+                      </select>
+                    </label>
+                  </div>
+                  <p className="flex gap-2 rounded-md bg-muted/60 p-2.5 text-xs text-muted-foreground">
+                    <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                    <span>{t('admin.qrFlow.groups_note')} <Link to={href('/admin/zaal')} className="font-medium text-primary underline">{t('admin.qrFlow.groups_note_link')}</Link></span>
+                  </p>
+                </> : null}
               </div>
             ) : null}
             {data.hoursRuleAvailable ? (

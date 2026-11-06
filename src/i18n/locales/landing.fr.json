@@ -2581,6 +2581,10 @@
         "horeca_orders_sidebar": {
           "title": "Commandes dans ton menu horeca seulement si tu reçois des commandes en ligne",
           "description": "Avec un forfait horeca sans boutique en ligne, Commandes n'apparaît plus dans ton menu que si la commande en ligne avec retrait ou livraison est activée, ou si tu as déjà des commandes. Ce que les clients commandent avec le QR code à table va sur l'addition de la table dans la caisse, pas dans Commandes. Active plus tard le retrait ou la livraison, et Commandes apparaît tout seul. La page reste toujours accessible via la barre de recherche dans Mon établissement ou avec ⌘K / Ctrl+K."
+        },
+        "table_together": {
+          "title": "Commander ensemble à table : un seul panier, et jamais l'addition des clients précédents",
+          "description": "Sur l'addition de table, tous les téléphones d'une même table partagent désormais un seul panier. Ce qu'ajoute un convive apparaît en quelques secondes, et une fois la commande transmise, le panier est vide pour tout le monde. Un seul écran montre votre panier commun, tout ce que vous avez déjà commandé avec son état en cuisine, et l'addition avec Payer ou Demander l'addition. Vos clients ne voient que ce qu'ils ont commandé depuis leur arrivée, y compris ce que votre personnel a encodé pour eux, et jamais rien des clients précédents. Une table repart de zéro après la remise à zéro quotidienne à 05:00, quand l'addition est clôturée à la caisse, après 120 minutes sans activité (réglable), ou avec le nouveau bouton Libérer la table dans Salle. Salle et le panneau Maintenant vous avertissent d'une addition ouverte depuis hier ou contenant encore des lignes de clients précédents ; encaissez-la ou déplacez-la sur la caisse. Le panier partagé et la durée sans activité se règlent sous QR à table."
         }
       },
       "copyLink": "Copier le lien",

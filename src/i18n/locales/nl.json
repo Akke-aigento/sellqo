@@ -9816,7 +9816,14 @@
       "offline_title": "Je QR-menu is nog niet zichtbaar voor gasten",
       "offline_desc": "Je zaak staat nog offline. Zet ze online onder Webshop › Winkel openen; online bestellen voor thuis blijft daarbij uit.",
       "offline_link": "Naar Winkel openen",
-      "check_short": "Op de tafelrekening, op het einde"
+      "check_short": "Op de tafelrekening, op het einde",
+      "shared_title": "Gedeeld tafelmandje",
+      "shared_desc": "Iedereen aan dezelfde tafel vult één mandje. Na het doorgeven is het voor iedereen leeg.",
+      "idle_title": "Tafel vrij na",
+      "idle_desc": "Zonder bestelling of betaling aan de tafel starten de volgende gasten daarna met een leeg overzicht.",
+      "idle_option": "{{n}} min zonder activiteit",
+      "groups_note": "Per tafel bestelt één gezelschap: wie de QR scant, sluit aan bij de gasten die er al zitten en ziet enkel wat zij sinds hun aankomst bestelden. Twee gezelschappen aan één tafel? Maak er twee tafels van in het zaalplan. Om 05:00, na het afrekenen aan de kassa of met \"Tafel vrijgeven\" starten de volgende gasten opnieuw.",
+      "groups_note_link": "Naar Zaal"
     },
     "horecaPrint": {
       "printers_title": "Printers",
@@ -10042,7 +10049,17 @@
       "counter": "Toog",
       "unnamed": "Rekening zonder naam",
       "readonly_hint": "Dit overzicht is alleen-lezen en ververst elke 10 seconden. SellQo Kassa zelf toont wijzigingen meteen.",
-      "open_kassa": "SellQo Kassa openen"
+      "open_kassa": "SellQo Kassa openen",
+      "qr_guests_since": "QR-gasten sinds {{time}}",
+      "stale": "Open sinds gisteren",
+      "prev_lines": "Lijnen van vorige gasten open: {{count}}",
+      "prev_hint": "De gasten van nu zien die niet en kunnen ze niet betalen. Reken ze af of verplaats ze op de kassa.",
+      "release": "Tafel vrijgeven",
+      "release_title": "Tafel {{table}} vrijgeven?",
+      "release_desc": "De volgende gasten starten met een leeg overzicht en een leeg mandje. De rekening zelf reken je af of verplaats je op de kassa.",
+      "release_done": "Tafel {{table}} is vrij. De volgende gasten starten opnieuw.",
+      "release_none": "Er zaten geen QR-gasten meer aan deze tafel.",
+      "release_failed": "Vrijgeven lukte niet. Probeer het opnieuw."
     },
     "kassaLock": {
       "title": "Kassa vergrendelen",
@@ -10203,6 +10220,11 @@
         "on_toast": "{{name}} is de dagschotel van vandaag",
         "off_toast": "{{name}} is geen dagschotel meer",
         "none_toast": "Geen dagschotel vandaag"
+      },
+      "prevGuests": {
+        "title": "Vorige gasten",
+        "count": "Open rekeningen: {{count}}",
+        "sub": "Bekijk in Zaal"
       }
     }
   },

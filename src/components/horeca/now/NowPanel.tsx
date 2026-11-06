@@ -4,9 +4,11 @@
 // RLS: geen tegel die na de tik "geen rechten" zegt). Elke tegel schrijft naar dezelfde bron als het scherm
 // waar de instelling thuishoort; dit is de snelle ingang, de instellingen blijven daar (één plek per taak).
 import { useState, type ReactNode } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { CalendarX, ChefHat, Globe, PauseCircle, QrCode, Soup, Sun } from 'lucide-react';
+import { CalendarX, ChefHat, Globe, History, PauseCircle, QrCode, Soup, Sun } from 'lucide-react';
+import { useTableGroups } from '@/hooks/useTableGroups';
+import { previousGuestChecks } from '@/lib/horeca/tableGroups';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { useCan, useScopedRoles } from '@/hooks/useCan';
@@ -70,6 +72,10 @@ function NowPanelTiles({ nowMs }: { nowMs: number }) {
   const { hasTrack, ready } = useTracks();
   const paymentsUrl = ready && isHorecaOnly(hasTrack) ? PAYMENTS_URL_HORECA_ONLY : PAYMENTS_URL;
   const [sheet, setSheet] = useState<null | 'soldout' | 'special'>(null);
+  // TAFEL-SAMEN-1 — enkel bij QR op de tafelrekening; zelfde bron als Zaal › Live (horeca_table_groups).
+  const navigate = useNavigate();
+  const groups = useTableGroups(isFloor && qr.data?.mode === 'order' && qr.data?.flow === 'check');
+  const prevGuests = previousGuestChecks(groups.data);
   const [confirmClose, setConfirmClose] = useState(false);
   const [reason, setReason] = useState('');
 
@@ -196,6 +202,15 @@ function NowPanelTiles({ nowMs }: { nowMs: number }) {
         state={specialNames.length ? specialNames.join(', ') : t('admin.now.special.none_short')}
         sub={specialNames.length > 1 ? t('admin.now.special.count', { count: specialNames.length }) : null}
         tone={specialNames.length ? 'on' : 'neutral'} onClick={() => setSheet('special')} />,
+    );
+  }
+
+  // 8. TAFEL-SAMEN-1 — open rekeningen van vorige gasten: enkel een link naar Zaal (daar staat de actie).
+  if (isFloor && prevGuests > 0) {
+    tiles.push(
+      <NowTile key="prev-guests" testId="now-prev-guests" icon={History} title={t('admin.now.prevGuests.title')}
+        state={t('admin.now.prevGuests.count', { count: prevGuests })} sub={t('admin.now.prevGuests.sub')} tone="alert"
+        onClick={() => navigate('/admin/zaal')} />,
     );
   }
 

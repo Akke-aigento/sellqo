@@ -9471,7 +9471,14 @@
       "offline_title": "Ihr QR-Menü ist für Gäste noch nicht sichtbar",
       "offline_desc": "Ihr Betrieb ist noch offline. Schalten Sie ihn unter Onlineshop › Shop öffnen online; Bestellungen für zu Hause bleiben dabei aus.",
       "offline_link": "Zu „Shop öffnen“",
-      "check_short": "Auf die Tischrechnung, am Ende"
+      "check_short": "Auf die Tischrechnung, am Ende",
+      "shared_title": "Gemeinsamer Tischwarenkorb",
+      "shared_desc": "Alle am selben Tisch füllen einen Warenkorb. Nach dem Absenden ist er für alle leer.",
+      "idle_title": "Tisch frei nach",
+      "idle_desc": "Ohne Bestellung oder Zahlung am Tisch starten die nächsten Gäste danach mit einer leeren Übersicht.",
+      "idle_option": "{{n}} Min. ohne Aktivität",
+      "groups_note": "Pro Tisch bestellt eine Gruppe: Wer den QR-Code scannt, schließt sich den Gästen an, die schon dort sitzen, und sieht nur, was sie seit ihrer Ankunft bestellt haben. Zwei Gruppen an einem Tisch? Machen Sie im Raumplan zwei Tische daraus. Um 05:00 Uhr, nach dem Abrechnen an der Kasse oder mit „Tisch freigeben“ starten die nächsten Gäste neu.",
+      "groups_note_link": "Zum Raum"
     },
     "horecaPrint": {
       "printers_title": "Drucker",
@@ -9697,7 +9704,17 @@
       "counter": "Theke",
       "unnamed": "Rechnung ohne Namen",
       "readonly_hint": "Diese Übersicht ist schreibgeschützt und aktualisiert sich alle 10 Sekunden. SellQo Kassa zeigt Änderungen sofort.",
-      "open_kassa": "SellQo Kassa öffnen"
+      "open_kassa": "SellQo Kassa öffnen",
+      "qr_guests_since": "QR-Gäste seit {{time}}",
+      "stale": "Offen seit gestern",
+      "prev_lines": "Offene Positionen früherer Gäste: {{count}}",
+      "prev_hint": "Die jetzigen Gäste sehen diese nicht und können sie nicht bezahlen. Rechnen Sie sie an der Kasse ab oder verschieben Sie sie dort.",
+      "release": "Tisch freigeben",
+      "release_title": "Tisch {{table}} freigeben?",
+      "release_desc": "Die nächsten Gäste starten mit einer leeren Übersicht und einem leeren Warenkorb. Die Rechnung selbst rechnen Sie an der Kasse ab oder verschieben sie dort.",
+      "release_done": "Tisch {{table}} ist frei. Die nächsten Gäste starten neu.",
+      "release_none": "An diesem Tisch saßen keine QR-Gäste mehr.",
+      "release_failed": "Freigeben hat nicht geklappt. Bitte erneut versuchen."
     },
     "kassaLock": {
       "title": "Kasse sperren",
@@ -9858,6 +9875,11 @@
         "on_toast": "{{name}} ist das Tagesgericht von heute",
         "off_toast": "{{name}} ist kein Tagesgericht mehr",
         "none_toast": "Heute kein Tagesgericht"
+      },
+      "prevGuests": {
+        "title": "Frühere Gäste",
+        "count": "Offene Rechnungen: {{count}}",
+        "sub": "Im Raum ansehen"
       }
     }
   },

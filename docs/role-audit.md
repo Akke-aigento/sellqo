@@ -1,3 +1,75 @@
+## TAFEL-SAMEN-1 — Gedeeld tafelmandje en nooit de rekening van vorige gasten — 6 november 2026
+
+Plan: `/home/claude/tafel-samen-1-plan.md` (recon 06-11), goedgekeurd door Akke met beslissingen, plus een bindende bijsturing tijdens de bouw: **nooit twee groepen tegelijk aan een tafel** (1 rekening per tafel, 1 actieve groep per tafel; twee gezelschappen = twee tafels/stickers, bv. 8a en 8b). Branch `tafel-samen-1` vanaf origin/main 649a2ff. Changelog 2026.15m. Niets live, niet gepusht, migraties niet gedraaid.
+
+**Root cause**
+- Gastweergave van de rekening = `table_check_view(tenant, table)` (`20261028140000_rekening_online_1.sql:141-200`): álle verstuurde lijnen van de open tafelrekening, zonder tijd- of groepsgrens. De Wissel tafel 8 (rekening 3b44653b…, open sinds 05-11 07:07 UTC) toonde zo Pils, Donker abdijbier en een door het personeel aangetikte Tripel van gisteren aan Akke, die op 06-11 enkel een Wit bier bestelde.
+- Mandje per gsm (cookie `sq_cart_tafel_<fnv>`, TAFEL-SESSIE-1) en doorgegeven rondes enkel in localStorage van de verzender (`sq_table_requests`, `TableCheckRequest.tsx:16-33`): het tweede toestel aan dezelfde tafel zag niets van wat de eerste doorgaf en hield zijn eigen mandje.
+- `cart_add_item` voegde hetzelfde product samen met lezen-dan-schrijven (`storefront-api/index.ts` merge-blok): twee gelijktijdige toevoegingen verloren een ophoging of liepen op 23505 (`idx_cart_items_product_variant_addons`); toevoegen aan een al doorgegeven mandje ging stil verloren.
+
+**Uitgevoerd — core (`sellqo`)**
+- `supabase/migrations/20261106160000_tafel_samen_1.sql` (nieuw, additief, idempotent, terugdraai-commentaar):
+  - `table_guest_groups` (id, tenant, tafel, started/last_activity/ended_at, ended_reason, cart_id, check_id, version) met **partiële unieke index** `table_guest_groups_active_uq (tenant_id, dining_table_id) where ended_at is null`; RLS aan, `authenticated` enkel select op eigen zaak, anon niets.
+  - `table_requests.group_id` (nullable; de kassa negeert het), `fulfillment_settings.qr_shared_cart` (standaard true) en `qr_group_idle_minutes` (120, check 30–480). `qr_group_join_minutes` uit het plan vervalt door de bijsturing.
+  - Functies (security definer, `search_path ''`, enkel `service_role`): `table_group_last_reset`, `table_group_end_reason` (dagreset 05:00 via `sold_out_reset_at`, inactiviteit, laatst geziene rekening niet meer open), `table_group_new_cart` (session `tafelgroep:<id>`), `table_group_settle` (advisory lock per tafel + rijlock, lui afsluiten, check_id bijwerken), `table_group_join`, `table_group_state` (goedkope poll, hv = `horeca_state.version`), `table_group_lines_view` / `table_group_view` / `table_check_view_since`, `table_group_request_place` (groep vergrendelen → `table_request_place` ongewijzigd → `group_id` → nieuw leeg mandje, één transactie, idempotent), `table_group_cart_put` (add/set/remove onder het groepslot; `insert … on conflict (… addon_key) do update set quantity = quantity + excluded.quantity`; `CART_ROTATED:<nieuw>`; voorraad en 99/regel na het optellen).
+  - Beheer (`authenticated`, `has_tenant_role tenant_admin|staff`): `horeca_table_groups(p_tenant)` (stale, prev_open_lines, actieve groep) en `table_group_release(p_tenant, p_table)` (beëindigt de groep, raakt de rekening niet, `horeca_bump`).
+- `supabase/functions/storefront-api/index.ts`: nieuwe acties `table_group_join`, `table_group_state`, `table_group_overview`, `table_group_place` (ook in `CLOSED_SHOP_BLOCKED_ACTIONS`); additieve parameter `table_group_id` op `cart_add_item` / `cart_update_item` / `cart_remove_item` (laatste schrijfstap via `table_group_cart_put`; fouten `CART_ROTATED` met `cart_id`, `GROUP_ENDED`, `ITEM_GONE` als `{success:false,error}` zoals de table_*-acties); additieve parameter `group_id` op `table_check_get` en `table_check_pay` (enkel eigen lijnen; gemengd: gelijk delen → `CHECK_PAY_NO_SHARE`, "alles" → `lines` met alle vrije groepslijnen; een lijn buiten de groep → `CHECK_LINES_CHANGED`). Stempel `TAFEL-SAMEN-1` / `tafel-samen-1`.
+- Admin: `src/lib/horeca/tableGroups.ts` (+ test), `src/hooks/useTableGroups.ts` (volgt dezelfde `horeca-live-version`-sleutel als `useLiveChecks`, plus 60 s voor lui afgelopen groepen; ontbrekende functie = geen waarschuwing, geen fout), `LiveFloorOverview.tsx` (waarschuwing "Open sinds gisteren · Lijnen van vorige gasten open: N", "QR-gasten sinds hh:mm", knop **Tafel vrijgeven** met AlertDialog), `NowPanel.tsx` (tegel "Vorige gasten · Open rekeningen: N" → `/admin/zaal`, enkel bij QR op de tafelrekening, staff/admin), `QrModeSettings.tsx` (schakelaar "Gedeeld tafelmandje", keuze "Tafel vrij na … min zonder activiteit", uitleg één gezelschap per tafel met link naar Zaal; apart gelezen zodat het scherm werkt zonder de kolommen).
+- i18n: 21 admin-keys × 5 talen (`admin.qrFlow.*`, `admin.liveFloor.*`, `admin.now.prevGuests.*`), changelog `table_together` × 5.
+- Tests: `scripts/promo-compare/tableGroup.test.ts` (15, in CI), `src/lib/horeca/tableGroups.test.ts` (3, in CI-vitest), stempel in 5 bestaande promo-compare-tests naar TAFEL-SAMEN-1. Harnasscenario `scripts/harness/scenarios/tafel-samen`.
+- Docs-migratie `20261106160100_tafel_samen_1_docs.sql` (niet gedraaid): geankerde replaces in `qr-tafelrekening`, `qr-online-betalen`, `zaal-live-overzicht`, snapshot `snapshots.sellqo_20261106_doc_tafel_samen_1`.
+
+**Uitgevoerd — storefront (`sellqo-storefront`, eigen role-audit)** tafelgroep-cookie, aansluiten in `loadShell`, gedeeld mandje via `table_group_id` met één herhaling bij `CART_ROTATED`, `TableOverview` (mandje + "Al besteld aan tafel X" + rekening) op `/winkelmandje`, `/afrekenen` en `/rekening`, poll 5/15 s, localStorage `sq_table_requests` gewist.
+
+**Security-keuzes**
+- `table_guest_groups`: revoke all van anon/authenticated, enkel `select` voor authenticated met `tenant_id in get_user_tenant_ids(auth.uid())`. Schrijven enkel via definer-functies.
+- Alle gastfuncties: `revoke … from public, anon, authenticated; grant execute … to service_role` (enkel storefront-api). Rol-impersonatie op PG16: anon geen leesrecht en geen execute, authenticated geen `table_group_join`, staff van een andere zaak `FORBIDDEN` op `horeca_table_groups`/`table_group_release` en 0 rijen in de tabel.
+- Elke definer-lookup filtert op de tenant van de aanroep (groep, tafel, rekening, mandje); een groep-ID van een andere tafel telt in storefront-api niet (`groupOfTable`).
+- Geen secrets, geen nieuwe kolom op `tenant_theme_settings` (niets stroomt naar de custom frontends).
+
+**Gedeelde-paden-waarschuwing**
+- `storefront-api` is gedeeld met de zes custom frontends (Loveke, VanXcel, Astra Sleep, Mancini Milano, Zona Dorata, Benny Rich). Nieuw gedrag zit enkel achter `table_group_id` (cart_*) en `group_id` (table_check_*): zonder die parameters is het pad byte-gelijk (handler-test: `cart_add_item` zonder param = insert-pad, geen groepsfunctie). `computeCartTotals`, korting en checkout zijn niet geraakt; daarom geen promo-compare-vergelijking op een live-fixture (G6 vraagt die bij korting/mandje-totalen/checkout).
+- Enige bewuste gedragswijziging zonder parameter: `table_check_get` toont enkel lijnen van na de laatste dagreset (vangnet voor oude tabbladen) en zet `online_pay` uit als er oudere lijnen openstaan (anders zou "alles" ze meebetalen). Ontbreekt de databankfunctie (migratie nog niet gedraaid), dan het oude antwoord. Enkel de SellQo-storefront gebruikt deze actie (custom frontends hebben geen tafelrekening).
+- `storefront_carts`: geen kolom gewijzigd; groepsmandjes zijn gewone rijen met `session_id 'tafelgroep:<id>'` en `expires_at` +1 dag.
+- Niet aangeraakt (bewezen met `git diff --stat`): `src/kassa/**`, `horeca_apply(_one)`, `horeca_snapshot`, `horeca_check_json`, `horeca_pay*`, `horeca_table_request_accept/reject`, `dining_checks`/`check_lines`/`check_rounds`, `dining_checks_open_table_uq`, `table_request_place`, `table_check_view`, `table_check_pay_*`, `resolve_domain`. Geen fiscale release, geen `KASSA_SW_VERSION`-bump.
+
+**Verificatie**
+- PG16-wegwerpcluster (stub-schema + de échte `table_request_place`, `table_check_view`, `table_check_pay_start`, `horeca_*`-helpers en `sold_out_reset_at` uit de repo): migratie 2× = idempotent; 45 gedragschecks groen (`/home/claude/samen-test/tests.sql`): aansluiten zonder venster, unieke index weigert een tweede actieve groep, on conflict-optelling, voorraad na optellen, doorgeven + nieuw mandje, idempotent doorgeven, `CART_ROTATED`, enkel lijnen van na de start (QR én personeel), correctie volgt haar lijn, lijnen van een andere groep onzichtbaar, `table_check_view` ongewijzigd, vangnet na dagreset, idle 120, `check_closed`, dagreset 05:00 ondanks activiteit om 04:50, release, RLS/grants per rol.
+- Gelijktijdigheid (`conc.sh`, `conc2.sh`): 20/20/30/40 parallelle toevoegingen + één doorgave: som(aanvraag + nieuw mandje) = N, 0 fouten; 8 gelijktijdige eerste toevoegingen van hetzelfde product = 1 regel, qty 8, 0 × 23505; toevoegen tijdens een doorgave die 1 s open blijft: wacht, `CART_ROTATED`, herhaald in het nieuwe mandje.
+- `deno check` storefront-api groen; promo-compare CI-set 267/267 groen (incl. 15 nieuwe); rooktest `smoke.ts` groen (import map met `npm:@supabase/supabase-js@2.57.2`); grep op de oude stempel TAFEL-SESSIE-1 in `scripts/promo-compare`: enkel nog testnamen/commentaar van die batch.
+- Admin: `tsc --noEmit -p tsconfig.app.json` exit 0; `npm run build` exit 0; lint tegen baseline 1457 → 1454 (de gewijzigde bestanden 0 problemen); i18n-pariteit groen; CI-vitest 48 bestanden / 566 tests groen; `vitest run src/kassa` 366 groen (ongewijzigd).
+- Harnas `tafel-samen` 390/1280: waarschuwing tafel 8, Tafel vrijgeven → `table_group_release(t1, tb8)`, Engels, zonder databankfunctie geen waarschuwing; Nu-tegel; QR-instellingen bewaren `qr_shared_cart=false, qr_group_idle_minutes=180`; 0 overloop. Screenshots `/home/claude/samen-shots/admin/`.
+- Storefront: zie de role-audit in `sellqo-storefront` (Playwright 58/58 met meerdere gsm's).
+
+**Afwijkingen van het plan (gemotiveerd)**
+- Bijsturing Akke: één actieve groep per tafel (unieke index), scannen = altijd aansluiten, geen aanschuifvenster (`qr_group_join_minutes` vervalt), groep ziet alle lijnen van na haar start (QR én personeel); "gemengd" = open lijnen van vóór de start.
+- "Niet jullie bestelling? Start een nieuwe" (`force_new`) niet gebouwd: met één groep per tafel zou elke gast het gezelschap aan tafel kunnen beëindigen. Vrijgeven gebeurt door het personeel in Zaal.
+- Gedeeld mandje enkel bij `qr_flow = 'check'`; bij "elke bestelling apart afrekenen" blijft het mandje per gsm (wie betaalt, bestelt) en is `checkout_table + table_group_id` niet gebouwd.
+- De lade (CartDrawer) is geen volledig tafeloverzicht: ze toont het gedeelde mandje met "Iedereen aan tafel X ziet dit mandje" en linkt naar het overzicht (één plek per taak). Geen QR-code op het scherm (geen QR-bibliotheek in de storefront; de QR op tafel doet hetzelfde); wel "Deel met je tafel" (Web Share of kopiëren).
+- `ended_reason 'replaced'` vervalt (kan niet meer voorkomen).
+
+**Bewust ongemoeid / Vervolg**
+- Uitrolvolgorde: (1) migratie `20261106160000_tafel_samen_1.sql` + SQL-natrek; (2) deploy storefront-api, GET-stempel `TAFEL-SAMEN-1`; (3) publish admin (deploy_project) + bundelcheck; (4) push + deploy sellqo-storefront; (5) docs-migratie; (6) live natrek De Wissel tafel 8: Zaal toont de waarschuwing voor 3b44653b, `table_group_view` toont enkel lijnen na de groepsstart.
+- Open: een gsm met een oude tafelcookie (bv. vorige gasten, 3 u geldig) sluit na het vrijgeven bij de nieuwe groep aan en ziet haar mandje/rondes. Dat risico bestond al (statische QR-token, MENU-SNEL-1). Voorstel vervolg: zonder verse scan (`?t=`) niet automatisch aansluiten als de eigen groep beëindigd werd door vrijgeven of afrekenen.
+- Open: De Wissel rekening 3b44653b (tafel 8, open sinds 05-11) rekent Akke af of verplaatst ze op de kassa; wij doen niets server-side.
+- Waarschuwing op het kassatoestel zelf = latere kassa-release (src/kassa niet aangeraakt).
+- Groepsmandjes die eindigen krijgen `checkout_status 'abandoned'`: tellen mee als verlaten mandje in statistieken, zonder e-mail (geen herinnering mogelijk).
+- Skill-voorstel (sellqo-gedeelde-paden): "storefront_carts / cart_* zijn gedeeld met de custom frontends: nieuw gedrag enkel achter een additieve parameter, en schrijven onder gelijktijdigheid via een DB-functie met lock + on conflict" — wacht op go.
+
+**Samenhang**
+| Plek | Deed | Nu |
+|---|---|---|
+| `/winkelmandje`, `/afrekenen` aan tafel (tafelrekening, zaalplan) | mandje per gsm / doorgeven + rondes uit localStorage | één `TableOverview`: gedeeld mandje + Al besteld (server) + rekening |
+| `/rekening` | hele open tafelrekening (lek) | diepe link naar hetzelfde `TableOverview`, enkel groepslijnen |
+| Lade + koptellertje | mandje van deze gsm | gedeeld mandje (teller uit het groepsmandje) |
+| localStorage `sq_table_requests`, cookie `sq_cart_tafel_*` | per toestel | gewist (server is de bron) |
+| Zaal › Live | alleen-lezen lijst | + waarschuwingen en Tafel vrijgeven (enige actie) |
+| Nu-paneel | geen rekeningen | tegel → Zaal (geen tweede actieplek) |
+| Instellingen › Horeca › QR aan tafel | qr_flow, auto-accept | + gedeeld mandje en inactiviteit, zelfde kaart |
+| `doc_articles` qr-tafelrekening, qr-online-betalen, zaal-live-overzicht | per-gsm mandje, hele rekening, "alleen-lezen" | bijgewerkt (migratie, niet gedraaid) |
+| Kassa (src/kassa) | — | niets gewijzigd |
+| Oude storefront-pad zonder groep (oudere API of fout) | — | blijft werken (bewezen: TAFEL-SESSIE-1-regressie 80/80 met groepen uit) |
+
 ## ZIJBALK-BESTELLINGEN-1 — Bestellingen in de horeca-zijbalk enkel met online afhalen/leveren — 6 november 2026
 
 Beslissing van Akke: in de horeca-only-zijbalk staat Bestellingen (`/admin/orders`) enkel nog als de zaak online afhalen of leveren aan heeft, of al bestellingen heeft. Branch `zijbalk-bestellingen-1` vanaf origin/main 7c89c25. Changelog 2026.15l. Nog niets live, niet gepusht.
