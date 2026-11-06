@@ -5,8 +5,13 @@ const overflow = (page) => page.evaluate(() => document.documentElement.scrollWi
 export async function run(page, { shot, log }) {
   const go = async (q) => { await page.goto(`${page.url().split('?')[0]}?${q}`); await page.waitForTimeout(1200); };
   await go('screen=zaal');
-  const warn = page.getByTestId('live-prev-guests');
-  if ((await warn.count()) !== 1) throw new Error(`zaal: verwacht 1 waarschuwing, kreeg ${await warn.count()}`);
+  const all = page.getByTestId('live-prev-guests');
+  if ((await all.count()) !== 2) throw new Error(`zaal: verwacht 2 waarschuwingen (tafel 8 + stille tafel 5), kreeg ${await all.count()}`);
+  const idle = page.getByTestId('live-row-c5').getByTestId('live-prev-guests');
+  const it = (await idle.innerText()).replace(/\n/g, ' · ');
+  log('zaal stille tafel', it);
+  if (!/Geen activiteit sinds 1 u 03, nog open/.test(it) || (await idle.getByRole('button', { name: 'Tafel vrijgeven' }).count()) !== 1) throw new Error(`zaal: signaal stille tafel ${it}`);
+  const warn = page.getByTestId('live-row-c8').getByTestId('live-prev-guests');
   const wt = (await warn.innerText()).replace(/\n/g, ' · ');
   log('zaal waarschuwing', wt, 'overflow', await overflow(page));
   if (!/Open sinds gisteren · Lijnen van vorige gasten open: 3/.test(wt)) throw new Error(`zaal: tekst ${wt}`);
@@ -20,7 +25,7 @@ export async function run(page, { shot, log }) {
   if (rel.length !== 1 || rel[0].args.p_table_id !== 'tb8') throw new Error('zaal: Tafel vrijgeven riep table_group_release niet (juist) aan');
   await shot('zaal-vrijgegeven');
   await go('screen=zaal&lang=en');
-  log('zaal en', (await page.getByTestId('live-prev-guests').innerText()).replace(/\n/g, ' · '));
+  log('zaal en', (await page.getByTestId('live-row-c8').getByTestId('live-prev-guests').innerText()).replace(/\n/g, ' · '));
   await shot('zaal-en');
   await go('screen=zaal&groups=off');
   if ((await page.getByTestId('live-prev-guests').count()) !== 0) throw new Error('zaal zonder functie: toch een waarschuwing');

@@ -94,6 +94,32 @@ Plan: `/home/claude/tafel-samen-1-plan.md` (recon 06-11), goedgekeurd door Akke 
   zonder nieuwe groep, "Net doorgegeven"); regressies ongewijzigd (SESSIE-1 80/80 zonder groepen, 78/80 met de twee
   bedoelde verschillen; STAAT-1 598/0; NU-2 36/36). Docs-migratie opnieuw 2× gedraaid: idempotent.
 
+**Tweede reviewronde (zelfde dag)** — migratie opnieuw in place aangepast (nog nergens gedraaid):
+- **R1a** verse scan (`?t=`) door een toestel dat geen lid is en zonder geldige deellink, terwijl de actieve groep al
+  langer dan `qr_group_idle_minutes` stil is (ook mét openstaande lijnen, B4): de oude groep eindigt
+  (`ended_reason 'idle_new_guest'`, nieuw toegelaten in de check), er start een nieuwe. De open lijnen van de vorigen
+  worden "lijnen van vorige gasten" (verborgen, gemengd, waarschuwing). Leden die herladen en een late vriend via een
+  geldige deellink sluiten gewoon aan (lang etentje). Activiteit = `table_group_last_activity` (nieuw, één bron voor
+  end_reason, join en Zaal).
+- **R1b** `horeca_table_groups` geeft per groep `idle_open` (stil > inactiviteitstijd, nog iets open) en de echte
+  laatste activiteit. Zaal: "Geen activiteit sinds 1 u 03, nog open" + uitleg + **Tafel vrijgeven**. Nu-tegel heet
+  "Tafels nakijken" en telt open sinds gisteren, lijnen van vorige gasten én stille tafels met iets open.
+- **R2** deellink enkel geldig voor de actieve groep en mét QR-token; anders `LINK_EXPIRED` → storefront wist de
+  tafelcookies en toont "Deze link is verlopen. Scan de QR-code op je tafel om te bestellen".
+- **R3** `table_group_request_place` kijkt na het slot opnieuw of de request_id al bestaat: dubbel tikken = `duplicate`,
+  nooit `JUST_SENT`.
+- **R5** `table_group_state` vergelijkt met `table_group_cur_check(g)`: na `move_check` blijft de poll lezend.
+- **R4** geen wijziging (afspraak); R1a dekt het af.
+- Storefront: na Doorgeven eerst "Al besteld" ophalen, dan pas het mandje leegmaken (geen lege tussenstand; ving een
+  flaky test).
+- Verificatie: PG16 98 SQL-checks (nieuw o.a. lang etentje lid herladen, late vriend via link na stilte, nieuwe gasten
+  na stilte → idle_new_guest + verborgen lijnen, oude/andere/link zonder token → LINK_EXPIRED, Zaal idle_open);
+  `conc4.sh`: 4× tegelijk dezelfde request_id → 1 aanvraag + 3× duplicate, poll na move_check met rijlock 41 ms;
+  conc/conc2/conc3 groen. deno check, promo-compare 268/268, rooktest groen. Admin tsc 0, build 0, lint 1457 → 1454,
+  i18n-pariteit, CI-vitest 567, `vitest src/kassa` 366, harnas groen (stille tafel + Nu-tegel 2). Storefront tsc 0,
+  build 0, test:hours 23/23, Playwright 94/94 (twee runs; nieuw R1a lang etentje, late vriend, nieuwe gasten na stilte,
+  vertrokken gsm, R2 verlopen link). Regressies ongewijzigd. Docs-migratie aangevuld en 2× idempotent.
+
 **Bewust ongemoeid / Vervolg**
 - Uitrolvolgorde: (1) migratie `20261106160000_tafel_samen_1.sql` + SQL-natrek; (2) deploy storefront-api, GET-stempel `TAFEL-SAMEN-1`; (3) publish admin (deploy_project) + bundelcheck; (4) push + deploy sellqo-storefront; (5) docs-migratie; (6) live natrek De Wissel tafel 8: Zaal toont de waarschuwing voor 3b44653b, `table_group_view` toont enkel lijnen na de groepsstart.
 - Vervolg (B8): de QR-token per tafel is statisch. Wie de link met `?t=` bewaart, kan later opnieuw "scannen". Voorstel: knop "QR vernieuwen" per tafel in Zaal (nieuwe token, oude stickers ongeldig).

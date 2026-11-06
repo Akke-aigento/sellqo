@@ -3,6 +3,9 @@
 //   - stale:  de rekening is open sinds vóór de laatste dagreset (05:00) — "Open sinds gisteren";
 //   - prev:   er staan nog lijnen open van vóór de start van de gasten die nu aan tafel zitten (tafelgroep)
 //             — "Lijnen van vorige gasten". De gasten zien die niet en kunnen ze niet betalen.
+//   - idle:   (TAFEL-SAMEN-1 R1b) de gasten aan tafel deden al langer dan de inactiviteitstijd niets, maar er staat
+//             nog iets van hen open — vertrokken zonder te betalen? "Tafel vrijgeven" laat de volgende gasten meteen
+//             vers starten (een verse scan na die stilte doet dat ook vanzelf).
 // Afsluiten of verplaatsen gebeurt altijd op de kassa (ondertekend); "Tafel vrijgeven" raakt enkel de groep.
 
 export interface TableGroupRow {
@@ -11,7 +14,7 @@ export interface TableGroupRow {
   check_opened_at: string | null;
   stale: boolean;
   prev_open_lines: number;
-  group: { id: string; started_at: string; last_activity_at: string } | null;
+  group: { id: string; started_at: string; last_activity_at: string; idle_open?: boolean } | null;
 }
 export interface TableGroupsData { last_reset: string | null; tables: TableGroupRow[] }
 
@@ -22,23 +25,30 @@ export interface CheckWarning {
   groupActive: boolean;
   groupStartedAt: string | null;
   tableId: string | null;
+  /** R1b: minuten sinds de laatste activiteit van de groep, als die stil is maar nog iets openstaan heeft; anders null. */
+  idleMinutes: number | null;
 }
 
 /** Per open hoofdrekening (check_id) de waarschuwingen. Rekeningen zonder iets te melden ontbreken. */
-export function checkWarnings(data: TableGroupsData | null | undefined): Map<string, CheckWarning> {
+export function checkWarnings(data: TableGroupsData | null | undefined, nowMs: number = Date.now()): Map<string, CheckWarning> {
   const out = new Map<string, CheckWarning>();
   for (const r of data?.tables ?? []) {
     if (!r.check_id) continue;
     const prev = Math.max(0, Number(r.prev_open_lines) || 0);
     if (!r.stale && prev === 0 && !r.group) continue;
-    out.set(r.check_id, { stale: !!r.stale, prevLines: prev, groupActive: !!r.group, groupStartedAt: r.group?.started_at ?? null, tableId: r.table_id });
+    const idleMinutes = r.group?.idle_open && r.group.last_activity_at
+      ? Math.max(0, Math.floor((nowMs - new Date(r.group.last_activity_at).getTime()) / 60_000)) : null;
+    out.set(r.check_id, { stale: !!r.stale, prevLines: prev, groupActive: !!r.group, groupStartedAt: r.group?.started_at ?? null, tableId: r.table_id, idleMinutes });
   }
   return out;
 }
 
-/** Aantal open rekeningen met iets van vorige gasten (open sinds gisteren of lijnen van vóór de groep). */
-export function previousGuestChecks(data: TableGroupsData | null | undefined): number {
-  return [...checkWarnings(data).values()].filter((w) => w.stale || w.prevLines > 0).length;
+/** Een rekening die aandacht vraagt: open sinds gisteren, lijnen van vorige gasten, of stil maar nog open (R1b). */
+export const needsAttention = (w: CheckWarning) => w.stale || w.prevLines > 0 || w.idleMinutes !== null;
+
+/** Aantal open rekeningen dat aandacht vraagt (Nu-tegel; zelfde regel als de waarschuwing in Zaal). */
+export function previousGuestChecks(data: TableGroupsData | null | undefined, nowMs?: number): number {
+  return [...checkWarnings(data, nowMs).values()].filter(needsAttention).length;
 }
 
 /** Tafels met een actieve tafelgroep (ook zonder open rekening), voor "Tafel vrijgeven". */

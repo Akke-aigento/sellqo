@@ -65,7 +65,8 @@ create table if not exists public.table_guest_groups (
   started_at timestamptz not null default now(),
   last_activity_at timestamptz not null default now(),
   ended_at timestamptz,
-  ended_reason text check (ended_reason is null or ended_reason in ('idle', 'day_reset', 'check_closed', 'staff_release')),
+  -- idle_new_guest: verse scan door nieuwe gasten na lange stilte terwijl de vorige nog iets openstaan hadden (R1).
+  ended_reason text check (ended_reason is null or ended_reason in ('idle', 'idle_new_guest', 'day_reset', 'check_closed', 'staff_release')),
   -- Het gedeelde mandje (shopping). Roteert bij elk doorgeven. Null als het gedeelde mandje uit staat.
   cart_id uuid,
   -- De open hoofdrekening van de tafel zoals laatst gezien (lui bijgewerkt); gesloten = groep afgelopen.
@@ -177,6 +178,23 @@ $$;
 revoke all on function public.table_group_has_open(public.table_guest_groups, uuid) from public, anon, authenticated;
 grant execute on function public.table_group_has_open(public.table_guest_groups, uuid) to service_role;
 
+-- Laatste activiteit van een groep: toevoegen, doorgeven, betalen, paginalading (last_activity_at), een bevestiging
+-- aan de kassa (decided_at) of een nieuwe lijn van de groep op haar rekening.
+create or replace function public.table_group_last_activity(g public.table_guest_groups)
+returns timestamptz
+language sql
+stable
+security definer
+set search_path to ''
+as $$
+  select greatest(g.last_activity_at,
+    (select max(r.decided_at) from public.table_requests r where r.group_id = g.id),
+    (select max(x.created_at) from public.check_lines x
+      where x.check_id = public.table_group_cur_check(g) and x.created_at >= g.started_at));
+$$;
+revoke all on function public.table_group_last_activity(public.table_guest_groups) from public, anon, authenticated;
+grant execute on function public.table_group_last_activity(public.table_guest_groups) to service_role;
+
 -- Waarom is deze (actieve) groep afgelopen, of null.
 --   day_reset    — gestart vóór de laatste dagreset (05:00 Brussel);
 --   check_closed — haar rekening is niet meer open én er stond iets van deze groep op (een lijn van na haar start
@@ -206,9 +224,7 @@ begin
     return 'check_closed';
   end if;
   cur := public.table_group_cur_check(g);
-  last_act := greatest(g.last_activity_at,
-    (select max(r.decided_at) from public.table_requests r where r.group_id = g.id),
-    (select max(x.created_at) from public.check_lines x where cur is not null and x.check_id = cur and x.created_at >= g.started_at));
+  last_act := public.table_group_last_activity(g);
   if last_act + make_interval(mins => coalesce(p_idle_minutes, 120)) < p_now and not public.table_group_has_open(g, cur) then
     return 'idle';
   end if;
@@ -301,7 +317,10 @@ grant execute on function public.table_group_settle(uuid, uuid, timestamptz) to 
 -- Eén actieve groep per tafel. p_group_id = de groep uit de cookie van deze gsm, p_link = de groep uit een
 -- deellink, p_fresh_scan = de QR-code (?t=) werd bij DEZE paginalading gescand.
 --   - lid van de actieve groep → 'member' (geen scan nodig);
---   - anders enkel met een verse scan: aansluiten bij de actieve groep ('joined'/'link') of een nieuwe starten;
+--   - deellink (p_link): enkel als die de actieve groep is en mét de QR-token → 'link'; anders 'LINK_EXPIRED' (R2);
+--   - anders enkel met een verse scan: aansluiten bij de actieve groep ('joined') of een nieuwe starten. Is de
+--     actieve groep al langer dan qr_group_idle_minutes stil, dan zijn dit nieuwe gasten: de oude groep eindigt
+--     ('idle_new_guest') en er start een nieuwe (R1);
 --   - zonder verse scan nooit aansluiten of een groep maken (review B1): wie vertrok en later zijn oude tab of de
 --     terugkeer van Stripe opent, ziet niets van de volgende gasten. reason 'PREVIOUS_ENDED' (eigen groep
 --     afgelopen) of 'SCAN_REQUIRED' (geen groep); de storefront wist dan de tafelcookies.
@@ -319,7 +338,8 @@ declare
   v_joined text;
   v_cart_ok boolean;
 begin
-  select coalesce(f.qr_mode, 'view') as qr_mode, coalesce(f.qr_flow, 'order') as qr_flow, coalesce(f.qr_shared_cart, true) as shared
+  select coalesce(f.qr_mode, 'view') as qr_mode, coalesce(f.qr_flow, 'order') as qr_flow, coalesce(f.qr_shared_cart, true) as shared,
+         coalesce(f.qr_group_idle_minutes, 120) as idle
     into fs from (select 1) x left join public.fulfillment_settings f on f.tenant_id = p_tenant_id;
   if fs.qr_mode <> 'order' or fs.qr_flow <> 'check' then
     return jsonb_build_object('group_id', null, 'reason', 'TABLE_GROUPS_OFF');
@@ -330,23 +350,40 @@ begin
   g := public.table_group_settle(p_tenant_id, p_table_id, p_now);
   if g.id is not null and p_group_id is not null and p_group_id = g.id then
     v_joined := 'member';
+  elsif p_link is not null then
+    -- Deellink: enkel geldig voor de actieve groep van deze tafel, en enkel met de QR-token erbij (R2).
+    if g.id is null or p_link <> g.id or not coalesce(p_fresh_scan, false) then
+      return jsonb_build_object('group_id', null, 'reason', 'LINK_EXPIRED');
+    end if;
+    v_joined := 'link';
   elsif not coalesce(p_fresh_scan, false) then
     return jsonb_build_object('group_id', null, 'reason', case when p_group_id is not null then 'PREVIOUS_ENDED' else 'SCAN_REQUIRED' end);
-  elsif g.id is null then
-    insert into public.table_guest_groups (tenant_id, dining_table_id, started_at, last_activity_at)
-    values (p_tenant_id, p_table_id, p_now, p_now)
-    returning * into g;
-    -- De open rekening die er al staat (bv. van vorige gasten) is wel de rekening van deze tafel; de groep
-    -- ziet er enkel de lijnen van ná haar start van.
-    update public.table_guest_groups set check_id = (
-      select c.id from public.dining_checks c where c.tenant_id = p_tenant_id and c.table_id = p_table_id
-         and c.status = 'open' and c.split_of is null order by c.opened_at limit 1)
-     where id = g.id returning * into g;
-    v_joined := 'new';
-  elsif p_link is not null and p_link = g.id then
-    v_joined := 'link';
   else
-    v_joined := 'joined';
+    -- R1: verse scan door een toestel dat geen lid is. Is de actieve groep al langer dan qr_group_idle_minutes stil
+    -- (ook met openstaande lijnen: gasten die vertrokken zonder te betalen), dan zijn dit nieuwe gasten: de oude
+    -- groep eindigt ('idle_new_guest'), haar open lijnen worden "lijnen van vorige gasten" (verborgen, Zaal waarschuwt).
+    if g.id is not null and public.table_group_last_activity(g) + make_interval(mins => fs.idle) < p_now then
+      update public.table_guest_groups set ended_at = p_now, ended_reason = 'idle_new_guest', version = version + 1 where id = g.id;
+      if g.cart_id is not null then
+        update public.storefront_carts set checkout_status = 'abandoned' where id = g.cart_id and checkout_status = 'shopping';
+      end if;
+      perform public.horeca_bump(p_tenant_id);
+      g := null;
+    end if;
+    if g.id is null then
+      insert into public.table_guest_groups (tenant_id, dining_table_id, started_at, last_activity_at)
+      values (p_tenant_id, p_table_id, p_now, p_now)
+      returning * into g;
+      -- De open rekening die er al staat (bv. van vorige gasten) is wel de rekening van deze tafel; de groep
+      -- ziet er enkel de lijnen van ná haar start van.
+      update public.table_guest_groups set check_id = (
+        select c.id from public.dining_checks c where c.tenant_id = p_tenant_id and c.table_id = p_table_id
+           and c.status = 'open' and c.split_of is null order by c.opened_at limit 1)
+       where id = g.id returning * into g;
+      v_joined := 'new';
+    else
+      v_joined := 'joined';
+    end if;
   end if;
 
   if fs.shared then
@@ -380,18 +417,15 @@ declare
   g public.table_guest_groups%rowtype;
   v_shared boolean;
   v_idle integer;
-  v_cur uuid;
 begin
   select * into g from public.table_guest_groups x
    where x.id = p_group_id and x.tenant_id = p_tenant_id and x.dining_table_id = p_table_id and x.ended_at is null;
   if g.id is null then return jsonb_build_object('ended', true); end if;
   select coalesce(f.qr_shared_cart, true), coalesce(f.qr_group_idle_minutes, 120) into v_shared, v_idle
     from (select 1) x left join public.fulfillment_settings f on f.tenant_id = p_tenant_id;
-  select c.id into v_cur from public.dining_checks c
-   where c.tenant_id = p_tenant_id and c.table_id = p_table_id and c.status = 'open' and c.split_of is null
-   order by c.opened_at limit 1;
-  if public.table_group_end_reason(g, p_now, v_idle) is not null or (v_cur is not null and g.check_id is distinct from v_cur)
-     or (v_cur is null and g.check_id is not null) then
+  -- R5: vergelijken met de rekening die de groep ziet (table_group_cur_check), zodat een rekening die de kassa naar
+  -- een andere tafel verplaatste de poll niet telkens laat vergrendelen.
+  if public.table_group_end_reason(g, p_now, v_idle) is not null or public.table_group_cur_check(g) is distinct from g.check_id then
     g := public.table_group_settle(p_tenant_id, p_table_id, p_now);
     if g.id is null or g.id <> p_group_id then return jsonb_build_object('ended', true); end if;
   end if;
@@ -647,6 +681,14 @@ begin
   select * into g0 from public.table_guest_groups x where x.id = p_group_id and x.tenant_id = p_tenant_id;
   if g0.id is null then raise exception 'GROUP_ENDED' using errcode = '55000'; end if;
   g := public.table_group_settle(p_tenant_id, g0.dining_table_id, p_now);
+  -- R3: dubbel tikken met dezelfde ID. De eerste aanvraag kan net gecommit zijn terwijl deze op het slot wachtte.
+  select * into prior from public.table_requests where id = p_request_id;
+  if prior.id is not null then
+    if prior.tenant_id <> p_tenant_id or prior.group_id is distinct from p_group_id then
+      raise exception 'TABLE_REQUEST_INVALID' using errcode = '22023';
+    end if;
+    return jsonb_build_object('request_id', prior.id, 'status', prior.status, 'duplicate', true, 'group_id', p_group_id, 'cart_id', g.cart_id);
+  end if;
   if g.id is null or g.id <> p_group_id then raise exception 'GROUP_ENDED' using errcode = '55000'; end if;
   select coalesce(f.qr_shared_cart, true) into v_shared from (select 1) x left join public.fulfillment_settings f on f.tenant_id = p_tenant_id;
   if v_shared and p_cart_id is not null and p_cart_id is distinct from g.cart_id then
@@ -774,13 +816,18 @@ begin
                coalesce(c.opened_at < v_reset, false) as stale,
                case when g.id is null or c.id is null then 0
                     else public.table_group_hidden_open(p_tenant_id, c.id, g.started_at, g.id) end as prev_open_lines,
-               case when g.id is null then null else jsonb_build_object('id', g.id, 'started_at', g.started_at, 'last_activity_at', g.last_activity_at) end as "group"
+               case when g.id is null then null else jsonb_build_object('id', g.id, 'started_at', g.started_at,
+                 'last_activity_at', public.table_group_last_activity(gr.r),
+                 -- R1b: stil sinds langer dan de inactiviteitstijd, maar nog iets open (vertrokken zonder te betalen?).
+                 'idle_open', public.table_group_last_activity(gr.r) + make_interval(mins => v_idle) < now()
+                              and public.table_group_has_open(gr.r, public.table_group_cur_check(gr.r))) end as "group"
           from (select * from public.dining_checks c0
                  where c0.tenant_id = p_tenant_id and c0.status = 'open' and c0.split_of is null and c0.table_id is not null) c
           full join (select g1.* from public.table_guest_groups g1
                       where g1.tenant_id = p_tenant_id and g1.ended_at is null
                         and public.table_group_end_reason(g1, now(), v_idle) is null) g
             on g.dining_table_id = c.table_id
+          left join lateral (select x as r from public.table_guest_groups x where x.id = g.id) gr on true
       ) z), '[]'::jsonb));
 end;
 $$;

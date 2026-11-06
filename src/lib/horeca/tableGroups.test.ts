@@ -14,6 +14,8 @@ const data: TableGroupsData = {
     { table_id: 't4', check_id: null, check_opened_at: null, stale: false, prev_open_lines: 0, group: { id: 'g4', started_at: '2026-11-06T12:10:00Z', last_activity_at: '2026-11-06T12:10:00Z' } },
     // Rekening van gisteren zonder groep.
     { table_id: 't5', check_id: 'c5', check_opened_at: '2026-11-05T20:00:00Z', stale: true, prev_open_lines: 0, group: null },
+    // R1b: groep al 3 u stil, nog iets open (vertrokken zonder te betalen?).
+    { table_id: 't6', check_id: 'c6', check_opened_at: '2026-11-06T09:00:00Z', stale: false, prev_open_lines: 0, group: { id: 'g6', started_at: '2026-11-06T09:00:00Z', last_activity_at: '2026-11-06T09:10:00Z', idle_open: true } },
   ],
 };
 
@@ -25,11 +27,16 @@ describe('TAFEL-SAMEN-1 tafelgroepen in Zaal en Nu', () => {
     expect(w.has('c3')).toBe(false);
     expect(w.get('c5')).toMatchObject({ stale: true, groupActive: false });
   });
-  it('Nu-tegel telt rekeningen met iets van vorige gasten (één bron: horeca_table_groups)', () => {
-    expect(previousGuestChecks(data)).toBe(2);
+  it('R1b: stil maar nog open → minuten sinds de laatste activiteit', () => {
+    const w = checkWarnings(data, Date.parse('2026-11-06T12:10:00Z'));
+    expect(w.get('c6')).toMatchObject({ idleMinutes: 180, groupActive: true, tableId: 't6' });
+    expect(w.get('c2')?.idleMinutes).toBeNull();
+  });
+  it('Nu-tegel telt rekeningen die aandacht vragen (één bron: horeca_table_groups)', () => {
+    expect(previousGuestChecks(data)).toBe(3);
     expect(previousGuestChecks(null)).toBe(0);
   });
   it('Tafel vrijgeven kan aan tafels met een actieve groep, ook zonder rekening', () => {
-    expect([...activeGroupTables(data)].sort()).toEqual(['t2', 't4', 't8']);
+    expect([...activeGroupTables(data)].sort()).toEqual(['t2', 't4', 't6', 't8']);
   });
 });

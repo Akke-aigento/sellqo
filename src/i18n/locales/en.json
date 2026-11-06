@@ -10045,7 +10045,9 @@
       "release_desc": "The next guests start with an empty overview and an empty basket. You settle or move the bill itself on the till.",
       "release_done": "Table {{table}} is free. The next guests start fresh.",
       "release_none": "There were no QR guests at this table any more.",
-      "release_failed": "Freeing the table failed. Please try again."
+      "release_failed": "Freeing the table failed. Please try again.",
+      "idle_open": "No activity for {{duration}}, still open",
+      "idle_hint": "Did the guests leave without paying? Free the table so the next guests start with an empty overview right away. Settle the bill itself on the till."
     },
     "kassaLock": {
       "title": "Lock the till",
@@ -10208,7 +10210,7 @@
         "none_toast": "No dish of the day today"
       },
       "prevGuests": {
-        "title": "Previous guests",
+        "title": "Tables to check",
         "count": "Open bills: {{count}}",
         "sub": "View in Floor"
       }

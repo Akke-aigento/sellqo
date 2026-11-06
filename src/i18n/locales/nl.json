@@ -10059,7 +10059,9 @@
       "release_desc": "De volgende gasten starten met een leeg overzicht en een leeg mandje. De rekening zelf reken je af of verplaats je op de kassa.",
       "release_done": "Tafel {{table}} is vrij. De volgende gasten starten opnieuw.",
       "release_none": "Er zaten geen QR-gasten meer aan deze tafel.",
-      "release_failed": "Vrijgeven lukte niet. Probeer het opnieuw."
+      "release_failed": "Vrijgeven lukte niet. Probeer het opnieuw.",
+      "idle_open": "Geen activiteit sinds {{duration}}, nog open",
+      "idle_hint": "Zijn de gasten vertrokken zonder te betalen? Geef de tafel vrij, dan starten de volgende gasten meteen met een leeg overzicht. De rekening zelf reken je af op de kassa."
     },
     "kassaLock": {
       "title": "Kassa vergrendelen",
@@ -10222,7 +10224,7 @@
         "none_toast": "Geen dagschotel vandaag"
       },
       "prevGuests": {
-        "title": "Vorige gasten",
+        "title": "Tafels nakijken",
         "count": "Open rekeningen: {{count}}",
         "sub": "Bekijk in Zaal"
       }

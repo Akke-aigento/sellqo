@@ -50,7 +50,7 @@ update public.doc_articles set content = replace(content,
 <ul>
   <li>Eén scherm toont het gedeelde mandje, alles wat de tafel al bestelde met de stand in keuken en bar (<em>Al besteld aan tafel …</em>), en de rekening met <strong>Afrekenen</strong> of <strong>Rekening vragen</strong>. Het is op elke gsm aan de tafel hetzelfde.</li>
   <li>Gasten zien enkel wat sinds hun aankomst op de rekening kwam: hun eigen bestellingen en wat jij voor hen aantikt op de kassa. Nooit iets van vorige gasten, ook niet als de rekening van gisteren nog openstaat.</li>
-  <li>Een tafel start opnieuw voor de volgende gasten na de dagreset om 05:00, zodra je hun rekening op de kassa afsluit, als je in <strong>Zaal</strong> op <strong>Tafel vrijgeven</strong> tikt, of na een tijd zonder activiteit (standaard 120 minuten) als er niets van hen meer openstaat. Wie vertrok, sluit niet vanzelf aan bij de volgende gasten: daarvoor moet hij de QR-code opnieuw scannen.</li>
+  <li>Een tafel start opnieuw voor de volgende gasten na de dagreset om 05:00, zodra je hun rekening op de kassa afsluit, als je in <strong>Zaal</strong> op <strong>Tafel vrijgeven</strong> tikt, of na een tijd zonder activiteit (standaard 120 minuten) als er niets van hen meer openstaat. Scannen nieuwe gasten de QR-code terwijl de tafel al langer dan die tijd stil is, dan starten zij vers, ook als de vorige gasten nog iets openstaan hebben. Wie vertrok, sluit niet vanzelf aan bij de volgende gasten: daarvoor moet hij de QR-code opnieuw scannen. Een deellink werkt enkel zolang dezelfde gasten aan tafel zitten.</li>
   <li>Op de kassa verandert niets: het blijft één rekening per tafel. Staan er nog lijnen van vorige gasten open, dan waarschuwen <strong>Zaal</strong> en het <strong>Nu</strong>-paneel; die reken je af of verplaats je op de kassa.</li>
 </ul>
 <p>Het gedeelde mandje en de tijd zonder activiteit stel je in onder <strong>Mijn zaak › Je gasten › QR aan tafel</strong> (met een webshop- of eventspakket: <strong>Kaart › Instellen › QR-menu</strong>), bij <em>Op de tafelrekening</em>. Zet je het gedeelde mandje uit, dan heeft elke gsm een eigen mandje, maar ziet de tafel wel samen wat ze al bestelde.</p>
@@ -80,6 +80,7 @@ update public.doc_articles set content = replace(content,
 <ul>
 <li><strong>Open sinds gisteren</strong>: de rekening staat open sinds vóór 05:00 vandaag.</li>
 <li><strong>Lijnen van vorige gasten open</strong>: er staan nog items van vóór de gasten die nu aan tafel zitten. Zij zien die niet en kunnen ze niet betalen.</li>
+<li><strong>Geen activiteit sinds …, nog open</strong>: de QR-gasten aan deze tafel deden al lang niets meer, maar er staat nog iets van hen open. Zijn ze vertrokken zonder te betalen, tik dan op <strong>Tafel vrijgeven</strong>.</li>
 </ul>
 <p>Reken die items af of verplaats ze op SellQo Kassa. Bij een tafel met QR-gasten zie je ook sinds wanneer ze er zitten.</p>
 <h2>Tafel vrijgeven</h2>

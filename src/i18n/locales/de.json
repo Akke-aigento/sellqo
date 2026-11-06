@@ -9714,7 +9714,9 @@
       "release_desc": "Die nächsten Gäste starten mit einer leeren Übersicht und einem leeren Warenkorb. Die Rechnung selbst rechnen Sie an der Kasse ab oder verschieben sie dort.",
       "release_done": "Tisch {{table}} ist frei. Die nächsten Gäste starten neu.",
       "release_none": "An diesem Tisch saßen keine QR-Gäste mehr.",
-      "release_failed": "Freigeben hat nicht geklappt. Bitte erneut versuchen."
+      "release_failed": "Freigeben hat nicht geklappt. Bitte erneut versuchen.",
+      "idle_open": "Keine Aktivität seit {{duration}}, noch offen",
+      "idle_hint": "Sind die Gäste gegangen, ohne zu bezahlen? Geben Sie den Tisch frei, dann starten die nächsten Gäste sofort mit einer leeren Übersicht. Die Rechnung selbst rechnen Sie an der Kasse ab."
     },
     "kassaLock": {
       "title": "Kasse sperren",
@@ -9877,7 +9879,7 @@
         "none_toast": "Heute kein Tagesgericht"
       },
       "prevGuests": {
-        "title": "Frühere Gäste",
+        "title": "Tische prüfen",
         "count": "Offene Rechnungen: {{count}}",
         "sub": "Im Raum ansehen"
       }

@@ -10,7 +10,7 @@ import { AlertTriangle, ExternalLink, History, Loader2, Pencil, Users } from 'lu
 import { toast } from 'sonner';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { useReleaseTable, useTableGroups } from '@/hooks/useTableGroups';
-import { checkWarnings } from '@/lib/horeca/tableGroups';
+import { checkWarnings, needsAttention } from '@/lib/horeca/tableGroups';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { FloorPlanView } from '@/components/admin/floorplan/FloorPlanView';
@@ -33,11 +33,11 @@ export function LiveFloorOverview({ onEditPlan }: { onEditPlan: () => void }) {
   const groups = useTableGroups();
   const release = useReleaseTable();
   const [releaseFor, setReleaseFor] = useState<{ tableId: string; label: string } | null>(null);
-  const warnings = useMemo(() => checkWarnings(groups.data), [groups.data]);
   // "Open sinds" loopt door, ook als er niets verandert.
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => { const id = setInterval(() => setNow(Date.now()), 30_000); return () => clearInterval(id); }, []);
   useEffect(() => { if (polledAt) setNow(Date.now()); }, [polledAt]);
+  const warnings = useMemo(() => checkWarnings(groups.data, now), [groups.data, now]);
 
   const money = (c: number) => formatEuro(c, i18n.language);
   const labels = useMemo(() => new Map((plan?.tables ?? []).map((tb) => [tb.id, tb.label])), [plan]);
@@ -122,15 +122,16 @@ export function LiveFloorOverview({ onEditPlan }: { onEditPlan: () => void }) {
                 </span>
                 <Badge variant="outline" className={cn('shrink-0 font-medium', STATE_CLASS[r.state])}>{t(`admin.liveFloor.state_${r.state}`)}</Badge>
                 <span className="w-24 shrink-0 text-right font-semibold tabular-nums">{money(r.totalCents)}</span>
-                {w && (w.stale || w.prevLines > 0) ? (
+                {w && needsAttention(w) ? (
                   <div role="status" className="flex w-full flex-col gap-2 rounded-md border border-amber-400 bg-amber-50 p-2.5 text-sm text-amber-950 dark:bg-amber-950 dark:text-amber-50 sm:flex-row sm:items-center sm:justify-between" data-testid="live-prev-guests">
                     <span className="flex min-w-0 gap-2">
                       <History className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
                       <span className="min-w-0">
                         <span className="block font-semibold">
-                          {[w.stale ? t('admin.liveFloor.stale') : null, w.prevLines > 0 ? t('admin.liveFloor.prev_lines', { count: w.prevLines }) : null].filter(Boolean).join(' · ')}
+                          {[w.stale ? t('admin.liveFloor.stale') : null, w.prevLines > 0 ? t('admin.liveFloor.prev_lines', { count: w.prevLines }) : null,
+                            w.idleMinutes !== null ? t('admin.liveFloor.idle_open', { duration: duration(w.idleMinutes) }) : null].filter(Boolean).join(' · ')}
                         </span>
-                        <span className="block text-xs">{t('admin.liveFloor.prev_hint')}</span>
+                        <span className="block text-xs">{w.stale || w.prevLines > 0 ? t('admin.liveFloor.prev_hint') : t('admin.liveFloor.idle_hint')}</span>
                       </span>
                     </span>
                     {w.groupActive && w.tableId ? (

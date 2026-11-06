@@ -15,7 +15,8 @@ const snapshot = { version: 7, checks: [
 const groups = { last_reset: H(8), tables: [
   { table_id: 'tb8', check_id: 'c8', check_opened_at: H(30), stale: true, prev_open_lines: 3, group: { id: 'g8', started_at: H(0.5), last_activity_at: H(0.1) } },
   { table_id: 'tb2', check_id: 'c2', check_opened_at: H(0.6), stale: false, prev_open_lines: 0, group: { id: 'g2', started_at: H(0.62), last_activity_at: H(0.2) } },
-  { table_id: 'tb5', check_id: 'c5', check_opened_at: H(1.2), stale: false, prev_open_lines: 0, group: null },
+  // R1b: al een uur stil en nog open (vertrokken zonder te betalen?).
+  { table_id: 'tb5', check_id: 'c5', check_opened_at: H(1.2), stale: false, prev_open_lines: 0, group: { id: 'g5', started_at: H(1.2), last_activity_at: H(1.05), idle_open: true } },
 ] };
 const rows: Record<string, unknown> = {
   tenant_theme_settings: { shop_live: true, shop_ordering: true },

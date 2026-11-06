@@ -9714,7 +9714,9 @@
       "release_desc": "Les clients suivants démarrent avec un aperçu et un panier vides. L’addition elle-même s’encaisse ou se déplace sur la caisse.",
       "release_done": "La table {{table}} est libre. Les clients suivants repartent de zéro.",
       "release_none": "Il n’y avait plus de clients QR à cette table.",
-      "release_failed": "La libération a échoué. Réessayez."
+      "release_failed": "La libération a échoué. Réessayez.",
+      "idle_open": "Aucune activité depuis {{duration}}, encore ouvert",
+      "idle_hint": "Les clients sont partis sans payer ? Libérez la table : les clients suivants démarrent aussitôt avec un aperçu vide. L’addition elle-même s’encaisse sur la caisse."
     },
     "kassaLock": {
       "title": "Verrouiller la caisse",
@@ -9877,7 +9879,7 @@
         "none_toast": "Pas de plat du jour aujourd’hui"
       },
       "prevGuests": {
-        "title": "Clients précédents",
+        "title": "Tables à vérifier",
         "count": "Additions ouvertes : {{count}}",
         "sub": "Voir dans la salle"
       }
