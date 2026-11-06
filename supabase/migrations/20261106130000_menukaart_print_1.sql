@@ -25,6 +25,14 @@ create table if not exists public.menu_print_settings (
   cover_image_url text check (cover_image_url is null or (cover_image_url ~ '^https://' and length(cover_image_url) <= 2000)),
   updated_at timestamptz not null default now()
 );
+-- Begrensde grootte van options (review MENUKAART-PRINT-1): idempotent toegevoegd.
+do $c$
+begin
+  if not exists (select 1 from pg_constraint where conrelid = 'public.menu_print_settings'::regclass and conname = 'menu_print_settings_options_size') then
+    alter table public.menu_print_settings add constraint menu_print_settings_options_size check (pg_column_size(options) < 4096);
+  end if;
+end
+$c$;
 comment on table public.menu_print_settings is 'MENUKAART-PRINT-1: sjabloon, opties en kaftfoto van de papieren menukaart per zaak (Kaart › Afdrukken). Enkel beheer, niet in storefront-api.';
 
 revoke all on public.menu_print_settings from anon;

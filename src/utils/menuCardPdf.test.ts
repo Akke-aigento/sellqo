@@ -2,12 +2,12 @@
 // lay-out (niets loopt over de rand, geen kop alleen onderaan, geen gesplitst gerecht).
 // Voorbeeld-PDF's wegschrijven: MENU_PDF_OUT=/map (en MENU_PDF_COVER/MENU_PDF_LOGO voor beelden).
 import { describe, expect, it } from 'vitest';
-import { PDFDocument } from 'pdf-lib';
+import { Duplex, PDFDocument, PrintScaling } from 'pdf-lib';
 import {
   bookletPrintOrder, bookletSheets, buildMenuSections, parseMenuPrintSettings, plainDescription, totalPages,
   type MenuSection, type MenuSourceCategory, type MenuSourceProduct,
 } from '@/lib/menuPrint';
-import { chooseLayout, embedFonts, generateMenuCardPdf, geoFor, colWidth, layoutMenu, type MenuCardInput, type PdfImageBytes } from './menuCardPdf';
+import { chooseLayout, embedFonts, formatMenuPrice, generateMenuCardPdf, geoFor, colWidth, layoutMenu, type MenuCardInput, type PdfImageBytes } from './menuCardPdf';
 
 const ALLERGEN_NL = ['Gluten', 'Schaaldieren', 'Eieren', 'Vis', 'Pinda’s', 'Soja', 'Melk', 'Noten', 'Selder', 'Mosterd', 'Sesamzaad', 'Sulfieten', 'Lupine', 'Weekdieren'];
 const labels = {
@@ -51,12 +51,12 @@ function fixture(): { categories: MenuSourceCategory[]; products: MenuSourceProd
 
 function input(template: MenuCardInput['template'], sections: MenuSection[], extra: Partial<MenuCardInput> = {}): MenuCardInput {
   return {
-    template, storeName: 'Brasserie Belgaleiro', subtitle: 'Keuken van het huis sinds 1998', accent: '#8a3b2e', sections,
+    template, storeName: 'Brasserie De Gouden Lepel', subtitle: 'Keuken van het huis sinds 1998', accent: '#8a3b2e', sections,
     showDescriptions: true, showAllergens: true, labels,
     back: {
-      lines: ['Bondgenotenlaan 12', '3000 Leuven', '016 12 34 56', 'belgaleiro.sellqo.shop'],
+      lines: ['Bondgenotenlaan 12', '3000 Leuven', '016 12 34 56', 'gouden-lepel.sellqo.shop'],
       hours: [{ days: 'ma – do', value: '11:30–14:00, 17:30–22:00' }, { days: 'vr – za', value: '11:30–23:00' }, { days: 'zo', value: 'gesloten' }],
-      qrUrl: 'https://belgaleiro.sellqo.shop/menu', qrText: 'belgaleiro.sellqo.shop/menu',
+      qrUrl: 'https://gouden-lepel.sellqo.shop/menu', qrText: 'gouden-lepel.sellqo.shop/menu',
     },
     ...extra,
   };
@@ -203,6 +203,46 @@ describe('lay-out', () => {
   });
 });
 
+describe('prijzen', () => {
+  it('in de taal van de kaart, zonder euroteken; ≤ 0 = geen prijs', () => {
+    expect(formatMenuPrice(12.5, 'nl-BE')).toBe('12,50');
+    expect(formatMenuPrice(1234.5, 'fr-BE')).toBe('1\u00a0234,50');
+    expect(formatMenuPrice(12.5, 'en')).toBe('12.50');
+    expect(formatMenuPrice(0)).toBe('');
+    expect(formatMenuPrice(-1)).toBe('');
+    expect(formatMenuPrice(Number.NaN)).toBe('');
+  });
+});
+
+async function prefs(bytes: Uint8Array) {
+  const vp = (await PDFDocument.load(bytes)).catalog.getViewerPreferences();
+  return { duplex: vp?.getDuplex(), scaling: vp?.getPrintScaling() };
+}
+
+describe('afdrukvoorkeuren in de PDF', () => {
+  const s: MenuSection[] = [{ title: 'Dranken', items: [{ name: 'Koffie', price: 3, description: '', allergens: [], dietary: [] }, { name: 'Water van het huis', price: 0, description: '', allergens: [], dietary: [] }] }];
+  it('boekje en fotokaft: korte kant, ware grootte', async () => {
+    for (const tpl of ['booklet_a5', 'photo_cover'] as const) {
+      expect(await prefs((await generateMenuCardPdf(input(tpl, s))).bytes)).toEqual({ duplex: Duplex.DuplexFlipShortEdge, scaling: PrintScaling.None });
+    }
+  });
+  it('A4: lange kant, ware grootte', async () => {
+    expect(await prefs((await generateMenuCardPdf(input('a4', s))).bytes)).toEqual({ duplex: Duplex.DuplexFlipLongEdge, scaling: PrintScaling.None });
+  });
+  it('losse pagina\'s: enkel ware grootte', async () => {
+    const p = await prefs((await generateMenuCardPdf(input('booklet_a5', s, { impose: false }))).bytes);
+    expect(p.scaling).toBe(PrintScaling.None);
+    expect(p.duplex).toBeUndefined();
+  });
+  it('gerecht zonder prijs: geen prijs in de lay-out', async () => {
+    const doc = await PDFDocument.create();
+    const f = await embedFonts(doc);
+    const pages = layoutMenu(s, f, geoFor('booklet_a5'), 1, { showDescriptions: true, showAllergens: true, labels });
+    const items = pages[0].blocks.filter((b) => b.block.kind === 'item').map((b) => (b.block.kind === 'item' ? b.block.price : null));
+    expect(items).toEqual(['3,00', '']);
+  });
+});
+
 describe('generateMenuCardPdf', () => {
   const { categories, products } = fixture();
   const sections = buildMenuSections(categories, products, 'Overige');
@@ -220,7 +260,8 @@ describe('generateMenuCardPdf', () => {
     await save('1-boekje-a5-losse-paginas', (await generateMenuCardPdf(input('booklet_a5', sections, { logo, impose: false }))).bytes);
   });
   it('A4 staand: even aantal A4-pagina\'s, kaft en achterkant', async () => {
-    const r = await generateMenuCardPdf(input('a4', sections, { subtitle: '' }));
+    const logo = await readImage(process.env.MENU_PDF_LOGO);
+    const r = await generateMenuCardPdf(input('a4', sections, { subtitle: '', logo }));
     const doc = await PDFDocument.load(r.bytes);
     expect(doc.getPageCount()).toBe(r.pages);
     expect(r.pages % 2).toBe(0);

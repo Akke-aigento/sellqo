@@ -28,6 +28,15 @@ Vraag van Akke: Belgaleiro werkt ook nog met een papieren kaart. Een afdrukknop 
 - Harnas 390/1280: Kaart zonder horizontale overloop, dialoog per sjabloon, PDF echt gemaakt in chromium (boekje 8 p./2 vellen, fotokaft met webp-foto via canvas), bewaarde rijen gelogd.
 - `tsc` exit 0, `npm run build` ok, lint-baseline 1457 → 1454 (geen nieuwe), `npm run ci:local` groen (i18n-pariteit, gebruikte keys, dode knoppen, vitest).
 
+**Review-fixes (tweede commit, zelfde dag)**
+- PDF-afdrukvoorkeuren (`/ViewerPreferences`): boekje en fotokaft `DuplexFlipShortEdge`, A4 `DuplexFlipLongEdge`, altijd `PrintScaling None`; losse pagina's enkel `PrintScaling None`. Getest door de PDF opnieuw te laden. Hint in de dialoog en het helpartikel: "Staat de achterkant ondersteboven? Kies dan de andere omslag-optie in je printer."
+- Prijs ≤ 0: geen prijs en geen stippellijn. Prijsnotatie volgens de kaarttaal (`priceLocaleFor`: nl-BE, fr-BE, de-BE, en), zonder euroteken (de achterkant zegt "prijzen in euro"); U+202F → harde spatie (WinAnsi). Bewuste afwijking van de nl-NL-regel voor bedragen: dit is een gastendocument, geen export.
+- Stippellijn als één `drawLine` met `dashArray` en ronde uiteinden i.p.v. een cirkel per stip. Met 300 producten: boekje 1.156.370 → 118.330 bytes, A4 161.460 → 38.441 bytes.
+- `loadPdfImage`: svg-logo via `<img>` → canvas → png; png/jpg enkel ongewijzigd als ze < 400 kB én ≤ maxPx zijn, anders verkleind (kaft 2400 px, logo 1200 px). In het harnas bewezen met een svg-logo en een webp-kaft.
+- Migratie: `check (pg_column_size(options) < 4096)` idempotent (DO-blok op `pg_constraint`). Docs-migratie: categorie van `horeca-kaart`, anders a0000001-…-006 als die bestaat, anders notice en overslaan.
+- Dialoog: laadfout van de kaart krijgt een eigen regel; vouwzin "het vel met de kaft buitenaan". Klantnaam uit code en testdata.
+- De A4-kaft toonde in het voorbeeld geen logo omdat de test er geen meegaf; `drawTypoCover` deed het al voor beide sjablonen. Het voorbeeld geeft nu een logo mee.
+
 **Bewust ongemoeid / Vervolg**
 - Migraties draaien (eerst de tabel, na de publish het helpartikel) en daarna natrekken in `information_schema`/`pg_policies`. Tot dan bewaart het beheer de keuze enkel per toestel.
 - Eén echte klik op sellqo.app in een testzaak (R14): bewaren in `menu_print_settings` en een PDF met een echte productfoto (CORS van de opslag).

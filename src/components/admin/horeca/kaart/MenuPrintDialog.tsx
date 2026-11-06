@@ -26,7 +26,7 @@ import { downloadPdf } from '@/utils/floorQrPdf';
 import { generateMenuCardPdf, type MenuCardLabels } from '@/utils/menuCardPdf';
 import { loadPdfImage } from '@/lib/menuPrintImages';
 import {
-  MENU_PRINT_SUBTITLE_MAX, MENU_PRINT_TEMPLATES, buildMenuSections, parseMenuPrintSettings,
+  MENU_PRINT_SUBTITLE_MAX, MENU_PRINT_TEMPLATES, buildMenuSections, parseMenuPrintSettings, priceLocaleFor,
   type MenuPrintOptions, type MenuPrintSettings, type MenuPrintTemplate, type MenuSourceCategory, type MenuSourceProduct,
 } from '@/lib/menuPrint';
 import { KAART_TYPES } from './useKaart';
@@ -95,7 +95,7 @@ export function MenuPrintDialog({ open, onOpenChange, canWrite }: { open: boolea
   useEffect(() => { if (open && settings && !draft) setDraft(settings); }, [open, settings, draft]);
   useEffect(() => { if (!open) setDraft(null); }, [open]);
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError } = useQuery({
     queryKey: ['menu-print-data', tenantId],
     enabled: open && !!tenantId,
     queryFn: async (): Promise<PrintData> => {
@@ -133,7 +133,7 @@ export function MenuPrintDialog({ open, onOpenChange, canWrite }: { open: boolea
       const o = s.options;
       const [logo, cover] = await Promise.all([
         loadPdfImage(logoUrl, 1200, true),
-        s.template === 'photo_cover' ? loadPdfImage(s.coverImageUrl, 2000, false) : Promise.resolve(null),
+        s.template === 'photo_cover' ? loadPdfImage(s.coverImageUrl, 2400, false) : Promise.resolve(null),
       ]);
       const labels: MenuCardLabels = {
         coverTitle: tp('admin.kaart.print.pdf.cover_title'),
@@ -169,6 +169,7 @@ export function MenuPrintDialog({ open, onOpenChange, canWrite }: { open: boolea
           qrText: menuUrl.replace('https://', ''),
         },
         impose,
+        priceLocale: priceLocaleFor(lang),
       });
       downloadPdf(result.bytes, `menukaart-${s.template}-${slug || 'kaart'}${impose ? '' : '-paginas'}.pdf`);
       toast.success(t('admin.kaart.print.done', { pages: result.pages, sheets: result.sheets }));
@@ -264,9 +265,10 @@ export function MenuPrintDialog({ open, onOpenChange, canWrite }: { open: boolea
 
           <div className="space-y-3 rounded-md bg-muted/40 p-3 text-sm">
             {isLoading ? <Loader2 className="h-4 w-4 animate-spin" aria-label={t('common.loading')} />
+              : isError ? <p className="text-destructive">{t('admin.kaart.print.load_failed')}</p>
               : itemCount ? <p className="font-medium">{t('admin.kaart.print.summary', { categories: sections.length, count: itemCount })}</p>
               : <p>{t('admin.kaart.print.empty')}</p>}
-            <p className="text-muted-foreground">{booklet ? t('admin.kaart.print.hint_booklet') : t('admin.kaart.print.hint_a4')}</p>
+            <p className="text-muted-foreground">{booklet ? t('admin.kaart.print.hint_booklet') : t('admin.kaart.print.hint_a4')} {t('admin.kaart.print.hint_flip')}</p>
             <div className="flex flex-wrap gap-2">
               <Button disabled={!!busy || !itemCount} onClick={() => void make(true)} className="h-11 sm:h-10">
                 {busy === 'imposed' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}{t('admin.kaart.print.download')}

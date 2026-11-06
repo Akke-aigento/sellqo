@@ -13,7 +13,7 @@
 // labels), gehard met hardenPdfFont (tekens buiten WinAnsi worden vervangen in plaats van te
 // crashen). Een eigen font inbedden vraagt @pdf-lib/fontkit, en dat zit niet in dit project.
 import {
-  PDFDocument, StandardFonts, clip, endPath, popGraphicsState, pushGraphicsState, rectangle, rgb, setCharacterSpacing,
+  Duplex, LineCapStyle, PDFDocument, PrintScaling, StandardFonts, clip, endPath, popGraphicsState, pushGraphicsState, rectangle, rgb, setCharacterSpacing,
   type PDFFont, type PDFImage, type PDFPage, type RGB,
 } from 'pdf-lib';
 import { hardenPdfFont } from '../../supabase/functions/_shared/pdfText';
@@ -61,6 +61,8 @@ export interface MenuCardInput {
   };
   /** Standaard: boekjes geïmponeerd (vellen). false = losse pagina's in leesvolgorde (drukkerij, scherm). */
   impose?: boolean;
+  /** Locale voor de prijzen (bv. nl-BE, fr-BE); standaard nl-BE. Zonder euroteken: de achterkant zegt "prijzen in euro". */
+  priceLocale?: string;
 }
 
 export interface MenuCardResult {
@@ -87,7 +89,7 @@ export const colWidth = (g: PageGeo) => (g.w - 2 * g.mx - (g.cols - 1) * g.gutte
 
 export interface Fonts { serif: PDFFont; bold: PDFFont; italic: PDFFont; sans: PDFFont; sansBold: PDFFont }
 
-export interface LayoutOptions { showDescriptions: boolean; showAllergens: boolean; labels: MenuCardLabels }
+export interface LayoutOptions { showDescriptions: boolean; showAllergens: boolean; labels: MenuCardLabels; priceLocale?: string }
 
 export type Block =
   | { kind: 'heading'; title: string; continued: boolean; gap: number; height: number }
@@ -99,8 +101,17 @@ export interface LaidOutPage { blocks: Placed[] }
 
 interface Suffix { allergens: string; dietary: string; width: number }
 
-const PRICE = new Intl.NumberFormat('nl-NL', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-export const formatMenuPrice = (n: number) => PRICE.format(Number.isFinite(n) ? n : 0);
+/**
+ * Prijs op de kaart in de taal van de kaart (gasten lezen hem, geen boekhouding), zonder euroteken:
+ * de achterkant vermeldt "prijzen in euro". Prijs ≤ 0 (of geen getal) = geen prijs op de kaart.
+ * U+202F (smalle harde spatie in fr) bestaat niet in WinAnsi: gewone harde spatie.
+ */
+export function formatMenuPrice(n: number, locale = 'nl-BE'): string {
+  if (!Number.isFinite(n) || n <= 0) return '';
+  let f: Intl.NumberFormat;
+  try { f = new Intl.NumberFormat(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 }); } catch { f = new Intl.NumberFormat('nl-BE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+  return f.format(n).replace(/\u202f/g, '\u00a0');
+}
 
 /** Maten bij schaal s. A4 iets groter dan A5. */
 export function sizes(g: PageGeo, s: number) {
@@ -135,13 +146,13 @@ export function wrapText(text: string, font: PDFFont, size: number, maxW: number
 function measureItem(item: MenuItem, f: Fonts, g: PageGeo, s: number, o: LayoutOptions): Block {
   const z = sizes(g, s);
   const cw = colWidth(g);
-  const price = formatMenuPrice(item.price);
-  const priceW = f.bold.widthOfTextAtSize(price, z.name);
+  const price = formatMenuPrice(item.price, o.priceLocale);
+  const priceW = price ? f.bold.widthOfTextAtSize(price, z.name) : 0;
   const allergens = o.showAllergens && item.allergens.length ? item.allergens.join(',') : '';
   const dietary = item.dietary.map((d) => o.labels.dietary[d]?.short).filter(Boolean).join(' ');
   const suffixW = (allergens ? f.sans.widthOfTextAtSize(allergens, z.small) + 2 : 0) + (dietary ? f.sansBold.widthOfTextAtSize(dietary, z.small) + 3 : 0);
   // Ruimte voor de naam: kolom min prijs min een minimale stippellijn, min de kleine codes erachter.
-  const nameW = Math.max(30 * MM, cw - priceW - 7 * MM - suffixW);
+  const nameW = Math.max(30 * MM, cw - (price ? priceW + 7 * MM : 0) - suffixW);
   const nameLines = wrapText(item.name, f.bold, z.name, nameW);
   const descW = cw - Math.max(priceW, 10 * MM) - 4 * MM;
   const descLines = o.showDescriptions && item.description ? wrapText(item.description, f.italic, z.desc, descW).slice(0, 4) : [];
@@ -322,10 +333,13 @@ function drawInside(page: PDFPage, blocks: Placed[], c: Ctx, pageNo: number) {
             end += 3 + f.sansBold.widthOfTextAtSize(block.suffix.dietary, z.small);
           }
         }
-        if (i === 0) {
-          // Stippellijn tussen naam en prijs (enkel op de eerste regel, waar de prijs staat).
+        if (i === 0 && block.price) {
+          // Stippellijn tussen naam en prijs (enkel op de eerste regel, waar de prijs staat): één lijn
+          // met ronde streepjes van lengte ~0, i.p.v. een cirkel per stip (veel kleinere PDF).
           const from = (block.nameLines.length === 1 ? end : x + f.bold.widthOfTextAtSize(line, z.name)) + 4;
-          for (let dx = from; dx < priceX - 4; dx += 2.8) page.drawCircle({ x: dx, y: y + 1.2, size: 0.38, color: LIGHT });
+          if (priceX - 4 - from > 4) {
+            page.drawLine({ start: { x: from, y: y + 1.2 }, end: { x: priceX - 4, y: y + 1.2 }, thickness: 0.76, color: LIGHT, dashArray: [0.01, 2.8], lineCap: LineCapStyle.Round });
+          }
           page.drawText(block.price, { x: priceX, y, size: z.name, font: f.bold, color: INK });
         }
         y -= lh;
@@ -483,6 +497,13 @@ function drawFiller(page: PDFPage, c: Ctx) {
   centeredTracked(page, c.input.storeName.toLocaleUpperCase(), cx, g.h / 2 - 4 * MM, 7.5, f.serif, LIGHT, 1.6, g.w - 2 * g.mx);
 }
 
+/** Viewer-voorkeuren die de afdrukdialoog van de meeste lezers overneemt (PDF 1.7, /ViewerPreferences). */
+function setPrintPrefs(doc: PDFDocument, duplex: Duplex | null) {
+  const vp = doc.catalog.getOrCreateViewerPreferences();
+  vp.setPrintScaling(PrintScaling.None);
+  if (duplex) vp.setDuplex(duplex);
+}
+
 async function embedImage(doc: PDFDocument, img: PdfImageBytes | null | undefined): Promise<PDFImage | null> {
   if (!img) return null;
   try {
@@ -513,7 +534,7 @@ export async function generateMenuCardPdf(input: MenuCardInput): Promise<MenuCar
   const cover = input.template === 'photo_cover' ? await embedImage(doc, input.cover) : null;
   if (input.template === 'photo_cover' && !cover) warnings.push('cover');
   const g = geoFor(input.template);
-  const o: LayoutOptions = { showDescriptions: input.showDescriptions, showAllergens: input.showAllergens, labels: input.labels };
+  const o: LayoutOptions = { showDescriptions: input.showDescriptions, showAllergens: input.showAllergens, labels: input.labels, priceLocale: input.priceLocale };
   const chosen = chooseLayout(input.sections, f, input.template, o);
   const c: Ctx = { doc, f, accent, accentText: readable(accent), logo, cover, input, g, scale: chosen.scale };
 
@@ -530,11 +551,15 @@ export async function generateMenuCardPdf(input: MenuCardInput): Promise<MenuCar
 
   const impose = input.template !== 'a4' && input.impose !== false;
   if (!impose) {
+    // Afdrukvoorkeuren: altijd op ware grootte; A4-kaart dubbelzijdig omslaan langs de lange kant.
+    setPrintPrefs(doc, input.template === 'a4' ? Duplex.DuplexFlipLongEdge : null);
     return { bytes: await doc.save(), pages: total, sheets: input.template === 'a4' ? total / 2 : total / 4, scale: chosen.scale, warnings };
   }
   // Imposition: twee A5-pagina's naast elkaar op A4 liggend, in de volgorde van de vellen.
   const out = await PDFDocument.create();
   out.setTitle(`${input.labels.coverTitle} ${input.storeName}`);
+  // Liggende vellen: dubbelzijdig omslaan langs de korte kant, op ware grootte (anders klopt de vouw niet).
+  setPrintPrefs(out, Duplex.DuplexFlipShortEdge);
   // Eerst bewaren: pdf-lib bedt fonts en beelden pas in bij save(); embedPages op een niet-bewaarde
   // pagina verwijst naar fonts die niet bestaan (gemeten: pdftoppm "Unknown font tag").
   const embedded = await out.embedPdf(await doc.save(), Array.from({ length: total }, (_, i) => i));

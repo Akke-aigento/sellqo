@@ -1,15 +1,31 @@
 -- MENUKAART-PRINT-1 — helpartikel "Je menukaart afdrukken" (Kaart › Afdrukken).
 -- Categorie: dezelfde als het artikel horeca-kaart (live opgezocht bij het draaien); bestaat dat
--- artikel niet, dan de horeca-categorie a0000001-…-006 zoals mijn-zaak-instellingen.
+-- artikel niet, dan de horeca-categorie a0000001-…-006 zoals mijn-zaak-instellingen, als die bestaat.
+-- Bestaat geen van beide, dan wordt de insert overgeslagen met een notice (geen fout).
 -- PAS DRAAIEN NA de publish van sellqo.app met MENUKAART-PRINT-1 (anders beschrijft het artikel wat nog
 -- niet live is).
 -- Idempotent: ON CONFLICT (doc_level, slug) DO UPDATE.
 -- Handmatig terugdraaien:
 --   delete from public.doc_articles where doc_level = 'tenant' and slug = 'menukaart-afdrukken';
 
+do $mig$
+declare
+  v_cat uuid;
+begin
+  select a.category_id into v_cat from public.doc_articles a
+    join public.doc_categories c on c.id = a.category_id
+   where a.doc_level = 'tenant' and a.slug = 'horeca-kaart';
+  if v_cat is null then
+    select id into v_cat from public.doc_categories where id = 'a0000001-0000-0000-0000-000000000006';
+  end if;
+  if v_cat is null then
+    raise notice 'MENUKAART-PRINT-1: geen categorie gevonden (horeca-kaart noch a0000001-…-006), artikel overgeslagen';
+    return;
+  end if;
+
 insert into public.doc_articles (category_id, doc_level, title, slug, content, excerpt, tags, context_path, sort_order, is_published)
 values (
-  coalesce((select category_id from public.doc_articles where doc_level = 'tenant' and slug = 'horeca-kaart'), 'a0000001-0000-0000-0000-000000000006'),
+  v_cat,
   'tenant',
   'Je menukaart afdrukken',
   'menukaart-afdrukken',
@@ -33,9 +49,10 @@ values (
 <h2>Afdrukken en vouwen</h2>
 <ol>
 <li>Tik op <strong>PDF downloaden</strong> en open de PDF.</li>
-<li>Boekje of fotokaft: druk <strong>dubbelzijdig</strong> af op A4, <strong>omslaan langs de korte kant</strong>, op <strong>ware grootte (100 %)</strong>. Leg de vellen in volgorde op elkaar en vouw ze samen dubbel. De pagina's staan al in de juiste volgorde.</li>
+<li>Boekje of fotokaft: druk <strong>dubbelzijdig</strong> af op A4, <strong>omslaan langs de korte kant</strong>, op <strong>ware grootte (100 %)</strong>. Leg de vellen op elkaar, het vel met de kaft buitenaan, en vouw ze samen dubbel. De pagina's staan al in de juiste volgorde.</li>
 <li>A4-kaart: druk dubbelzijdig af, omslaan langs de lange kant.</li>
 </ol>
+<p>Staat de achterkant ondersteboven? Kies dan de andere omslag-optie in je printer.</p>
 <p>Laat je de kaart drukken bij een drukkerij, kies dan <strong>Losse pagina's</strong>: die PDF heeft de pagina's één voor één, in leesvolgorde.</p>
 <h2>Je keuzes worden onthouden</h2>
 <p>Sjabloon, schakelaars, ondertitel, taal en kaftfoto worden bewaard voor je zaak, ook als je later op een ander toestel afdrukt. Pas je je kaart aan, dan download je gewoon een nieuwe PDF.</p>
@@ -49,3 +66,5 @@ values (
 on conflict (doc_level, slug) do update
   set title = excluded.title, content = excluded.content, excerpt = excluded.excerpt, tags = excluded.tags,
       context_path = excluded.context_path, is_published = true;
+end
+$mig$;

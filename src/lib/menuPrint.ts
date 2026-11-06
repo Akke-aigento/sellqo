@@ -176,3 +176,9 @@ export function bookletPrintOrder(pageCount: number): [number, number][] {
 export function totalPages(template: MenuPrintTemplate, contentPages: number): number {
   return padTo(contentPages + 2, template === 'a4' ? 2 : 4);
 }
+
+/** Prijsnotatie per kaarttaal: de Belgische variant waar die bestaat (12,50 in nl/fr/de, 12.50 in en). */
+export function priceLocaleFor(lang: string): string {
+  const map: Record<string, string> = { nl: 'nl-BE', fr: 'fr-BE', de: 'de-BE', en: 'en' };
+  return map[lang] ?? lang;
+}

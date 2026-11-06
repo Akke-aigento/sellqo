@@ -14,6 +14,8 @@ export async function run(page, { width, shot, log }) {
     const file = `/tmp/harness/menukaart-${width}-${name}.pdf`;
     await dl.saveAs(file);
     log('download', name, dl.suggestedFilename());
+    // Het svg-logo moet geladen zijn: geen waarschuwing "logo kon niet geladen worden".
+    if (await page.getByText('Je logo kon niet geladen worden', { exact: false }).count()) throw new Error('svg-logo niet geladen');
     await page.waitForTimeout(400);
   };
   await grab('boekje');

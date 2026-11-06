@@ -1,5 +1,5 @@
 // MENUKAART-PRINT-1 — gekozen sjabloon, opties en kaftfoto per zaak (tabel menu_print_settings),
-// zodat Belgaleiro het niet telkens opnieuw kiest, ook niet op een ander toestel. Elke keuze wordt
+// zodat een zaak het niet telkens opnieuw kiest, ook niet op een ander toestel. Elke keuze wordt
 // ook lokaal bewaard: bestaat de tabel nog niet (beheer live vóór de migratie) of mag deze rol niet
 // schrijven, dan onthoudt dit toestel het toch.
 import { useCallback } from 'react';
