@@ -8144,9 +8144,11 @@ export type Database = {
           qr_call_bill: boolean
           qr_call_waiter: boolean
           qr_flow: string
+          qr_group_idle_minutes: number
           qr_mode: string
           qr_pay_counter: boolean
           qr_pay_online: boolean
+          qr_shared_cart: boolean
           slot_minutes: number
           slots_enabled: boolean
           tenant_id: string
@@ -8171,9 +8173,11 @@ export type Database = {
           qr_call_bill?: boolean
           qr_call_waiter?: boolean
           qr_flow?: string
+          qr_group_idle_minutes?: number
           qr_mode?: string
           qr_pay_counter?: boolean
           qr_pay_online?: boolean
+          qr_shared_cart?: boolean
           slot_minutes?: number
           slots_enabled?: boolean
           tenant_id: string
@@ -8198,9 +8202,11 @@ export type Database = {
           qr_call_bill?: boolean
           qr_call_waiter?: boolean
           qr_flow?: string
+          qr_group_idle_minutes?: number
           qr_mode?: string
           qr_pay_counter?: boolean
           qr_pay_online?: boolean
+          qr_shared_cart?: boolean
           slot_minutes?: number
           slots_enabled?: boolean
           tenant_id?: string
@@ -11065,6 +11071,45 @@ export type Database = {
             foreignKeyName: "media_assets_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      menu_print_settings: {
+        Row: {
+          cover_image_url: string | null
+          options: Json
+          template: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          cover_image_url?: string | null
+          options?: Json
+          template?: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          cover_image_url?: string | null
+          options?: Json
+          template?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "menu_print_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenant_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "menu_print_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
             referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
@@ -20267,6 +20312,67 @@ export type Database = {
           },
         ]
       }
+      table_guest_groups: {
+        Row: {
+          cart_id: string | null
+          check_id: string | null
+          dining_table_id: string
+          ended_at: string | null
+          ended_reason: string | null
+          id: string
+          last_activity_at: string
+          started_at: string
+          tenant_id: string
+          version: number
+        }
+        Insert: {
+          cart_id?: string | null
+          check_id?: string | null
+          dining_table_id: string
+          ended_at?: string | null
+          ended_reason?: string | null
+          id?: string
+          last_activity_at?: string
+          started_at?: string
+          tenant_id: string
+          version?: number
+        }
+        Update: {
+          cart_id?: string | null
+          check_id?: string | null
+          dining_table_id?: string
+          ended_at?: string | null
+          ended_reason?: string | null
+          id?: string
+          last_activity_at?: string
+          started_at?: string
+          tenant_id?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "table_guest_groups_dining_table_id_fkey"
+            columns: ["dining_table_id"]
+            isOneToOne: false
+            referencedRelation: "dining_tables"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "table_guest_groups_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "table_guest_groups_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       table_requests: {
         Row: {
           cart_id: string | null
@@ -20276,6 +20382,7 @@ export type Database = {
           decided_by: string | null
           device_id: string | null
           dining_table_id: string | null
+          group_id: string | null
           guest_name: string | null
           id: string
           item_count: number
@@ -20296,6 +20403,7 @@ export type Database = {
           decided_by?: string | null
           device_id?: string | null
           dining_table_id?: string | null
+          group_id?: string | null
           guest_name?: string | null
           id: string
           item_count: number
@@ -20316,6 +20424,7 @@ export type Database = {
           decided_by?: string | null
           device_id?: string | null
           dining_table_id?: string | null
+          group_id?: string | null
           guest_name?: string | null
           id?: string
           item_count?: number
@@ -25589,6 +25698,7 @@ export type Database = {
         Args: { p_call_id: string; p_staff_id: string; p_tenant_id: string }
         Returns: Json
       }
+      horeca_table_groups: { Args: { p_tenant_id: string }; Returns: Json }
       horeca_table_request_accept: {
         Args: {
           p_device_id: string
@@ -26453,6 +26563,148 @@ export type Database = {
       }
       table_check_view: {
         Args: { p_table_id: string; p_tenant_id: string }
+        Returns: Json
+      }
+      table_check_view_since: {
+        Args: { p_now?: string; p_table_id: string; p_tenant_id: string }
+        Returns: Json
+      }
+      table_group_cart_put: {
+        Args: {
+          p_cart_id: string
+          p_group_id: string
+          p_item: Json
+          p_now?: string
+          p_op: string
+          p_tenant_id: string
+        }
+        Returns: Json
+      }
+      table_group_cur_check: {
+        Args: { g: Database["public"]["Tables"]["table_guest_groups"]["Row"] }
+        Returns: string
+      }
+      table_group_end_reason: {
+        Args: {
+          g: Database["public"]["Tables"]["table_guest_groups"]["Row"]
+          p_idle_minutes: number
+          p_now: string
+        }
+        Returns: string
+      }
+      table_group_has_open: {
+        Args: {
+          g: Database["public"]["Tables"]["table_guest_groups"]["Row"]
+          p_check_id: string
+        }
+        Returns: boolean
+      }
+      table_group_hidden_open: {
+        Args: {
+          p_check_id: string
+          p_group_id: string
+          p_since: string
+          p_tenant_id: string
+        }
+        Returns: number
+      }
+      table_group_join: {
+        Args: {
+          p_fresh_scan?: boolean
+          p_group_id: string
+          p_link: string
+          p_now?: string
+          p_table_id: string
+          p_tenant_id: string
+        }
+        Returns: Json
+      }
+      table_group_last_activity: {
+        Args: { g: Database["public"]["Tables"]["table_guest_groups"]["Row"] }
+        Returns: string
+      }
+      table_group_last_reset: { Args: { p_now: string }; Returns: string }
+      table_group_lines_view: {
+        Args: {
+          p_check_id: string
+          p_group_id: string
+          p_now: string
+          p_since: string
+          p_tenant_id: string
+        }
+        Returns: Json
+      }
+      table_group_new_cart: {
+        Args: { p_group_id: string; p_tenant_id: string }
+        Returns: string
+      }
+      table_group_other_lines: {
+        Args: { p_check_id: string; p_group_id: string; p_tenant_id: string }
+        Returns: string[]
+      }
+      table_group_pay_start: {
+        Args: {
+          p_group_id: string
+          p_kind: string
+          p_lines: Json
+          p_now?: string
+          p_payment_id: string
+          p_share_k: number
+          p_share_n: number
+          p_tenant_id: string
+          p_tip_cents: number
+        }
+        Returns: Json
+      }
+      table_group_release: {
+        Args: { p_table_id: string; p_tenant_id: string }
+        Returns: Json
+      }
+      table_group_request_place: {
+        Args: {
+          p_cart_id: string
+          p_group_id: string
+          p_guest_name: string
+          p_note: string
+          p_now?: string
+          p_request_id: string
+          p_table_label: string
+          p_tenant_id: string
+        }
+        Returns: Json
+      }
+      table_group_settle: {
+        Args: { p_now: string; p_table_id: string; p_tenant_id: string }
+        Returns: {
+          cart_id: string | null
+          check_id: string | null
+          dining_table_id: string
+          ended_at: string | null
+          ended_reason: string | null
+          id: string
+          last_activity_at: string
+          started_at: string
+          tenant_id: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "table_guest_groups"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      table_group_state: {
+        Args: {
+          p_group_id: string
+          p_now?: string
+          p_table_id: string
+          p_tenant_id: string
+        }
+        Returns: Json
+      }
+      table_group_view: {
+        Args: { p_group_id: string; p_now?: string; p_tenant_id: string }
         Returns: Json
       }
       table_request_place: {
