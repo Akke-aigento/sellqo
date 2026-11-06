@@ -7318,7 +7318,7 @@
         "qr_to_table": "To table",
         "qr_print_title": "Menu QR codes",
         "qr_popup_blocked": "Your browser blocked the print window. Allow pop-ups for SellQo.",
-        "qr_print_hint": "A4 pages: {{count}} · set margins to \"none\" and scale to 100%",
+        "qr_print_hint": "A4 pages: {{count}} · open the PDF and print at 100%",
         "addonGroupsManager": {
           "opties": "Options",
           "extra_s": "Extras",
@@ -7393,7 +7393,7 @@
         },
         "menuQrManager": {
           "bekijk_menukaart": "View menu",
-          "afdrukken_of_opslaan_als_pdf": "Print or save as PDF"
+          "afdrukken_of_opslaan_als_pdf": "Download PDF to print"
         },
         "never": "never",
         "none_lower": "none",
@@ -7412,7 +7412,7 @@
         "allergenChart": {
           "title": "Allergen chart",
           "desc": "All active dishes and extras against the 14 EU allergens. Print it for your premises: allergen information must be available there too.",
-          "print": "Print or save as PDF",
+          "print": "Download PDF to print",
           "product": "Dish",
           "other": "Other",
           "extras_group": "Extras: {{name}}",

@@ -2565,6 +2565,10 @@
         "swipe_notifications": {
           "title": "Meldingen wegvegen",
           "description": "Meldingen in je beheer en in de kassa-app veeg je weg naar links, rechts of boven, of je sluit ze met het kruisje. Een gewone melding verdwijnt na 4 seconden, een foutmelding na 8 seconden."
+        },
+        "qr_print_pdf": {
+          "title": "QR-codes en allergenenkaart afdrukken werkt overal",
+          "description": "De QR-codes voor je menukaart (affiche, tafelkaartjes en stickers) en je allergenenkaart download je nu als PDF. Dat werkt ook op je gsm en in de app; open de PDF en druk af."
         }
       },
       "copyLink": "Kopieer link",

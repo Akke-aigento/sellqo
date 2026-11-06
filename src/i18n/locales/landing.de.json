@@ -2565,6 +2565,10 @@
         "swipe_notifications": {
           "title": "Meldungen wegwischen",
           "description": "Meldungen in deiner Verwaltung und in der Kassen-App wischst du nach links, rechts oder oben weg, oder du schließt sie mit dem Kreuz. Eine normale Meldung verschwindet nach 4 Sekunden, eine Fehlermeldung nach 8 Sekunden."
+        },
+        "qr_print_pdf": {
+          "title": "QR-Codes und Allergenkarte drucken funktioniert überall",
+          "description": "Die QR-Codes für deine Speisekarte (Plakat, Tischkarten und Sticker) und deine Allergenkarte lädst du jetzt als PDF herunter. Das funktioniert auch auf dem Handy und in der App; öffne das PDF und drucke es."
         }
       },
       "copyLink": "Link kopieren",

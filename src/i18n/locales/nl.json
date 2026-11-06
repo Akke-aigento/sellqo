@@ -6908,7 +6908,7 @@
         },
         "menuQrManager": {
           "bekijk_menukaart": "Bekijk menukaart",
-          "afdrukken_of_opslaan_als_pdf": "Afdrukken of opslaan als PDF"
+          "afdrukken_of_opslaan_als_pdf": "PDF downloaden om af te drukken"
         },
         "unlimited": "onbeperkt",
         "addon_name_required": "Geef de groep een naam",
@@ -6968,7 +6968,7 @@
         "qr_to_table": "Tot tafel",
         "qr_print_title": "QR-codes menukaart",
         "qr_popup_blocked": "Je browser blokkeerde het afdrukvenster. Sta pop-ups toe voor SellQo.",
-        "qr_print_hint": "A4-pagina's: {{count}} · zet de marges op \"geen\" en schalen op 100%",
+        "qr_print_hint": "A4-pagina's: {{count}} · open de PDF en druk af op 100%",
         "never": "nooit",
         "none_lower": "geen",
         "allergens_title": "Allergenen",
@@ -6986,7 +6986,7 @@
         "allergenChart": {
           "title": "Allergenenkaart",
           "desc": "Alle actieve gerechten en extra's tegen de 14 EU-allergenen. Druk hem af voor in de zaak: daar moet de allergeneninformatie ook beschikbaar zijn.",
-          "print": "Afdrukken of opslaan als pdf",
+          "print": "PDF downloaden om af te drukken",
           "product": "Gerecht",
           "other": "Overige",
           "extras_group": "Extra's: {{name}}",

@@ -1,6 +1,6 @@
 // ALLERGEN-3 — allergenenkaart: alle actieve gerechten en extra's tegen de 14 EU-allergenen.
 // In België moet een horecazaak de allergeneninformatie ook in de zaak ter beschikking
-// hebben (KB 17/07/2014). Deze kaart haalt alles uit de productgegevens en drukt af op A4 liggend.
+// hebben (KB 17/07/2014). Deze kaart haalt alles uit de productgegevens; afdrukken = een PDF op A4 liggend.
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
@@ -15,50 +15,39 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { ALLERGENS } from './allergens';
 import { allergenState, isMissingColumn, type AllergenState } from './allergenState';
 import { KAART_TYPES } from '@/components/admin/horeca/kaart/useKaart';
+import { downloadPdf } from '@/utils/floorQrPdf';
+import { generateAllergenChartPdf } from '@/utils/allergenChartPdf';
 
 // ALLERGEEN-ADMIN-1 — elke rij weet of ze "geen" (bewust), "niet ingevuld" of een aantal heeft.
 // Extra's (product_addon_options) hebben geen verklaring: daar blijft een lege rij gewoon leeg.
 interface Row { name: string; allergens: string[]; state?: AllergenState }
 interface Group { title: string; rows: Row[] }
 
-const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c] as string));
-
-function printChart(groups: Group[], t: TFunction, shopName: string, lang: string) {
-  const w = window.open('', '_blank', 'width=1100,height=800');
-  if (!w) { toast.error(t('admin.storefront.food.qr_popup_blocked')); return; }
-  const head = ALLERGENS.map((a) => `<th class="al"><span>${esc(t(`admin.allergens.${a}`))}</span></th>`).join('');
-  const body = groups.map((g) => `
-    <tr class="grp"><td colspan="${ALLERGENS.length + 1}">${esc(g.title)}</td></tr>
-    ${g.rows.map((r) => `<tr><td class="nm">${esc(r.name)}${r.state?.kind === 'missing' ? ` <em class="q">(${esc(t('admin.storefront.food.allergenChart.state_missing'))})</em>` : r.state?.kind === 'none' ? ` <span class="q">(${esc(t('admin.storefront.food.allergenChart.state_none'))})</span>` : ''}</td>${ALLERGENS.map((a) => `<td class="c">${r.allergens.includes(a) ? '●' : ''}</td>`).join('')}</tr>`).join('')}`).join('');
-  const date = new Date().toLocaleDateString(lang, { day: 'numeric', month: 'long', year: 'numeric' });
-  w.document.open();
-  w.document.write(`<!doctype html><html lang="${esc(lang)}"><head><meta charset="utf-8"><title>${esc(t('admin.storefront.food.allergenChart.title'))}</title>
-<style>
-@page{size:A4 landscape;margin:10mm}
-body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#111;margin:0}
-h1{font-size:18px;margin:0 0 2px}
-.sub{font-size:11px;color:#555;margin:0 0 10px}
-table{border-collapse:collapse;width:100%;font-size:10.5px}
-th,td{border:1px solid #bbb;padding:3px 4px}
-th.al{height:96px;vertical-align:bottom;width:28px;padding:2px}
-th.al span{writing-mode:vertical-rl;transform:rotate(180deg);white-space:nowrap;font-weight:600}
-td.c{text-align:center;font-size:12px}
-td.nm{white-space:nowrap}
-tr.grp td{background:#eee;font-weight:700}
-.q{font-size:9.5px;color:#555}
-tr{break-inside:avoid}
-.foot{font-size:10px;color:#555;margin-top:8px}
-</style></head><body>
-<h1>${esc(t('admin.storefront.food.allergenChart.title'))} — ${esc(shopName)}</h1>
-<p class="sub">${esc(t('admin.storefront.food.allergenChart.updated', { date }))}</p>
-<table><thead><tr><th></th>${head}</tr></thead><tbody>${body}</tbody></table>
-<p class="foot">${esc(t('admin.storefront.food.allergenChart.print_footer'))}</p>
-</body></html>`);
-  w.document.close();
-  let printed = false;
-  const go = () => { if (printed) return; printed = true; try { w.focus(); w.print(); } catch { /* venster al dicht */ } };
-  w.onload = go;
-  setTimeout(go, 800);
+// QR-PRINT-1 — afdrukken = een PDF downloaden (src/utils/allergenChartPdf.ts). Het oude
+// afdrukvenster (window.open + print) werkte niet in Safari op gsm, in de app op het
+// beginscherm en in de native app.
+async function downloadChart(groups: Group[], t: TFunction, shopName: string, lang: string) {
+  try {
+    const date = new Date().toLocaleDateString(lang, { day: 'numeric', month: 'long', year: 'numeric' });
+    const bytes = await generateAllergenChartPdf({
+      title: `${t('admin.storefront.food.allergenChart.title')} — ${shopName}`,
+      subtitle: t('admin.storefront.food.allergenChart.updated', { date }),
+      footer: t('admin.storefront.food.allergenChart.print_footer'),
+      allergens: ALLERGENS.map((a) => t(`admin.allergens.${a}`)),
+      groups: groups.map((g) => ({
+        title: g.title,
+        rows: g.rows.map((r) => ({
+          name: r.name,
+          marks: ALLERGENS.map((a) => r.allergens.includes(a)),
+          note: r.state?.kind === 'missing' ? t('admin.storefront.food.allergenChart.state_missing')
+            : r.state?.kind === 'none' ? t('admin.storefront.food.allergenChart.state_none') : undefined,
+        })),
+      })),
+    });
+    downloadPdf(bytes, `allergenen-${(shopName || 'kaart').replace(/[^\w-]+/g, '_')}.pdf`);
+  } catch (e) {
+    toast.error(t('admin.floorPlan.qr_pdf_failed', { reason: e instanceof Error ? e.message : String(e) }));
+  }
 }
 
 /** Met allergens_declared; bestaat de kolom nog niet (admin live vóór de migratie), dan zonder. */
@@ -122,7 +111,7 @@ export function AllergenChart() {
             <CardTitle>{t('admin.storefront.food.allergenChart.title')}</CardTitle>
             <CardDescription>{t('admin.storefront.food.allergenChart.desc')}</CardDescription>
           </div>
-          <Button disabled={!groups.length} onClick={() => printChart(groups, t, currentTenant?.name || '', i18n.language)}>
+          <Button disabled={!groups.length} onClick={() => void downloadChart(groups, t, currentTenant?.name || '', i18n.language)}>
             <Printer className="mr-2 h-4 w-4" />{t('admin.storefront.food.allergenChart.print')}
           </Button>
         </div>

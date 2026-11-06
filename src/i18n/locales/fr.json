@@ -6987,7 +6987,7 @@
         "qr_to_table": "À la table",
         "qr_print_title": "QR codes de la carte",
         "qr_popup_blocked": "Votre navigateur a bloqué la fenêtre d’impression. Autorisez les fenêtres contextuelles pour SellQo.",
-        "qr_print_hint": "Pages A4 : {{count}} · réglez les marges sur « aucune » et l’échelle sur 100 %",
+        "qr_print_hint": "Pages A4 : {{count}} · ouvrez le PDF et imprimez à 100 %",
         "addonGroupsManager": {
           "opties": "Options",
           "extra_s": "Suppléments",
@@ -7062,7 +7062,7 @@
         },
         "menuQrManager": {
           "bekijk_menukaart": "Voir la carte",
-          "afdrukken_of_opslaan_als_pdf": "Imprimer ou enregistrer en PDF"
+          "afdrukken_of_opslaan_als_pdf": "Télécharger le PDF à imprimer"
         },
         "never": "jamais",
         "none_lower": "aucun",
@@ -7081,7 +7081,7 @@
         "allergenChart": {
           "title": "Tableau des allergènes",
           "desc": "Tous les plats et suppléments actifs face aux 14 allergènes UE. Imprimez-le pour votre établissement : l'information sur les allergènes doit aussi y être disponible.",
-          "print": "Imprimer ou enregistrer en PDF",
+          "print": "Télécharger le PDF à imprimer",
           "product": "Plat",
           "other": "Autres",
           "extras_group": "Suppléments : {{name}}",

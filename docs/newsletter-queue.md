@@ -4,6 +4,10 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.15i — QR-codes en allergenenkaart afdrukken werkt overal (bugfix, 06-11-2026)
+De QR-codes voor je menukaart (affiche, tafelkaartjes en stickers) en je allergenenkaart download je nu als PDF. Dat werkt ook op je gsm en in de app.
+i18n: `public.changelog.changes.qr_print_pdf`
+
 ### 2026.15h — Gesloten of gepauzeerd: je website, menukaart en QR-menu zeggen overal hetzelfde (bugfix, 04-11-2026)
 Staat je zaak vandaag dicht, dan zien gasten bovenaan je website, je menukaart en het QR-menu "Vandaag gesloten" met je reden, en kan er niet besteld worden, ook niet aan tafel. Bestel je niet online, dan staan er nergens nog +-knoppen, ook niet in de sectie met je kaart op de homepage. Gasten met een open rekening kunnen gewoon afrekenen.
 Beschikbaar vanaf: alle pakketten met een SellQo-website (de regels voor tafel en keuken: Horeca Small en Horeca Big).

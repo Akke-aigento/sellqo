@@ -6987,7 +6987,7 @@
         "qr_to_table": "Bis Tisch",
         "qr_print_title": "QR-Codes Speisekarte",
         "qr_popup_blocked": "Ihr Browser hat das Druckfenster blockiert. Erlauben Sie Pop-ups für SellQo.",
-        "qr_print_hint": "A4-Seiten: {{count}} · Ränder auf „keine“ und Skalierung auf 100 % stellen",
+        "qr_print_hint": "A4-Seiten: {{count}} · PDF öffnen und mit 100 % drucken",
         "addonGroupsManager": {
           "opties": "Optionen",
           "extra_s": "Extras",
@@ -7062,7 +7062,7 @@
         },
         "menuQrManager": {
           "bekijk_menukaart": "Speisekarte ansehen",
-          "afdrukken_of_opslaan_als_pdf": "Drucken oder als PDF speichern"
+          "afdrukken_of_opslaan_als_pdf": "PDF zum Drucken herunterladen"
         },
         "never": "nie",
         "none_lower": "keiner",
@@ -7081,7 +7081,7 @@
         "allergenChart": {
           "title": "Allergenkarte",
           "desc": "Alle aktiven Gerichte und Extras mit den 14 EU-Allergenen. Drucken Sie die Karte für Ihr Lokal aus: Dort müssen die Allergeninformationen ebenfalls verfügbar sein.",
-          "print": "Drucken oder als PDF speichern",
+          "print": "PDF zum Drucken herunterladen",
           "product": "Gericht",
           "other": "Sonstige",
           "extras_group": "Extras: {{name}}",

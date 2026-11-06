@@ -1,3 +1,29 @@
+## QR-PRINT-1 — menu-QR's en allergenenkaart afdrukken werkt overal (PDF in plaats van afdrukvenster) — 6 november 2026
+
+Melding van Akke: de QR-codes voor het menu (tafelkaartjes en A4-affiche) afdrukken lukt niet; de QR per tafel uit het zaalplan wel.
+
+**Root cause**
+- `src/components/admin/storefront/food/MenuQrManager.tsx` (`printSheets`) opende een pop-up (`window.open('', '_blank')`), schreef er HTML in en riep `print()` aan. Dat wordt geblokkeerd of genegeerd in Safari op gsm, in de app op het beginscherm en in de native app (Capacitor-webview).
+- De tafel-QR's uit het zaalplan (`FloorPlanEditor.tsx` → `src/utils/floorQrPdf.ts`) maken een PDF met pdf-lib en downloaden die: dat werkt overal.
+- `src/components/admin/storefront/food/AllergenChart.tsx` (`printChart`) had exact hetzelfde patroon en dus dezelfde fout. Die kaart is wettelijk verplicht in de zaak (KB 17/07/2014), dus meegenomen.
+
+**Uitgevoerd**
+- Nieuw `src/utils/menuQrPdf.ts`: affiche (1 A4), tafelkaartjes (4 per A4, `?tafel=N`) en stickers (12 per A4). QR als vectorpad via `qrPath` uit floorQrPdf. Logo (png/jpg) wordt ingebed; mislukt het laden, dan de zaaknaam. Merkkleur als rand en titel.
+- Nieuw `src/utils/allergenChartPdf.ts`: A4 liggend, kop met verticale allergeennamen op elke pagina, groepsrijen, een bolletje per allergeen, "(niet ingevuld)"/"(geen)" achter de naam.
+- `MenuQrManager.tsx` en `AllergenChart.tsx` downloaden de PDF met `downloadPdf` (zelfde helper als het zaalplan). Het voorbeeld op het scherm blijft.
+- Knopteksten in 5 talen: "PDF downloaden om af te drukken"; de hint over marges is weg.
+
+**Security-keuzes** n.v.t.: enkel client-side PDF-opmaak, geen data- of rechtenwijziging.
+
+**Gedeelde-paden-waarschuwing** Geen API, tabel of edge function geraakt.
+
+**Verificatie**
+- `src/utils/menuQrPdf.test.ts` (7 tests, in de CI-vitest-stap): paginatelling per opmaak, een logo dat niet laadt, tekens buiten WinAnsi, een allergenenkaart van 60 rijen over meerdere pagina's.
+- De gegenereerde PDF's als afbeelding nagekeken en met OpenCV gescand: affiche 1 QR naar /menu; tafelkaartjes 4 QR's naar `/menu?tafel=1..4`; stickers 12 QR's.
+- tsc, lint-baseline (1457 → 1454), i18n-parity, used-keys, dead-buttons.
+
+**Bewust ongemoeid / Vervolg** Andere `window.open('', '_blank')`-plekken (facturen, creditnota's, leveranciersdocumenten) openen een document-URL in een tabblad en drukken niet af; die vallen buiten deze batch.
+
 ## HORECA-STAAT-1 — één stand voor "kan hier nu besteld worden?" op site, menu, QR en server; meldingen wegvegen — 4 november 2026
 
 Branch `staat-1` (vanaf 999a2fa), samen met `staat-1` in sellqo-storefront (vanaf 96203df). Changelog 2026.15h. Stempel storefront-api `HORECA-STAAT-1` (header `horeca-staat-1`). Nog niets live.

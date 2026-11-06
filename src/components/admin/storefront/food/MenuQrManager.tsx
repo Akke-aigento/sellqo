@@ -1,13 +1,16 @@
 // FOOD-3 — QR-codes voor de menukaart (https://<winkel>.sellqo.shop/menu): een A4-poster,
-// tafelkaartjes (4 per A4, elk met eigen tafelnummer) en stickers (12 per A4). Afdrukken
-// gaat via de browser ("Opslaan als PDF" kan ook); de QR is een SVG, dus altijd scherp.
+// tafelkaartjes (4 per A4, elk met eigen tafelnummer) en stickers (12 per A4).
+// QR-PRINT-1 — afdrukken = een PDF downloaden (src/utils/menuQrPdf.ts), zoals de tafel-QR's van
+// het zaalplan. Het oude afdrukvenster (window.open + print) werkte niet in Safari op gsm, in de
+// app op het beginscherm en in de native app. Het voorbeeld hieronder toont dezelfde opmaak.
 // ZAAL-H1 — heeft de zaak een zaalplan, dan maakt deze pagina géén tafelkaartjes met een
 // vrij nummer (?tafel=N) meer: die werken dan niet. De QR per tafel (?t=<token>) komt uit
 // de tab Zaalplan (één plek per taak); hier staat enkel een verwijzing.
 import { useMemo, useState } from 'react';
-import { renderToStaticMarkup } from 'react-dom/server';
 import QRCode from 'react-qr-code';
-import { Copy, ExternalLink, Printer } from 'lucide-react';
+import { Copy, ExternalLink, Loader2, Printer } from 'lucide-react';
+import { downloadPdf } from '@/utils/floorQrPdf';
+import { generateMenuQrPdf } from '@/utils/menuQrPdf';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -26,25 +29,6 @@ const LAYOUTS: { value: Layout; titleKey: string; textKey: string }[] = [
   { value: 'tables', titleKey: 'admin.storefront.food.qr_layout_tables', textKey: 'admin.storefront.food.qr_layout_tables_text' },
   { value: 'stickers', titleKey: 'admin.storefront.food.qr_layout_stickers', textKey: 'admin.storefront.food.qr_layout_stickers_text' },
 ];
-
-// Afdrukken in een apart venster: alleen de A4-pagina's, met de stijlen van de admin.
-// Zo zit er geen menu, zijbalk of schermverkleining in de weg.
-function printSheets(sheets: React.ReactNode[], text: { title: string; blocked: string }) {
-  const w = window.open('', '_blank', 'width=900,height=1000');
-  if (!w) { toast.error(text.blocked); return; }
-  const styles = [...document.querySelectorAll('style, link[rel="stylesheet"]')].map((n) => n.outerHTML).join('');
-  const body = renderToStaticMarkup(<>{sheets}</>);
-  w.document.open();
-  w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${text.title.replace(/[<>&]/g, '')}</title>${styles}
-    <style>@page{size:A4;margin:0}html,body{margin:0;background:#fff}.sq-sheet{box-shadow:none!important;break-after:page;page-break-after:always}</style>
-    </head><body>${body}</body></html>`);
-  w.document.close();
-  // Wachten tot stylesheets en logo geladen zijn.
-  let printed = false;
-  const go = () => { if (printed) return; printed = true; try { w.focus(); w.print(); } catch { /* venster al dicht */ } };
-  w.onload = go;
-  setTimeout(go, 1500);
-}
 
 function Sheet({ children }: { children: React.ReactNode }) {
   // Echte A4-maat; op het scherm verkleind getoond.
@@ -71,6 +55,7 @@ export function MenuQrManager({ onOpenFloorPlan }: { onOpenFloorPlan?: () => voi
   const [sub, setSub] = useState(() => t('admin.storefront.food.qr_default_sub'));
   const [from, setFrom] = useState(1);
   const [to, setTo] = useState(12);
+  const [busy, setBusy] = useState(false);
 
   const tables = useMemo(() => {
     const a = Math.max(1, Math.min(from, to)); const b = Math.min(200, Math.max(from, to));
@@ -127,6 +112,22 @@ export function MenuQrManager({ onOpenFloorPlan }: { onOpenFloorPlan?: () => voi
     )];
   }, [layout, hasFloorPlan, tables, base, heading, sub, accent, logo, storeName, t]);
 
+  // QR-PRINT-1 — PDF maken en downloaden; geen pop-up nodig.
+  const downloadQrPdf = async () => {
+    setBusy(true);
+    try {
+      const bytes = await generateMenuQrPdf({
+        layout, url: base, storeName, heading, sub, accent, logoUrl: logo,
+        tables, tableLabel: (n) => t('admin.kitchen.table', { table: n }),
+      });
+      downloadPdf(bytes, `qr-menu-${layout}-${slug || 'menu'}.pdf`);
+    } catch (e) {
+      toast.error(t('admin.floorPlan.qr_pdf_failed', { reason: e instanceof Error ? e.message : String(e) }));
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <Card>
@@ -169,7 +170,9 @@ export function MenuQrManager({ onOpenFloorPlan }: { onOpenFloorPlan?: () => voi
             </div>
           ) : (
           <div className="flex flex-wrap items-center gap-3">
-            <Button onClick={() => printSheets(sheets, { title: t('admin.storefront.food.qr_print_title'), blocked: t('admin.storefront.food.qr_popup_blocked') })}><Printer className="mr-2 h-4 w-4" />{t('admin.storefront.food.menuQrManager.afdrukken_of_opslaan_als_pdf')}</Button>
+            <Button disabled={busy || sheets.length === 0} onClick={() => void downloadQrPdf()}>
+              {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Printer className="mr-2 h-4 w-4" />}{t('admin.storefront.food.menuQrManager.afdrukken_of_opslaan_als_pdf')}
+            </Button>
             <span className="text-sm text-muted-foreground">{t('admin.storefront.food.qr_print_hint', { count: sheets.length })}</span>
           </div>
           )}

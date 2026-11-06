@@ -2565,6 +2565,10 @@
         "swipe_notifications": {
           "title": "Swipe notifications away",
           "description": "Notifications in your admin and in the POS app can be swiped away to the left, right or top, or closed with the cross. A regular notification disappears after 4 seconds, an error after 8 seconds."
+        },
+        "qr_print_pdf": {
+          "title": "Printing QR codes and the allergen chart works everywhere",
+          "description": "You now download the QR codes for your menu (poster, table cards and stickers) and your allergen chart as a PDF. That also works on your phone and in the app; open the PDF and print."
         }
       },
       "copyLink": "Copy link",

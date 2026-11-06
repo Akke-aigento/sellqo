@@ -2565,6 +2565,10 @@
         "swipe_notifications": {
           "title": "Balayer les notifications",
           "description": "Les notifications de ton administration et de l'application caisse se balaient vers la gauche, la droite ou le haut, ou se ferment avec la croix. Une notification normale disparaît après 4 secondes, une erreur après 8 secondes."
+        },
+        "qr_print_pdf": {
+          "title": "L'impression des QR codes et du tableau des allergènes fonctionne partout",
+          "description": "Tu télécharges maintenant les QR codes de ta carte (affiche, chevalets de table et autocollants) et ton tableau des allergènes en PDF. Cela fonctionne aussi sur ton téléphone et dans l'app ; ouvre le PDF et imprime."
         }
       },
       "copyLink": "Copier le lien",
