@@ -2573,6 +2573,10 @@
         "table_session": {
           "title": "Elke tafel een eigen mandje, en een weg terug naar je tafel",
           "description": "Bestelt een gast op dezelfde gsm aan verschillende tafels, dan heeft elke tafel nu een eigen winkelmandje: niets van tafel 1 komt nog bij tafel 2 terecht. Scant hij daarna de gewone menu-QR, dan ziet hij het gewone menu en niet meer automatisch het bestelmenu van zijn vorige tafel. Zolang zijn tafel geldig is, staat bovenaan elke pagina \"Terug naar tafel\" met een link naar zijn tafelmenu en, als je de tafelrekening gebruikt, naar zijn rekening."
+        },
+        "menu_card_print": {
+          "title": "Je menukaart afdrukken als boekje of A4-kaart",
+          "description": "Op de Kaart staat een knop Afdrukken. Je kiest uit drie sjablonen: een A5-boekje (A4 liggend, dubbelgevouwen), losse A4-pagina's voor een menumap, of het boekje met een foto op de kaft (uit je mediabibliotheek, van een gerecht of zelf geüpload). Je krijgt een PDF in de kleuren en met het logo van je zaak, met prijzen, omschrijvingen, allergenen als nummers met legende en achteraan je adres, openingsuren en een QR-code naar je online kaart. De pagina's staan al in de juiste volgorde om dubbelzijdig af te drukken en te vouwen. Je keuzes worden onthouden."
         }
       },
       "copyLink": "Kopieer link",

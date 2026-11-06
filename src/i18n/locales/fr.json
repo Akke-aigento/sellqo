@@ -9347,6 +9347,70 @@
         "none": "aucun allergène",
         "missing": "allergènes non renseignés",
         "banner": "Les allergènes ne sont pas encore renseignés pour {{count}} produit(s) de ta carte. Voir lesquels."
+      },
+      "print": {
+        "button": "Imprimer",
+        "title": "Imprimer la carte",
+        "desc": "Une carte papier avec vos plats, vos prix et les allergènes, aux couleurs et avec le logo de votre établissement. Vos choix sont mémorisés.",
+        "template_label": "Modèle",
+        "tpl": {
+          "booklet_a5": {
+            "title": "Livret A5",
+            "text": "A4 paysage, plié en livret"
+          },
+          "a4": {
+            "title": "Carte A4",
+            "text": "Pages A4 séparées en portrait, pour un porte-menu"
+          },
+          "photo_cover": {
+            "title": "Couverture photo",
+            "text": "Le livret A5 avec une grande photo en couverture"
+          }
+        },
+        "cover_label": "Photo de couverture",
+        "cover_pick": "Choisissez ou téléversez une photo",
+        "cover_none": "Aucune photo choisie. Sans photo, la carte a une couverture avec votre logo.",
+        "cover_from_menu": "Ou prenez la photo d'un plat :",
+        "cover_use_photo": "Mettre cette photo en couverture",
+        "opt": {
+          "descriptions": "Descriptions",
+          "allergens": "Allergènes (numéros avec légende)",
+          "info": "Adresse et horaires au dos",
+          "qr": "QR code vers votre carte en ligne au dos"
+        },
+        "subtitle_label": "Sous-titre de couverture (facultatif)",
+        "subtitle_placeholder": "p. ex. Cuisine maison depuis 1998",
+        "language_label": "Langue de la carte",
+        "language_hint": "Pour les textes fixes comme « Allergènes » et « Horaires ». Vos plats apparaissent tels que vous les avez saisis.",
+        "summary": "{{categories}} catégories, {{count}} plats à la carte",
+        "empty": "Votre carte est encore vide. Les produits « À la carte » apparaissent sur la carte papier.",
+        "hint_booklet": "Imprimez en recto verso sur A4, retournement sur le bord court, en taille réelle (100 %). Empilez les feuilles, celle de la couverture à l'extérieur, et pliez-les ensemble en deux.",
+        "hint_flip": "Le verso est à l'envers ? Choisissez alors l'autre option de retournement dans votre imprimante.",
+        "load_failed": "Votre carte n'a pas pu être chargée. Vérifiez votre connexion et rouvrez cette fenêtre.",
+        "hint_a4": "Imprimez en recto verso sur A4, retournement sur le bord long, en taille réelle (100 %).",
+        "download": "Télécharger le PDF",
+        "download_pages": "Pages séparées (imprimeur ou écran)",
+        "done": "PDF prêt : {{pages}} pages, {{sheets}} feuille(s) de papier.",
+        "failed": "Impossible de créer le PDF : {{reason}}",
+        "warn_logo": "Votre logo n'a pas pu être chargé ; le nom de votre établissement le remplace.",
+        "warn_cover": "La photo de couverture n'a pas pu être chargée : la couverture est sans photo. Choisissez une autre photo (jpg, png ou webp).",
+        "pdf": {
+          "cover_title": "Menu",
+          "continued": "suite",
+          "allergens_title": "Allergènes",
+          "hours_title": "Heures d'ouverture",
+          "qr_caption": "Scannez pour la carte en ligne",
+          "price_note": "Prix en euros, TVA comprise.",
+          "other": "Divers",
+          "closed": "fermé",
+          "diet": {
+            "vegetarian": "V",
+            "vegan": "VG",
+            "spicy": "P",
+            "halal": "H",
+            "gluten_free": "SG"
+          }
+        }
       }
     },
     "horecaPay": {

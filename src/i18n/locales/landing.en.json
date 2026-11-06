@@ -2573,6 +2573,10 @@
         "table_session": {
           "title": "Every table its own basket, and a way back to the table",
           "description": "If a guest orders at different tables on the same phone, each table now has its own basket: nothing from table 1 ends up at table 2. If they then scan the regular menu QR code, they see the regular menu and no longer land automatically in the ordering menu of their previous table. As long as their table is valid, every page shows \"Back to table\" at the top, with a link to their table menu and, if you use the table bill, to their bill."
+        },
+        "menu_card_print": {
+          "title": "Print your menu as a booklet or A4 menu",
+          "description": "The Menu now has a Print button. Choose from three templates: an A5 booklet (A4 landscape, folded), separate A4 pages for a menu folder, or the booklet with a photo on the cover (from your media library, a dish, or your own upload). You get a PDF in your venue's colours and with your logo, with prices, descriptions, allergens as numbers with a legend, and on the back your address, opening hours and a QR code to your online menu. The pages are already in the right order to print double-sided and fold. Your choices are remembered."
         }
       },
       "copyLink": "Copy link",

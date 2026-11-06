@@ -2573,6 +2573,10 @@
         "table_session": {
           "title": "Un panier par table, et un chemin retour vers sa table",
           "description": "Si un client commande à différentes tables avec le même téléphone, chaque table a maintenant son propre panier : rien de la table 1 ne se retrouve à la table 2. S'il scanne ensuite le QR code du menu normal, il voit le menu normal et n'arrive plus automatiquement dans le menu de commande de sa table précédente. Tant que sa table est valable, chaque page affiche en haut « Retour à la table » avec un lien vers le menu de sa table et, si tu utilises l'addition de table, vers son addition."
+        },
+        "menu_card_print": {
+          "title": "Imprimez votre carte en livret ou en A4",
+          "description": "La Carte a désormais un bouton Imprimer. Vous choisissez parmi trois modèles : un livret A5 (A4 paysage, plié), des pages A4 séparées pour un porte-menu, ou le livret avec une photo en couverture (de votre médiathèque, d'un plat ou téléversée). Vous obtenez un PDF aux couleurs et avec le logo de votre établissement, avec les prix, les descriptions, les allergènes en numéros avec légende et, au dos, votre adresse, vos horaires et un QR code vers votre carte en ligne. Les pages sont déjà dans le bon ordre pour imprimer en recto verso et plier. Vos choix sont mémorisés."
         }
       },
       "copyLink": "Copier le lien",

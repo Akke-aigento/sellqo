@@ -4,6 +4,11 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.15k — Je menukaart afdrukken als boekje of A4-kaart (feature, 06-11-2026)
+Op de Kaart staat een knop Afdrukken. Kies een A5-boekje, losse A4-pagina's voor een menumap of een boekje met een foto op de kaft, en je krijgt een PDF in de stijl van je zaak, met allergenen, je openingsuren en een QR-code naar je online kaart. De pagina's staan al in de juiste volgorde om te vouwen.
+Beschikbaar vanaf: Horeca Small en Horeca Big.
+i18n: `public.changelog.changes.menu_card_print`
+
 ### 2026.15j — Elke tafel een eigen mandje, en een weg terug naar je tafel (bugfix, 06-11-2026)
 Bestelt een gast met dezelfde gsm aan verschillende tafels, dan heeft elke tafel nu een eigen winkelmandje: niets van tafel 1 komt nog bij tafel 2 terecht. Scant hij de gewone menu-QR, dan ziet hij het gewone menu en niet meer automatisch het bestelmenu van zijn vorige tafel. Zolang zijn tafel geldig is, staat bovenaan elke pagina "Terug naar tafel", met een link naar zijn rekening als je de tafelrekening gebruikt.
 Geldt voor: zaken die bestellen via de QR-code op tafel gebruiken.
