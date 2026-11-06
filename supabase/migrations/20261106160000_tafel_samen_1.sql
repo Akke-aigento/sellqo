@@ -1,0 +1,625 @@
+-- TAFEL-SAMEN-1 — één gedeeld tafelmandje per gezelschap, en nooit de rekening van vorige gasten.
+--
+-- Probleem (De Wissel, 06-11): elke gsm aan tafel had een eigen mandje, wat de ene gsm doorgaf zag de andere
+-- niet, en de gastweergave van de rekening (table_check_view) toonde álle lijnen van de open tafelrekening,
+-- ook die van gisteren en van vorige gasten.
+--
+-- Model: een tafelgroep (table_guest_groups) = het gezelschap dat nu aan een zaalplan-tafel zit.
+--   - Per tafel hoogstens één actieve groep (Akke 06-11: 1 rekening per tafel, 1 groep per tafel; twee
+--     gezelschappen aan één tafel = aparte tafels/stickers). Afgedwongen met een partiële unieke index.
+--   - Wie de QR van de tafel scant terwijl er een groep actief is, sluit aan bij die groep.
+--   - Een groep eindigt lui (in de functies hieronder, geen cron): na qr_group_idle_minutes zonder activiteit
+--     (standaard 120), bij de dagreset (05:00 Brussel, sold_out_reset_at), als de rekening aan de kassa
+--     gesloten is, of met "Tafel vrijgeven" in Zaal (table_group_release). Daarna start een nieuwe groep.
+--   - De groep heeft één gedeeld mandje (cart_id, session_id 'tafelgroep:<id>'). Na het doorgeven krijgt de
+--     groep een nieuw, leeg mandje (in dezelfde transactie): leeg voor iedereen.
+--   - De groep ziet enkel lijnen van de tafelrekening die ná haar start zijn aangemaakt (QR én personeel),
+--     nooit lijnen van vóór de start. Staan er nog lijnen van vóór de start open, dan is de rekening "gemengd":
+--     gelijk delen kan dan niet, en Zaal/Nu tonen een waarschuwing.
+--
+-- Fiscaal verandert niets: de rekening (dining_checks) blijft één per tafel, lijnen komen er zoals vandaag op
+-- via horeca_table_request_accept op de kassa. Niet aangeraakt: src/kassa, horeca_apply(_one), horeca_snapshot,
+-- horeca_check_json, horeca_pay*, horeca_table_request_accept/reject, dining_checks/check_lines/check_rounds,
+-- dining_checks_open_table_uq. table_request_place, table_check_view en table_check_pay_* blijven byte-gelijk:
+-- de nieuwe functies roepen ze aan of spiegelen hun logica (enkel lezend).
+--
+-- Additief en idempotent: nieuwe tabel, nieuwe functies, nullable kolom op table_requests, twee kolommen met
+-- default op fulfillment_settings. Geen secrets.
+--
+-- Handmatig terugdraaien:
+--   drop function if exists public.table_group_release(uuid, uuid), public.horeca_table_groups(uuid),
+--     public.table_group_cart_put(uuid, uuid, uuid, text, jsonb, timestamptz),
+--     public.table_group_request_place(uuid, uuid, uuid, uuid, text, text, text, timestamptz),
+--     public.table_group_view(uuid, uuid, timestamptz), public.table_check_view_since(uuid, uuid, timestamptz),
+--     public.table_group_lines_view(uuid, uuid, timestamptz, uuid, timestamptz), public.table_group_state(uuid, uuid, uuid, timestamptz),
+--     public.table_group_join(uuid, uuid, uuid, uuid, timestamptz), public.table_group_settle(uuid, uuid, timestamptz),
+--     public.table_group_new_cart(uuid, uuid), public.table_group_end_reason(public.table_guest_groups, timestamptz, integer),
+--     public.table_group_last_reset(timestamptz);
+--   drop table if exists public.table_guest_groups;
+--   alter table public.table_requests drop column if exists group_id;
+--   alter table public.fulfillment_settings drop column if exists qr_shared_cart, drop column if exists qr_group_idle_minutes;
+
+-- 1. Instellingen (Instellingen › Horeca › QR) ------------------------------------------------------
+alter table public.fulfillment_settings add column if not exists qr_shared_cart boolean not null default true;
+alter table public.fulfillment_settings add column if not exists qr_group_idle_minutes integer not null default 120;
+do $mig$
+begin
+  if not exists (select 1 from pg_constraint where conrelid = 'public.fulfillment_settings'::regclass and conname = 'fulfillment_settings_qr_group_idle_check') then
+    alter table public.fulfillment_settings add constraint fulfillment_settings_qr_group_idle_check check (qr_group_idle_minutes between 30 and 480);
+  end if;
+end
+$mig$;
+comment on column public.fulfillment_settings.qr_shared_cart is 'TAFEL-SAMEN-1: één gedeeld mandje per tafelgroep (QR op de tafelrekening).';
+comment on column public.fulfillment_settings.qr_group_idle_minutes is 'TAFEL-SAMEN-1: een tafelgroep eindigt na zoveel minuten zonder activiteit.';
+
+-- 2. Tafelgroepen ------------------------------------------------------------------------------------
+create table if not exists public.table_guest_groups (
+  id uuid primary key default gen_random_uuid(),
+  tenant_id uuid not null references public.tenants(id) on delete cascade,
+  dining_table_id uuid not null references public.dining_tables(id) on delete cascade,
+  started_at timestamptz not null default now(),
+  last_activity_at timestamptz not null default now(),
+  ended_at timestamptz,
+  ended_reason text check (ended_reason is null or ended_reason in ('idle', 'day_reset', 'check_closed', 'staff_release')),
+  -- Het gedeelde mandje (shopping). Roteert bij elk doorgeven. Null als het gedeelde mandje uit staat.
+  cart_id uuid,
+  -- De open hoofdrekening van de tafel zoals laatst gezien (lui bijgewerkt); gesloten = groep afgelopen.
+  check_id uuid,
+  -- +1 bij elke wijziging aan mandje of rondes: goedkope poll voor de gsm's aan tafel.
+  version bigint not null default 1,
+  constraint table_guest_groups_end check ((ended_at is null) = (ended_reason is null))
+);
+comment on table public.table_guest_groups is 'TAFEL-SAMEN-1: het gezelschap aan een zaalplan-tafel (QR). Eén actieve groep per tafel; gedeeld mandje en enkel eigen lijnen.';
+-- Eén actieve groep per tafel.
+create unique index if not exists table_guest_groups_active_uq on public.table_guest_groups (tenant_id, dining_table_id) where ended_at is null;
+create index if not exists table_guest_groups_tenant_idx on public.table_guest_groups (tenant_id, started_at);
+
+revoke all on public.table_guest_groups from anon, authenticated;
+grant select on public.table_guest_groups to authenticated;
+alter table public.table_guest_groups enable row level security;
+drop policy if exists table_guest_groups_select on public.table_guest_groups;
+create policy table_guest_groups_select on public.table_guest_groups for select to authenticated
+  using (tenant_id in (select public.get_user_tenant_ids(auth.uid())));
+-- Schrijven enkel via de security-definer-functies hieronder.
+
+alter table public.table_requests add column if not exists group_id uuid;
+create index if not exists table_requests_group_idx on public.table_requests (group_id) where group_id is not null;
+comment on column public.table_requests.group_id is 'TAFEL-SAMEN-1: tafelgroep die deze aanvraag doorgaf (de kassa negeert dit veld).';
+
+-- 3. Hulpfuncties ------------------------------------------------------------------------------------
+-- De laatste dagreset (05:00 Brussel) vóór p_now.
+create or replace function public.table_group_last_reset(p_now timestamptz)
+returns timestamptz
+language sql
+stable
+set search_path to ''
+as $$
+  select public.sold_out_reset_at(p_now - interval '1 day');
+$$;
+revoke all on function public.table_group_last_reset(timestamptz) from public, anon;
+grant execute on function public.table_group_last_reset(timestamptz) to authenticated, service_role;
+
+-- Waarom is deze (actieve) groep afgelopen, of null. Rekening: de laatst geziene rekening van de groep (of die van
+-- haar laatst bevestigde aanvraag) is niet meer open. Een rekening die de kassa naar een andere tafel verplaatste,
+-- blijft open en telt dus niet als afgesloten.
+create or replace function public.table_group_end_reason(g public.table_guest_groups, p_now timestamptz, p_idle_minutes integer)
+returns text
+language sql
+stable
+security definer
+set search_path to ''
+as $$
+  select case
+    when g.ended_at is not null then g.ended_reason
+    when g.started_at < public.table_group_last_reset(p_now) then 'day_reset'
+    when g.last_activity_at + make_interval(mins => coalesce(p_idle_minutes, 120)) < p_now then 'idle'
+    when k.check_id is not null and not exists (select 1 from public.dining_checks c where c.id = k.check_id and c.status = 'open')
+      then 'check_closed'
+  end
+  from (select coalesce(g.check_id, (select r.check_id from public.table_requests r
+                                      where r.group_id = g.id and r.check_id is not null
+                                      order by r.decided_at desc nulls last limit 1)) as check_id) k;
+$$;
+revoke all on function public.table_group_end_reason(public.table_guest_groups, timestamptz, integer) from public, anon, authenticated;
+grant execute on function public.table_group_end_reason(public.table_guest_groups, timestamptz, integer) to service_role;
+
+-- Nieuw, leeg gedeeld mandje voor een groep (session_id uniek per groep zolang het 'shopping' is).
+create or replace function public.table_group_new_cart(p_tenant_id uuid, p_group_id uuid)
+returns uuid
+language plpgsql
+security definer
+set search_path to ''
+as $$
+declare
+  v uuid;
+begin
+  select c.id into v from public.storefront_carts c
+   where c.tenant_id = p_tenant_id and c.session_id = 'tafelgroep:' || p_group_id::text and c.checkout_status = 'shopping'
+     and c.expires_at > now()
+   limit 1;
+  if v is not null then return v; end if;
+  -- Een verlopen mandje met dezelfde sessie blokkeert de unieke index: loslaten.
+  update public.storefront_carts set checkout_status = 'abandoned'
+   where tenant_id = p_tenant_id and session_id = 'tafelgroep:' || p_group_id::text and checkout_status = 'shopping';
+  insert into public.storefront_carts (tenant_id, session_id, currency, expires_at)
+  values (p_tenant_id, 'tafelgroep:' || p_group_id::text, 'EUR', now() + interval '1 day')
+  returning id into v;
+  return v;
+end;
+$$;
+revoke all on function public.table_group_new_cart(uuid, uuid) from public, anon, authenticated;
+grant execute on function public.table_group_new_cart(uuid, uuid) to service_role;
+
+-- De actieve groep van een tafel, na lui afsluiten. Neemt een slot per tafel (twee scans tegelijk = één groep)
+-- en een rijlock op de groep. Werkt check_id bij naar de open hoofdrekening van de tafel. Null = geen groep.
+create or replace function public.table_group_settle(p_tenant_id uuid, p_table_id uuid, p_now timestamptz)
+returns public.table_guest_groups
+language plpgsql
+security definer
+set search_path to ''
+as $$
+declare
+  g public.table_guest_groups%rowtype;
+  v_idle integer;
+  v_reason text;
+  v_cur uuid;
+begin
+  perform pg_advisory_xact_lock(hashtextextended('table_group:' || p_tenant_id::text || ':' || p_table_id::text, 0));
+  select * into g from public.table_guest_groups x
+   where x.tenant_id = p_tenant_id and x.dining_table_id = p_table_id and x.ended_at is null
+   for update;
+  if g.id is null then return null; end if;
+  select coalesce(f.qr_group_idle_minutes, 120) into v_idle from public.fulfillment_settings f where f.tenant_id = p_tenant_id;
+  v_reason := public.table_group_end_reason(g, p_now, v_idle);
+  if v_reason is not null then
+    update public.table_guest_groups set
+      ended_reason = v_reason,
+      ended_at = case v_reason
+        when 'idle' then least(p_now, g.last_activity_at + make_interval(mins => coalesce(v_idle, 120)))
+        when 'day_reset' then least(p_now, public.table_group_last_reset(p_now))
+        else p_now end,
+      version = version + 1
+     where id = g.id;
+    -- Het gedeelde mandje van een afgelopen groep wordt niet meer gebruikt.
+    if g.cart_id is not null then
+      update public.storefront_carts set checkout_status = 'abandoned' where id = g.cart_id and checkout_status = 'shopping';
+    end if;
+    return null;
+  end if;
+  select c.id into v_cur from public.dining_checks c
+   where c.tenant_id = p_tenant_id and c.table_id = p_table_id and c.status = 'open' and c.split_of is null
+   order by c.opened_at limit 1;
+  if v_cur is not null and g.check_id is distinct from v_cur then
+    update public.table_guest_groups set check_id = v_cur where id = g.id;
+    g.check_id := v_cur;
+  end if;
+  return g;
+end;
+$$;
+revoke all on function public.table_group_settle(uuid, uuid, timestamptz) from public, anon, authenticated;
+grant execute on function public.table_group_settle(uuid, uuid, timestamptz) to service_role;
+
+-- 4. Aansluiten (storefront-api, bij scannen of terugkeren aan tafel) ------------------------------------
+-- p_group_id = de groep uit de cookie van deze gsm, p_link = de groep uit een deellink (?groep=). Bij één
+-- groep per tafel sluit iedereen aan bij de actieve groep; de parameters zeggen enkel hoe (member/link/joined)
+-- en of de vorige groep van deze gsm afgelopen is (previous_ended).
+create or replace function public.table_group_join(p_tenant_id uuid, p_table_id uuid, p_group_id uuid, p_link uuid, p_now timestamptz default now())
+returns jsonb
+language plpgsql
+security definer
+set search_path to ''
+as $$
+declare
+  fs record;
+  t record;
+  g public.table_guest_groups%rowtype;
+  v_joined text;
+  v_cart_ok boolean;
+begin
+  select coalesce(f.qr_mode, 'view') as qr_mode, coalesce(f.qr_flow, 'order') as qr_flow, coalesce(f.qr_shared_cart, true) as shared
+    into fs from (select 1) x left join public.fulfillment_settings f on f.tenant_id = p_tenant_id;
+  if fs.qr_mode <> 'order' or fs.qr_flow <> 'check' then
+    return jsonb_build_object('group_id', null, 'reason', 'TABLE_GROUPS_OFF');
+  end if;
+  select d.id, d.label into t from public.dining_tables d where d.id = p_table_id and d.tenant_id = p_tenant_id and d.is_active;
+  if t.id is null then raise exception 'TABLE_NOT_FOUND' using errcode = 'P0002'; end if;
+
+  g := public.table_group_settle(p_tenant_id, p_table_id, p_now);
+  if g.id is null then
+    insert into public.table_guest_groups (tenant_id, dining_table_id, started_at, last_activity_at)
+    values (p_tenant_id, p_table_id, p_now, p_now)
+    returning * into g;
+    -- De open rekening die er al staat (bv. van vorige gasten) is wel de rekening van deze tafel; de groep
+    -- ziet er enkel de lijnen van ná haar start van.
+    update public.table_guest_groups set check_id = (
+      select c.id from public.dining_checks c where c.tenant_id = p_tenant_id and c.table_id = p_table_id
+         and c.status = 'open' and c.split_of is null order by c.opened_at limit 1)
+     where id = g.id returning * into g;
+    v_joined := 'new';
+  elsif p_group_id is not null and p_group_id = g.id then
+    v_joined := 'member';
+  elsif p_link is not null and p_link = g.id then
+    v_joined := 'link';
+  else
+    v_joined := 'joined';
+  end if;
+
+  if fs.shared then
+    v_cart_ok := g.cart_id is not null and exists (select 1 from public.storefront_carts c where c.id = g.cart_id
+                   and c.checkout_status = 'shopping' and c.expires_at > p_now);
+    if not v_cart_ok then g.cart_id := public.table_group_new_cart(p_tenant_id, g.id); end if;
+  end if;
+  update public.table_guest_groups set last_activity_at = greatest(last_activity_at, p_now), cart_id = g.cart_id
+   where id = g.id returning * into g;
+
+  return jsonb_build_object(
+    'group_id', g.id, 'started_at', g.started_at, 'joined', v_joined, 'shared', fs.shared,
+    'cart_id', case when fs.shared then g.cart_id end, 'version', g.version, 'table_label', t.label,
+    'previous_ended', p_group_id is not null and p_group_id <> g.id);
+end;
+$$;
+revoke all on function public.table_group_join(uuid, uuid, uuid, uuid, timestamptz) from public, anon, authenticated;
+grant execute on function public.table_group_join(uuid, uuid, uuid, uuid, timestamptz) to service_role;
+
+-- 5. Goedkope poll ---------------------------------------------------------------------------------------
+-- Geen activiteit (de achtergrondpoll houdt een groep niet in leven). ended = true → de storefront sluit
+-- opnieuw aan (en krijgt de nieuwe groep). hv = horeca_state.version (stand van aanvragen en rekening).
+create or replace function public.table_group_state(p_tenant_id uuid, p_table_id uuid, p_group_id uuid, p_now timestamptz default now())
+returns jsonb
+language plpgsql
+security definer
+set search_path to ''
+as $$
+declare
+  g public.table_guest_groups%rowtype;
+  v_shared boolean;
+begin
+  g := public.table_group_settle(p_tenant_id, p_table_id, p_now);
+  if g.id is null or g.id <> p_group_id then
+    return jsonb_build_object('ended', true);
+  end if;
+  select coalesce(f.qr_shared_cart, true) into v_shared from (select 1) x left join public.fulfillment_settings f on f.tenant_id = p_tenant_id;
+  return jsonb_build_object(
+    'ended', false, 'group_id', g.id, 'version', g.version, 'started_at', g.started_at, 'shared', v_shared,
+    'cart_id', case when v_shared then g.cart_id end,
+    'item_count', case when v_shared then coalesce((select sum(i.quantity) from public.storefront_cart_items i where i.cart_id = g.cart_id), 0) end,
+    'open_requests', (select count(*) from public.table_requests r where r.group_id = g.id and r.status = 'pending'),
+    'hv', coalesce((select s.version from public.horeca_state s where s.tenant_id = p_tenant_id), 0));
+end;
+$$;
+revoke all on function public.table_group_state(uuid, uuid, uuid, timestamptz) from public, anon, authenticated;
+grant execute on function public.table_group_state(uuid, uuid, uuid, timestamptz) to service_role;
+
+-- 6. Rekening voor de groep ------------------------------------------------------------------------------
+-- Zelfde vorm als table_check_view (zelfde berekening per lijn: horeca_open_qty, horeca_line_part_cents,
+-- vasthoudingen uit check_online_payments), maar enkel de lijnen die zichtbaar zijn voor de gast:
+--   zichtbaar = aangemaakt op of na p_since, en niet van een aanvraag van een andere groep.
+-- Correcties (corrects_line_id) volgen hun originele lijn. Extra velden: mixed (er staan nog onzichtbare
+-- lijnen open), hidden_open (aantal), since, settings.share (gelijk delen mag: split aan en niet gemengd).
+-- Bij een gemengde rekening telt het online voorschot (gelijk delen) niet mee: dat kan niet aan de groep
+-- toegewezen worden.
+create or replace function public.table_group_lines_view(p_tenant_id uuid, p_table_id uuid, p_since timestamptz, p_group_id uuid, p_now timestamptz)
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path to ''
+as $$
+declare
+  s record;
+  c public.dining_checks%rowtype;
+  v_total bigint;
+  v_held_share bigint;
+  v_stripe boolean;
+  v_fiscal boolean;
+  v_hidden integer;
+  v_mixed boolean;
+  v_other uuid[];
+begin
+  select coalesce(h.online_pay, false) as online_pay, coalesce(h.online_tip, true) as online_tip, coalesce(h.online_split, true) as online_split
+    into s from (select 1) x left join public.horeca_pay_settings h on h.tenant_id = p_tenant_id;
+  select coalesce(t.stripe_charges_enabled, false) and t.stripe_account_id is not null into v_stripe from public.tenants t where t.id = p_tenant_id;
+  v_fiscal := public.horeca_tenant_fiscal(p_tenant_id);
+  select * into c from public.dining_checks x
+   where x.tenant_id = p_tenant_id and x.table_id = p_table_id and x.status = 'open' and x.split_of is null
+   order by x.opened_at limit 1;
+  if c.id is null then
+    return jsonb_build_object('check', null, 'since', p_since, 'settings', jsonb_build_object('online_pay', s.online_pay and v_stripe and not v_fiscal,
+      'tip', s.online_tip, 'split', s.online_split, 'share', s.online_split));
+  end if;
+  -- Lijnen van aanvragen van een andere groep (bv. een aanvraag van de vorige gasten die pas na de start van
+  -- deze groep bevestigd werd).
+  select coalesce(array_agg(distinct li), '{}') into v_other
+    from public.table_requests r, unnest(coalesce(r.line_ids, '{}')) li
+   where r.tenant_id = p_tenant_id and r.check_id = c.id and r.group_id is not null
+     and r.group_id is distinct from p_group_id;
+
+  -- Zichtbaar = de (originele) lijn is op of na p_since aangemaakt en hoort niet bij een andere groep.
+  -- Correcties tellen mee met hun originele lijn.
+  select coalesce(sum(public.horeca_line_total(x)), 0) into v_total
+    from public.check_lines x
+    join public.check_lines o on o.id = coalesce(x.corrects_line_id, x.id)
+   where x.check_id = c.id and x.state = 'sent'
+     and o.created_at >= p_since and not (o.id = any(v_other));
+  select count(*) into v_hidden
+    from public.check_lines x
+   where x.check_id = c.id and x.state = 'sent' and x.qty > 0 and x.corrects_line_id is null
+     and not (x.created_at >= p_since and not (x.id = any(v_other)))
+     and public.horeca_open_qty(x.id) > 0;
+  v_mixed := v_hidden > 0;
+  select coalesce(sum(o.amount_cents), 0) into v_held_share from public.check_online_payments o
+   where o.check_id = c.id and o.status = 'pending' and o.hold_until > p_now and o.kind in ('share', 'full');
+  return jsonb_build_object(
+    'since', p_since,
+    'check', jsonb_build_object(
+      'id', c.id, 'opened_at', c.opened_at,
+      'total_cents', v_total,
+      'credit_cents', case when v_mixed then 0 else c.online_credit_cents end,
+      'remaining_cents', greatest(v_total - case when v_mixed then 0 else c.online_credit_cents end, 0),
+      'held_cents', case when v_mixed then 0 else v_held_share end,
+      'has_drafts', exists (select 1 from public.check_lines x where x.check_id = c.id and x.state = 'draft' and x.created_at >= p_since),
+      'open_splits', (select count(*) from public.dining_checks y where y.split_of = c.id and y.status = 'open'),
+      'pending_kinds', coalesce((select jsonb_agg(distinct o.kind) from public.check_online_payments o
+                                  where o.check_id = c.id and o.status = 'pending' and o.hold_until > p_now), '[]'::jsonb),
+      'mixed', v_mixed,
+      'hidden_open', v_hidden,
+      'lines', coalesce((select jsonb_agg(jsonb_build_object(
+          'id', q.id, 'name', q.name, 'addons', q.addons, 'open_qty', q.open_qty, 'held_qty', q.held_qty,
+          'created_at', q.created_at,
+          'unit_cents', public.horeca_line_part_cents(q.l, 1),
+          'open_cents', public.horeca_line_part_cents(q.l, q.open_qty),
+          'part_cents', (select jsonb_agg(public.horeca_line_part_cents(q.l, g) order by g) from generate_series(1, q.open_qty) g)) order by q.seq)
+        from (
+          select x.id, x.seq, x.name, x.created_at, x as l,
+                 coalesce((select jsonb_agg(a ->> 'name') from jsonb_array_elements(x.addons) a), '[]'::jsonb) as addons,
+                 public.horeca_open_qty(x.id) as open_qty,
+                 coalesce((select sum((e ->> 'qty')::integer) from public.check_online_payments o, jsonb_array_elements(o.lines) e
+                            where o.check_id = c.id and o.status = 'pending' and o.hold_until > p_now and o.kind = 'lines'
+                              and e ->> 'line_id' = x.id::text), 0) as held_qty
+          from public.check_lines x
+          where x.check_id = c.id and x.state = 'sent' and x.qty > 0 and x.corrects_line_id is null
+            and x.created_at >= p_since and not (x.id = any(v_other))
+        ) q where q.open_qty > 0), '[]'::jsonb)),
+    'settings', jsonb_build_object('online_pay', s.online_pay and v_stripe and not v_fiscal, 'tip', s.online_tip,
+      'split', s.online_split, 'share', s.online_split and not v_mixed));
+end;
+$$;
+revoke all on function public.table_group_lines_view(uuid, uuid, timestamptz, uuid, timestamptz) from public, anon, authenticated;
+grant execute on function public.table_group_lines_view(uuid, uuid, timestamptz, uuid, timestamptz) to service_role;
+
+-- De rekening zoals de groep ze ziet. Groep afgelopen of niet van deze tafel → ended.
+create or replace function public.table_group_view(p_tenant_id uuid, p_group_id uuid, p_now timestamptz default now())
+returns jsonb
+language plpgsql
+security definer
+set search_path to ''
+as $$
+declare
+  g0 public.table_guest_groups%rowtype;
+  g public.table_guest_groups%rowtype;
+begin
+  select * into g0 from public.table_guest_groups x where x.id = p_group_id and x.tenant_id = p_tenant_id;
+  if g0.id is null then return jsonb_build_object('ended', true); end if;
+  g := public.table_group_settle(p_tenant_id, g0.dining_table_id, p_now);
+  if g.id is null or g.id <> p_group_id then return jsonb_build_object('ended', true); end if;
+  return public.table_group_lines_view(p_tenant_id, g.dining_table_id, g.started_at, g.id, p_now)
+    || jsonb_build_object('ended', false, 'group', jsonb_build_object('id', g.id, 'started_at', g.started_at, 'version', g.version));
+end;
+$$;
+revoke all on function public.table_group_view(uuid, uuid, timestamptz) from public, anon, authenticated;
+grant execute on function public.table_group_view(uuid, uuid, timestamptz) to service_role;
+
+-- Vangnet voor table_check_get zonder groep (oude tabbladen): enkel lijnen van na de laatste dagreset.
+create or replace function public.table_check_view_since(p_tenant_id uuid, p_table_id uuid, p_now timestamptz default now())
+returns jsonb
+language sql
+stable
+security definer
+set search_path to ''
+as $$
+  select public.table_group_lines_view(p_tenant_id, p_table_id, public.table_group_last_reset(p_now), null, p_now);
+$$;
+revoke all on function public.table_check_view_since(uuid, uuid, timestamptz) from public, anon, authenticated;
+grant execute on function public.table_check_view_since(uuid, uuid, timestamptz) to service_role;
+
+-- 7. Doorgeven (gedeeld mandje → tafelaanvraag) ---------------------------------------------------------------
+-- Groep vergrendelen → table_request_place (ongewijzigd, vergrendelt het mandje) → group_id op de aanvraag →
+-- nieuw leeg mandje voor de groep. Eén transactie: wie tegelijk toevoegt (table_group_cart_put wacht op de
+-- groep) komt ofwel mee in deze ronde, ofwel in het nieuwe mandje. Idempotent op p_request_id.
+-- p_cart_id telt enkel als het gedeelde mandje uit staat (mandje per gsm, de groep ziet wel haar rondes).
+create or replace function public.table_group_request_place(
+  p_tenant_id uuid, p_group_id uuid, p_request_id uuid, p_cart_id uuid, p_table_label text, p_guest_name text, p_note text,
+  p_now timestamptz default now())
+returns jsonb
+language plpgsql
+security definer
+set search_path to ''
+as $$
+declare
+  g0 public.table_guest_groups%rowtype;
+  g public.table_guest_groups%rowtype;
+  prior public.table_requests%rowtype;
+  v_shared boolean;
+  v_cart uuid;
+  r jsonb;
+begin
+  if p_request_id is null or p_group_id is null then raise exception 'TABLE_REQUEST_INVALID' using errcode = '22023'; end if;
+  -- Idempotent: dezelfde aanvraag opnieuw (netwerk, dubbel tikken) = hetzelfde antwoord, geen nieuw mandje.
+  select * into prior from public.table_requests where id = p_request_id;
+  if prior.id is not null then
+    if prior.tenant_id <> p_tenant_id or prior.group_id is distinct from p_group_id then
+      raise exception 'TABLE_REQUEST_INVALID' using errcode = '22023';
+    end if;
+    select * into g from public.table_guest_groups where id = p_group_id;
+    return jsonb_build_object('request_id', prior.id, 'status', prior.status, 'duplicate', true, 'group_id', p_group_id, 'cart_id', g.cart_id);
+  end if;
+  select * into g0 from public.table_guest_groups x where x.id = p_group_id and x.tenant_id = p_tenant_id;
+  if g0.id is null then raise exception 'GROUP_ENDED' using errcode = '55000'; end if;
+  g := public.table_group_settle(p_tenant_id, g0.dining_table_id, p_now);
+  if g.id is null or g.id <> p_group_id then raise exception 'GROUP_ENDED' using errcode = '55000'; end if;
+  select coalesce(f.qr_shared_cart, true) into v_shared from (select 1) x left join public.fulfillment_settings f on f.tenant_id = p_tenant_id;
+  v_cart := case when v_shared then g.cart_id else p_cart_id end;
+  if v_cart is null then raise exception 'CART_EMPTY' using errcode = '22023'; end if;
+
+  r := public.table_request_place(p_tenant_id, p_request_id, v_cart, g.dining_table_id, p_table_label, p_guest_name, p_note);
+  update public.table_requests set group_id = g.id where id = p_request_id and tenant_id = p_tenant_id and group_id is null;
+  if v_shared and coalesce((r ->> 'duplicate')::boolean, false) is not true then
+    g.cart_id := public.table_group_new_cart(p_tenant_id, g.id);
+  end if;
+  update public.table_guest_groups set cart_id = case when v_shared then g.cart_id else cart_id end,
+         version = version + 1, last_activity_at = greatest(last_activity_at, p_now)
+   where id = g.id returning * into g;
+  return r || jsonb_build_object('group_id', g.id, 'cart_id', case when v_shared then g.cart_id end, 'version', g.version);
+end;
+$$;
+revoke all on function public.table_group_request_place(uuid, uuid, uuid, uuid, text, text, text, timestamptz) from public, anon, authenticated;
+grant execute on function public.table_group_request_place(uuid, uuid, uuid, uuid, text, text, text, timestamptz) to service_role;
+
+-- 8. Schrijven in het gedeelde mandje ---------------------------------------------------------------------------
+-- De laatste stap van cart_add_item / cart_update_item / cart_remove_item met table_group_id. Validatie en prijs
+-- doet storefront-api zoals altijd; hier enkel het schrijven, onder het slot van de groep:
+--   - mandje van de groep is intussen doorgegeven (geroteerd) → CART_ROTATED (de storefront probeert opnieuw
+--     op het nieuwe mandje, dat in de foutmelding staat: 'CART_ROTATED:<cart_id>');
+--   - 'add': insert … on conflict (zelfde product/variant/extra's) do update quantity = quantity + excluded
+--     → twee gsm's die tegelijk hetzelfde toevoegen, verliezen niets (geen read-then-update, geen 23505);
+--   - p_item.max_qty (voorraad) en 99 per regel (zoals table_request_place) worden na het optellen bewaakt.
+-- p_item: add {product_id, variant_id, quantity, unit_price, addons, addon_key, addons_total, max_qty};
+--         set {item_id, quantity}; remove {item_id}.
+create or replace function public.table_group_cart_put(p_tenant_id uuid, p_group_id uuid, p_cart_id uuid, p_op text, p_item jsonb, p_now timestamptz default now())
+returns jsonb
+language plpgsql
+security definer
+set search_path to ''
+as $$
+declare
+  g0 public.table_guest_groups%rowtype;
+  g public.table_guest_groups%rowtype;
+  cart record;
+  v_qty integer;
+  v_max integer;
+  v_item uuid;
+  v_n integer;
+begin
+  if p_op not in ('add', 'set', 'remove') or p_group_id is null or p_cart_id is null then
+    raise exception 'TABLE_REQUEST_INVALID' using errcode = '22023';
+  end if;
+  select * into g0 from public.table_guest_groups x where x.id = p_group_id and x.tenant_id = p_tenant_id;
+  if g0.id is null then raise exception 'GROUP_ENDED' using errcode = '55000'; end if;
+  g := public.table_group_settle(p_tenant_id, g0.dining_table_id, p_now);
+  if g.id is null or g.id <> p_group_id then raise exception 'GROUP_ENDED' using errcode = '55000'; end if;
+  if g.cart_id is null then raise exception 'TABLE_REQUEST_INVALID' using errcode = '22023'; end if;
+  if g.cart_id <> p_cart_id then raise exception 'CART_ROTATED:%', g.cart_id using errcode = '40001'; end if;
+  select c.id, c.checkout_status into cart from public.storefront_carts c where c.id = p_cart_id and c.tenant_id = p_tenant_id for update;
+  if cart.id is null or cart.checkout_status is distinct from 'shopping' then
+    -- Zou niet mogen (doorgeven roteert in dezelfde transactie); veilig: een nieuw mandje.
+    g.cart_id := public.table_group_new_cart(p_tenant_id, g.id);
+    update public.table_guest_groups set cart_id = g.cart_id, version = version + 1 where id = g.id;
+    raise exception 'CART_ROTATED:%', g.cart_id using errcode = '40001';
+  end if;
+
+  if p_op = 'add' then
+    v_qty := (p_item ->> 'quantity')::integer;
+    v_max := nullif(p_item ->> 'max_qty', '')::integer;
+    if v_qty is null or v_qty < 1 or v_qty > 99 or (p_item ->> 'product_id') is null or (p_item ->> 'unit_price') is null then
+      raise exception 'TABLE_REQUEST_INVALID' using errcode = '22023';
+    end if;
+    insert into public.storefront_cart_items as ci (cart_id, product_id, variant_id, quantity, unit_price, addons, addon_key, addons_total)
+    values (p_cart_id, (p_item ->> 'product_id')::uuid, nullif(p_item ->> 'variant_id', '')::uuid, v_qty, (p_item ->> 'unit_price')::numeric,
+            case when jsonb_typeof(p_item -> 'addons') = 'array' then p_item -> 'addons' end,
+            nullif(p_item ->> 'addon_key', ''), coalesce((p_item ->> 'addons_total')::numeric, 0))
+    on conflict (cart_id, product_id, coalesce(variant_id, '00000000-0000-0000-0000-000000000000'::uuid), coalesce(addon_key, ''))
+    do update set quantity = ci.quantity + excluded.quantity, unit_price = excluded.unit_price
+    returning ci.id, ci.quantity into v_item, v_n;
+    if v_n > 99 then raise exception 'QTY_LIMIT' using errcode = '22023'; end if;
+    if v_max is not null and v_n > v_max then raise exception 'INSUFFICIENT_STOCK:%', greatest(v_max, 0) using errcode = '22023'; end if;
+  elsif p_op = 'set' then
+    v_qty := (p_item ->> 'quantity')::integer;
+    v_max := nullif(p_item ->> 'max_qty', '')::integer;
+    if v_qty is null or v_qty < 1 or v_qty > 99 then raise exception 'TABLE_REQUEST_INVALID' using errcode = '22023'; end if;
+    if v_max is not null and v_qty > v_max then raise exception 'INSUFFICIENT_STOCK:%', greatest(v_max, 0) using errcode = '22023'; end if;
+    update public.storefront_cart_items set quantity = v_qty
+     where id = (p_item ->> 'item_id')::uuid and cart_id = p_cart_id returning id into v_item;
+    if v_item is null then raise exception 'ITEM_GONE' using errcode = 'P0002'; end if;
+  else
+    delete from public.storefront_cart_items where id = (p_item ->> 'item_id')::uuid and cart_id = p_cart_id returning id into v_item;
+    -- Al weg (een tafelgenoot was sneller): geen fout, het mandje is zoals gevraagd.
+  end if;
+  update public.storefront_carts set updated_at = p_now where id = p_cart_id;
+  update public.table_guest_groups set version = version + 1, last_activity_at = greatest(last_activity_at, p_now)
+   where id = g.id returning * into g;
+  return jsonb_build_object('cart_id', p_cart_id, 'item_id', v_item, 'version', g.version);
+end;
+$$;
+revoke all on function public.table_group_cart_put(uuid, uuid, uuid, text, jsonb, timestamptz) from public, anon, authenticated;
+grant execute on function public.table_group_cart_put(uuid, uuid, uuid, text, jsonb, timestamptz) to service_role;
+
+-- 9. Beheer (Zaal en Nu-paneel) ----------------------------------------------------------------------------------
+-- Per open hoofdrekening aan een tafel en per actieve groep: is de rekening ouder dan de laatste dagreset
+-- (stale), hoeveel open lijnen van vóór de start van de actieve groep (prev_open_lines), en de groep zelf.
+-- Alleen-lezen; groepen die lui afgelopen zijn, tellen als niet actief (zonder ze hier te beëindigen).
+create or replace function public.horeca_table_groups(p_tenant_id uuid)
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path to ''
+as $$
+declare
+  v_reset timestamptz := public.table_group_last_reset(now());
+  v_idle integer;
+begin
+  if not public.has_tenant_role(p_tenant_id, array['tenant_admin', 'staff']::public.app_role[]) then
+    raise exception 'FORBIDDEN' using errcode = '42501';
+  end if;
+  select coalesce(f.qr_group_idle_minutes, 120) into v_idle from public.fulfillment_settings f where f.tenant_id = p_tenant_id;
+  return jsonb_build_object('last_reset', v_reset, 'tables', coalesce((
+    select jsonb_agg(row_to_json(z)::jsonb order by z.table_id)
+      from (
+        select coalesce(c.table_id, g.dining_table_id) as table_id,
+               c.id as check_id, c.opened_at as check_opened_at,
+               coalesce(c.opened_at < v_reset, false) as stale,
+               case when g.id is null or c.id is null then 0 else (
+                 select count(*) from public.check_lines x
+                  where x.check_id = c.id and x.state = 'sent' and x.qty > 0 and x.corrects_line_id is null
+                    and x.created_at < g.started_at and public.horeca_open_qty(x.id) > 0) end as prev_open_lines,
+               case when g.id is null then null else jsonb_build_object('id', g.id, 'started_at', g.started_at, 'last_activity_at', g.last_activity_at) end as "group"
+          from (select * from public.dining_checks c0
+                 where c0.tenant_id = p_tenant_id and c0.status = 'open' and c0.split_of is null and c0.table_id is not null) c
+          full join (select g1.* from public.table_guest_groups g1
+                      where g1.tenant_id = p_tenant_id and g1.ended_at is null
+                        and public.table_group_end_reason(g1, now(), v_idle) is null) g
+            on g.dining_table_id = c.table_id
+      ) z), '[]'::jsonb));
+end;
+$$;
+revoke all on function public.horeca_table_groups(uuid) from public, anon;
+grant execute on function public.horeca_table_groups(uuid) to authenticated;
+
+-- "Tafel vrijgeven": beëindigt de actieve groep van een tafel. De rekening zelf blijft ongemoeid (die reken je
+-- af of verplaats je op de kassa). De volgende gasten starten met een leeg overzicht.
+create or replace function public.table_group_release(p_tenant_id uuid, p_table_id uuid)
+returns jsonb
+language plpgsql
+security definer
+set search_path to ''
+as $$
+declare
+  g public.table_guest_groups%rowtype;
+begin
+  if not public.has_tenant_role(p_tenant_id, array['tenant_admin', 'staff']::public.app_role[]) then
+    raise exception 'FORBIDDEN' using errcode = '42501';
+  end if;
+  perform pg_advisory_xact_lock(hashtextextended('table_group:' || p_tenant_id::text || ':' || p_table_id::text, 0));
+  update public.table_guest_groups set ended_at = now(), ended_reason = 'staff_release', version = version + 1
+   where tenant_id = p_tenant_id and dining_table_id = p_table_id and ended_at is null
+   returning * into g;
+  if g.id is null then return jsonb_build_object('released', 0); end if;
+  if g.cart_id is not null then
+    update public.storefront_carts set checkout_status = 'abandoned' where id = g.cart_id and checkout_status = 'shopping';
+  end if;
+  perform public.horeca_bump(p_tenant_id);
+  return jsonb_build_object('released', 1, 'group_id', g.id);
+end;
+$$;
+revoke all on function public.table_group_release(uuid, uuid) from public, anon;
+grant execute on function public.table_group_release(uuid, uuid) to authenticated;

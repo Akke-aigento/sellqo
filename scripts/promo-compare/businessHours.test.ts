@@ -6,7 +6,7 @@
 //   - zonder tabel business_hours (fout van de databank): het oude gedrag;
 //   - UREN-1b: "buiten de openingsuren niet toestaan" voor afhalen/leveren zonder tijdsloten (outside_hours,
 //     OUTSIDE_HOURS) en voor QR aan tafel (checkout_table, table_request_place); standaard toegestaan;
-//   - GET-stempel TAFEL-SESSIE-1.
+//   - GET-stempel TAFEL-SAMEN-1.
 // Run (vanuit de repo-root, netwerkloos):
 //   DENO_NO_PACKAGE_JSON=1 deno test --allow-env --no-lock --node-modules-dir=none \
 //     --import-map=scripts/promo-compare/import_map.resolve.json scripts/promo-compare/businessHours.test.ts
@@ -141,9 +141,9 @@ Deno.test('UREN-1b QR aan tafel: standaard toegestaan, met de schakelaar OUTSIDE
   } finally { bh0().week = saved; delete fs0().qr_block_outside_hours; delete fs0().qr_mode; }
 });
 
-Deno.test('GET-stempel TAFEL-SESSIE-1', async () => {
+Deno.test('GET-stempel TAFEL-SAMEN-1', async () => {
   const r = await handler(new Request('https://f/storefront-api', { method: 'GET' }));
-  assert((await r.json()).version === 'TAFEL-SESSIE-1' && r.headers.get('X-SellQo-Api-Rev') === 'tafel-sessie-1', 'stempel');
+  assert((await r.json()).version === 'TAFEL-SAMEN-1' && r.headers.get('X-SellQo-Api-Rev') === 'tafel-samen-1', 'stempel');
 });
 
 // --- UREN-1c: sluitingsdag rond middernacht — een blok hoort bij zijn startdag ------------------------

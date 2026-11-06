@@ -22,7 +22,7 @@ import { computeOrderingState, hasKitchenSplit, kitchenPausedMessage, pausedAtKi
 
 const corsHeaders = {
   // PLANS-2 — versiestempel: bewijst een deploy zonder neveneffect (lees de header).
-  "X-SellQo-Api-Rev": "tafel-sessie-1",
+  "X-SellQo-Api-Rev": "tafel-samen-1",
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
@@ -1490,6 +1490,23 @@ async function stripeClient() {
 async function tableCheckGet(supabase: SupabaseLike, tenantId: string, params: Record<string, unknown>) {
   const t = await tableForCheck(supabase, tenantId, params);
   if (!t.ok) return { success: false, error: t.error };
+  // TAFEL-SAMEN-1 — additief: met group_id de rekening zoals de tafelgroep ze ziet (enkel lijnen van na haar start).
+  if (params.group_id != null) {
+    const gid = uuidOrNull(params.group_id);
+    const g = gid ? await groupView(supabase, tenantId, gid, t.table.table_id) : null;
+    if (!g) return { success: false, error: { code: 'GROUP_ENDED', message: TABLE_GROUP_ERRORS.GROUP_ENDED } };
+    return { table_label: t.table.label, ...g };
+  }
+  // TAFEL-SAMEN-1 — vangnet zonder groep (oude tabbladen): enkel lijnen van na de laatste dagreset (05:00), nooit de
+  // rekening van gisteren. Staan er nog oudere lijnen open, dan kan online betalen hier niet (dat zou ze meebetalen);
+  // afrekenen gebeurt dan aan de kassa. Ontbreekt de nieuwe databankfunctie nog: het oude antwoord.
+  const since = await supabase.rpc('table_check_view_since', { p_tenant_id: tenantId, p_table_id: t.table.table_id });
+  if (!since.error && since.data) {
+    const v = since.data as { check?: { hidden_open?: number } | null; settings?: Record<string, unknown> };
+    const hidden = Number(v.check?.hidden_open ?? 0) > 0;
+    return { table_label: t.table.label, ...(v as Record<string, unknown>), ...(hidden ? { settings: { ...(v.settings ?? {}), online_pay: false } } : {}) };
+  }
+  if (since.error) console.warn('[TAFEL-SAMEN-1] table_check_view_since', since.error.message);
   const { data, error } = await supabase.rpc('table_check_view', { p_tenant_id: tenantId, p_table_id: t.table.table_id });
   if (error) throw error;
   return { table_label: t.table.label, ...(data as Record<string, unknown>) };
@@ -1510,6 +1527,15 @@ async function tableCheckPay(supabase: SupabaseLike, tenantId: string, params: R
     ? (params.lines as Record<string, unknown>[]).slice(0, 60).map((l) => ({ line_id: String(l?.line_id ?? ''), qty: int(l?.qty) }))
     : [];
   if (lines.some((l) => !UUID_RE.test(l.line_id) || l.qty == null)) return { success: false, error: { code: 'CHECK_PAY_INVALID', message: CHECK_PAY_ERRORS.CHECK_PAY_INVALID } };
+  // TAFEL-SAMEN-1 — additief: met group_id betaalt de groep enkel haar eigen lijnen. Zonder group_id: ongewijzigd.
+  let payKind = kind;
+  let payLines = lines;
+  if (params.group_id != null) {
+    const plan = await groupPayPlan(supabase, tenantId, String(params.group_id), t.table.table_id, kind, lines);
+    if ('error' in plan) return { success: false, error: plan.error };
+    payKind = plan.kind;
+    payLines = plan.lines;
+  }
   // QR-IDEMP-1 — additief: oude pogingen van deze browser (na een netwerkfout) eerst vrijgeven,
   // anders houden ze 10 min de rekening of de items vast. Enkel pogingen op de rekening van
   // déze tafel; onbekende of afgeronde id's worden stil overgeslagen.
@@ -1528,7 +1554,7 @@ async function tableCheckPay(supabase: SupabaseLike, tenantId: string, params: R
     }
   }
   const { data, error } = await supabase.rpc('table_check_pay_start', {
-    p_tenant_id: tenantId, p_table_id: t.table.table_id, p_payment_id: paymentId, p_kind: kind, p_lines: lines,
+    p_tenant_id: tenantId, p_table_id: t.table.table_id, p_payment_id: paymentId, p_kind: payKind, p_lines: payLines,
     p_share_n: int(params.share_n), p_share_k: int(params.share_k), p_tip_cents: int(params.tip_cents) ?? 0,
   });
   if (error) { const m = checkPayError(error); if (m) return m; throw error; }
@@ -1650,6 +1676,178 @@ async function tableCheckPayCancel(supabase: SupabaseLike, tenantId: string, par
   const res = await releaseCheckPayment(supabase, tenantId, paymentId);
   if (!res) return { success: false, error: { code: 'NOT_FOUND', message: 'Betaling niet gevonden' } };
   return res;
+}
+
+// TAFEL-SAMEN-1 — de tafelgroep: wie de QR van een zaalplan-tafel scant, hoort bij het gezelschap dat daar nu zit
+// (één actieve groep per tafel). De groep deelt één mandje en ziet enkel de lijnen van de tafelrekening van na haar
+// start. Alle regels (aansluiten, einde, slot op het mandje, welke lijnen) zitten in de databank
+// (table_group_*-functies), zodat geen frontend ze kan omzeilen. Enkel met een QR-token uit het zaalplan.
+const TABLE_GROUP_ERRORS: Record<string, string> = {
+  GROUP_ENDED: 'Je tafelsessie is afgelopen. Scan de QR-code op je tafel opnieuw.',
+  CART_ROTATED: 'Jullie bestelling werd net doorgegeven. Je toevoeging staat in het nieuwe mandje.',
+  ITEM_GONE: 'Dit werd net aangepast door iemand aan je tafel.',
+  TABLE_GROUPS_OFF: 'Samen bestellen aan tafel staat uit in deze zaak.',
+  QTY_LIMIT: 'Meer dan 99 van hetzelfde kan je niet in één keer bestellen.',
+  CHECK_PAY_NO_SHARE: 'Gelijk delen kan hier niet: er staan nog items van vorige gasten op deze rekening. Kies je items of betaal alles van jullie tafel.',
+};
+const uuidOrNull = (v: unknown) => (typeof v === 'string' && UUID_RE.test(v) ? v.toLowerCase() : null);
+/** Eerste deel van een databankfout ('CART_ROTATED:<id>' → ['CART_ROTATED', '<id>']). */
+const dbCode = (e: { message?: string } | null | undefined) => {
+  const msg = String(e?.message || '');
+  const i = msg.indexOf(':');
+  return i < 0 ? [msg.trim(), ''] : [msg.slice(0, i).trim(), msg.slice(i + 1).trim()];
+};
+
+/** Groep van deze tafel (of null): een groep-ID van een andere tafel of zaak telt niet. */
+async function groupOfTable(supabase: SupabaseLike, tenantId: string, groupId: string, tableId: string | null | undefined): Promise<boolean> {
+  if (!tableId) return false;
+  const { data, error } = await supabase.from('table_guest_groups').select('id').eq('id', groupId).eq('tenant_id', tenantId).eq('dining_table_id', tableId).maybeSingle();
+  if (error) throw error;
+  return !!data;
+}
+
+async function tableGroupJoin(supabase: SupabaseLike, tenantId: string, params: Record<string, unknown>) {
+  const t = await tableForCheck(supabase, tenantId, params);
+  if (!t.ok) return { success: false, error: t.error };
+  const { data, error } = await supabase.rpc('table_group_join', {
+    p_tenant_id: tenantId, p_table_id: t.table.table_id, p_group_id: uuidOrNull(params.group_id), p_link: uuidOrNull(params.join),
+  });
+  if (error) {
+    const [code] = dbCode(error);
+    if (code === 'TABLE_NOT_FOUND') return { success: false, error: { code, message: 'Deze QR-code hoort niet (meer) bij een tafel.' } };
+    throw error;
+  }
+  return { table_label: t.table.label, ...(data as Record<string, unknown>) };
+}
+
+// Goedkope poll (één databankaanroep): versie, mandje en aantal. ended → de storefront sluit opnieuw aan.
+async function tableGroupState(supabase: SupabaseLike, tenantId: string, params: Record<string, unknown>) {
+  const t = await tableForCheck(supabase, tenantId, params);
+  if (!t.ok) return { success: false, error: t.error };
+  const gid = uuidOrNull(params.group_id);
+  if (!gid) return { ended: true };
+  const { data, error } = await supabase.rpc('table_group_state', { p_tenant_id: tenantId, p_table_id: t.table.table_id, p_group_id: gid });
+  if (error) throw error;
+  return data;
+}
+
+/** Rekening zoals de groep ze ziet, of null als de groep afgelopen is of niet bij deze tafel hoort. */
+async function groupView(supabase: SupabaseLike, tenantId: string, groupId: string, tableId: string | null | undefined): Promise<Record<string, unknown> | null> {
+  if (!(await groupOfTable(supabase, tenantId, groupId, tableId))) return null;
+  const { data, error } = await supabase.rpc('table_group_view', { p_tenant_id: tenantId, p_group_id: groupId });
+  if (error) throw error;
+  const v = data as Record<string, unknown> | null;
+  return !v || v.ended === true ? null : v;
+}
+
+// "Al besteld aan tafel X": de rondes van de groep (uit de server, voor elke gsm gelijk) met hun voortgang, plus de
+// rekening van de groep (zelfde vorm als table_check_get).
+async function tableGroupOverview(supabase: SupabaseLike, tenantId: string, params: Record<string, unknown>) {
+  const t = await tableForCheck(supabase, tenantId, params);
+  if (!t.ok) return { success: false, error: t.error };
+  const gid = uuidOrNull(params.group_id);
+  const view = gid ? await groupView(supabase, tenantId, gid, t.table.table_id) : null;
+  if (!gid || !view) return { ended: true };
+  const { data, error } = await supabase.from('table_requests').select(REQUEST_STATUS_COLS)
+    .eq('tenant_id', tenantId).eq('group_id', gid).order('created_at', { ascending: true }).limit(50);
+  if (error) throw error;
+  const rows = (data ?? []) as DbRow[];
+  const prog = await requestProgress(supabase, tenantId, rows);
+  return {
+    ended: false, table_label: t.table.label,
+    requests: rows.map((r) => publicRequest(r, prog.get(String(r.id)))),
+    ...view,
+  };
+}
+
+// Het gedeelde mandje doorgeven: zelfde controles als table_request_place, daarna table_group_request_place
+// (groep vergrendelen → table_request_place ongewijzigd → nieuw leeg mandje voor de hele groep).
+async function tableGroupPlace(supabase: SupabaseLike, tenantId: string, params: Record<string, unknown>) {
+  const requestId = uuidOrNull(params.request_id);
+  const gid = uuidOrNull(params.group_id);
+  if (!requestId || !gid) return { success: false, error: { code: 'TABLE_REQUEST_INVALID', message: TABLE_REQUEST_ERRORS.TABLE_REQUEST_INVALID } };
+  const t = await tableForCheck(supabase, tenantId, params);
+  if (!t.ok) return { success: false, error: t.error };
+  const zone = zoneClosedError(t.table);
+  if (zone) return { success: false, error: zone };
+  const { data: st, error: stErr } = await supabase.rpc('table_group_state', { p_tenant_id: tenantId, p_table_id: t.table.table_id, p_group_id: gid });
+  if (stErr) throw stErr;
+  const state = (st ?? {}) as { ended?: boolean; shared?: boolean; cart_id?: string | null };
+  if (state.ended) return { success: false, error: { code: 'GROUP_ENDED', message: TABLE_GROUP_ERRORS.GROUP_ENDED } };
+  // Gedeeld mandje: dat van de groep. Uit (mandje per gsm): het meegegeven mandje.
+  const cartId = state.shared ? state.cart_id ?? null : uuidOrNull(params.cart_id);
+  if (!cartId) return { success: false, error: { code: 'CART_EMPTY', message: TABLE_REQUEST_ERRORS.CART_EMPTY } };
+  const closed = await orderingBlockError(supabase, tenantId, 'table', () => cartBlockProducts(supabase, tenantId, cartId));
+  if (closed) return { success: false, error: closed };
+  const str = (v: unknown, n: number) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, n) : null);
+  const { data, error } = await supabase.rpc('table_group_request_place', {
+    p_tenant_id: tenantId, p_group_id: gid, p_request_id: requestId, p_cart_id: cartId, p_table_label: t.table.label,
+    p_guest_name: str(params.guest_name, 100), p_note: str(params.note, 500),
+  });
+  if (error) {
+    const [code, product] = dbCode(error);
+    if (code === 'SOLD_OUT') return { success: false, error: { code, message: `${product} is op voor vandaag` } };
+    if (code === 'NOT_AVAILABLE' || code === 'NOT_AVAILABLE_AT_TABLE') return { success: false, error: { code, message: `${product} kan je nu niet aan tafel bestellen` } };
+    if (TABLE_REQUEST_ERRORS[code]) return { success: false, error: { code, message: TABLE_REQUEST_ERRORS[code] } };
+    if (TABLE_GROUP_ERRORS[code]) return { success: false, error: { code, message: TABLE_GROUP_ERRORS[code] } };
+    throw error;
+  }
+  return data;
+}
+
+// Laatste schrijfstap van cart_add_item / cart_update_item / cart_remove_item met table_group_id.
+// CART_ROTATED / GROUP_ENDED / ITEM_GONE komen als { success:false, error:{ code, message, cart_id? } } terug
+// (zoals de table_*-acties); voorraad en ongeldige invoer als dezelfde fout als het gewone pad.
+async function tableGroupCartPut(supabase: SupabaseLike, tenantId: string, cartId: string, groupId: string, op: 'add' | 'set' | 'remove', item: Record<string, unknown>) {
+  const gid = uuidOrNull(groupId);
+  if (!gid) return { success: false, error: { code: 'GROUP_ENDED', message: TABLE_GROUP_ERRORS.GROUP_ENDED } };
+  const { error } = await supabase.rpc('table_group_cart_put', { p_tenant_id: tenantId, p_group_id: gid, p_cart_id: cartId, p_op: op, p_item: item });
+  if (error) {
+    const [code, extra] = dbCode(error);
+    if (code === 'CART_ROTATED') return { success: false, error: { code, message: TABLE_GROUP_ERRORS.CART_ROTATED, cart_id: uuidOrNull(extra) } };
+    if (code === 'GROUP_ENDED' || code === 'ITEM_GONE') return { success: false, error: { code, message: TABLE_GROUP_ERRORS[code] } };
+    if (code === 'INSUFFICIENT_STOCK') {
+      const stock = Math.max(0, Number(extra) || 0);
+      throw new Error(JSON.stringify(stock <= 0
+        ? { code: 'INSUFFICIENT_STOCK', message: 'Dit product is uitverkocht', available_stock: 0 }
+        : { code: 'INSUFFICIENT_STOCK', message: `Slechts ${stock} beschikbaar`, available_stock: stock }));
+    }
+    if (code === 'QTY_LIMIT') throw new Error(JSON.stringify({ code, message: TABLE_GROUP_ERRORS.QTY_LIMIT }));
+    if (code === 'TABLE_REQUEST_INVALID') throw new Error(JSON.stringify({ code, message: TABLE_REQUEST_ERRORS.TABLE_REQUEST_INVALID }));
+    throw error;
+  }
+  return cartGet(supabase, tenantId, { cart_id: cartId });
+}
+
+type PayLine = { line_id: string; qty: number | null };
+type GroupLine = { id: string; open_qty: number; held_qty: number };
+/**
+ * Wat betaalt de groep? Altijd enkel haar eigen lijnen:
+ *  - lines: elke lijn moet van de groep zijn (anders CHECK_LINES_CHANGED);
+ *  - share: enkel als de rekening niet gemengd is (geen open lijnen van vorige gasten);
+ *  - full:  niet gemengd = het bestaande "alles"; gemengd = "mijn items" met alle vrije lijnen van de groep.
+ */
+async function groupPayPlan(supabase: SupabaseLike, tenantId: string, groupId: string, tableId: string | null | undefined, kind: string, lines: PayLine[]):
+  Promise<{ kind: string; lines: PayLine[] } | { error: { code: string; message: string } }> {
+  const gid = uuidOrNull(groupId);
+  const view = gid ? await groupView(supabase, tenantId, gid, tableId) : null;
+  if (!view) return { error: { code: 'GROUP_ENDED', message: TABLE_GROUP_ERRORS.GROUP_ENDED } };
+  const check = view.check as { mixed?: boolean; lines?: GroupLine[] } | null;
+  if (!check) return { error: { code: 'CHECK_NOT_FOUND', message: CHECK_PAY_ERRORS.CHECK_NOT_FOUND } };
+  const mine = new Map((check.lines ?? []).map((l) => [String(l.id).toLowerCase(), l]));
+  if (kind === 'lines') {
+    if (lines.some((l) => !mine.has(l.line_id.toLowerCase()))) return { error: { code: 'CHECK_LINES_CHANGED', message: CHECK_PAY_ERRORS.CHECK_LINES_CHANGED } };
+    return { kind, lines };
+  }
+  if (!check.mixed) return { kind, lines };
+  if (kind === 'share') return { error: { code: 'CHECK_PAY_NO_SHARE', message: TABLE_GROUP_ERRORS.CHECK_PAY_NO_SHARE } };
+  const all = [...mine.values()].map((l) => ({ line_id: String(l.id), qty: Math.max(0, Number(l.open_qty) - Number(l.held_qty)) })).filter((l) => l.qty > 0);
+  if (!all.length) {
+    return [...mine.values()].some((l) => Number(l.held_qty) > 0)
+      ? { error: { code: 'CHECK_PAY_BUSY', message: CHECK_PAY_ERRORS.CHECK_PAY_BUSY } }
+      : { error: { code: 'CHECK_NOTHING_OPEN', message: CHECK_PAY_ERRORS.CHECK_NOTHING_OPEN } };
+  }
+  return { kind: 'lines', lines: all.slice(0, 60) };
 }
 
 // ZAAL-H1 — nieuwe actie: QR-token (of vrij tafelnummer) → tafel, voor de storefront.
@@ -3607,6 +3805,17 @@ async function cartAddItem(supabase: any, tenantId: string, params: Record<strin
     throw new Error(msg);
   }
 
+  // TAFEL-SAMEN-1 — additief: het gedeelde tafelmandje schrijft atomair via de databank (slot op de groep,
+  // on conflict quantity + …). Zonder table_group_id: het pad hieronder, ongewijzigd.
+  if (params.table_group_id != null) {
+    if (eventDetailId) throw new Error(JSON.stringify({ code: 'TABLE_REQUEST_MIXED', message: TABLE_REQUEST_ERRORS.TABLE_REQUEST_MIXED }));
+    return tableGroupCartPut(supabase, tenantId, cartId, String(params.table_group_id), 'add', {
+      product_id: productId, variant_id: variantId ?? null, quantity, unit_price: unitPrice,
+      ...(addonSel.key ? { addons: addonSel.addons, addon_key: addonSel.key, addons_total: addonSel.total } : {}),
+      max_qty: stockSource.track_inventory ? Number(stockSource.stock) : null,
+    });
+  }
+
   // Check if item already in cart (unique by product_id + variant_id)
   let existingQuery = supabase.from('storefront_cart_items').select('id, quantity').eq('cart_id', cartId).eq('product_id', productId);
   if (variantId) existingQuery = existingQuery.eq('variant_id', variantId);
@@ -3648,6 +3857,8 @@ async function cartUpdateItem(supabase: any, tenantId: string, params: Record<st
   if (quantity < 1) throw new Error('quantity must be at least 1');
 
   const { data: item } = await supabase.from('storefront_cart_items').select('id, cart_id, product_id, variant_id, event_detail_id').eq('id', itemId).single();
+  // TAFEL-SAMEN-1 — gedeeld tafelmandje: een tafelgenoot haalde de regel net weg, of het mandje werd doorgegeven.
+  if (!item && params.table_group_id != null) return { success: false, error: { code: 'ITEM_GONE', message: TABLE_GROUP_ERRORS.ITEM_GONE } };
   // CART-TENANT-1 — regel van een cart van een andere winkel = niet gevonden.
   if (!item || !(await ownedCart(supabase, tenantId, item.cart_id))) throw new Error('Cart item not found');
   if (item.event_detail_id && await seatedVenueId(supabase, tenantId, item.event_detail_id)) {
@@ -3674,6 +3885,8 @@ async function cartUpdateItem(supabase: any, tenantId: string, params: Record<st
     throw new Error(msg);
   }
 
+  // TAFEL-SAMEN-1 — additief: gedeeld tafelmandje via de databank (onder het slot van de groep).
+  if (params.table_group_id != null) return tableGroupCartPut(supabase, tenantId, String(item.cart_id), String(params.table_group_id), 'set', { item_id: itemId, quantity });
   const { error } = await supabase.from('storefront_cart_items').update({ quantity }).eq('id', itemId).eq('cart_id', item.cart_id);
   if (error) throw error;
   await supabase.from('storefront_carts').update({ updated_at: new Date().toISOString() }).eq('id', item.cart_id).eq('tenant_id', tenantId);
@@ -3685,6 +3898,13 @@ async function cartRemoveItem(supabase: any, tenantId: string, params: Record<st
   if (!itemId) throw new Error('item_id is required');
 
   const { data: item } = await supabase.from('storefront_cart_items').select('cart_id, product_id, event_detail_id').eq('id', itemId).single();
+  // TAFEL-SAMEN-1 — gedeeld tafelmandje: al weg (een tafelgenoot was sneller) = het mandje zoals het nu is.
+  if (params.table_group_id != null) {
+    const groupCart = uuidOrNull(params.cart_id);
+    if (!item) return groupCart && (await ownedCart(supabase, tenantId, groupCart)) ? cartGet(supabase, tenantId, { cart_id: groupCart }) : { success: false, error: { code: 'ITEM_GONE', message: TABLE_GROUP_ERRORS.ITEM_GONE } };
+    if (!(await ownedCart(supabase, tenantId, item.cart_id))) throw new Error('Cart item not found');
+    return tableGroupCartPut(supabase, tenantId, String(item.cart_id), String(params.table_group_id), 'remove', { item_id: itemId });
+  }
   // CART-TENANT-1 — regel van een cart van een andere winkel = niet gevonden.
   if (!item || !(await ownedCart(supabase, tenantId, item.cart_id))) throw new Error('Cart item not found');
 
@@ -6587,6 +6807,8 @@ const CLOSED_SHOP_BLOCKED_ACTIONS: ReadonlySet<string> = new Set([
   'table_request_place',
   // REKENING-ONLINE-1: online een rekening betalen.
   'table_check_pay',
+  // TAFEL-SAMEN-1: het gedeelde tafelmandje doorgeven is ook een bestelling.
+  'table_group_place',
   // RESERVATIE-2: een dichte winkel neemt ook geen reservaties aan.
   'reservation_request',
   // OBER-ROEPEN-1: een dichte winkel heeft ook geen bediening.
@@ -6596,7 +6818,7 @@ const CLOSED_SHOP_BLOCKED_ACTIONS: ReadonlySet<string> = new Set([
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
   // Versiestempel voor deploy-verificatie (neveneffectvrij); bij elke batch ophogen.
-  if (req.method === 'GET') return new Response(JSON.stringify({ ok: true, version: 'TAFEL-SESSIE-1' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  if (req.method === 'GET') return new Response(JSON.stringify({ ok: true, version: 'TAFEL-SAMEN-1' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
   try {
     const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
@@ -6732,6 +6954,11 @@ serve(async (req) => {
       case 'reservation_request': result = await reservationRequest(supabase, tenant_id, params); break;
       // REKENING-ONLINE-1
       case 'table_check_get': result = await tableCheckGet(supabase, tenant_id, params); break;
+      // TAFEL-SAMEN-1 — tafelgroep: gedeeld mandje en enkel de eigen lijnen (nieuwe acties, additief).
+      case 'table_group_join': result = await tableGroupJoin(supabase, tenant_id, params); break;
+      case 'table_group_state': result = await tableGroupState(supabase, tenant_id, params); break;
+      case 'table_group_overview': result = await tableGroupOverview(supabase, tenant_id, params); break;
+      case 'table_group_place': result = await tableGroupPlace(supabase, tenant_id, params); break;
       case 'table_check_pay': result = await tableCheckPay(supabase, tenant_id, params); break;
       case 'table_check_pay_status': result = await tableCheckPayStatus(supabase, tenant_id, params); break;
       case 'table_check_pay_cancel': result = await tableCheckPayCancel(supabase, tenant_id, params); break;
