@@ -2569,6 +2569,10 @@
         "qr_print_pdf": {
           "title": "L'impression des QR codes et du tableau des allergènes fonctionne partout",
           "description": "Tu télécharges maintenant les QR codes de ta carte (affiche, chevalets de table et autocollants) et ton tableau des allergènes en PDF. Cela fonctionne aussi sur ton téléphone et dans l'app ; ouvre le PDF et imprime."
+        },
+        "table_session": {
+          "title": "Un panier par table, et un chemin retour vers sa table",
+          "description": "Si un client commande à différentes tables avec le même téléphone, chaque table a maintenant son propre panier : rien de la table 1 ne se retrouve à la table 2. S'il scanne ensuite le QR code du menu normal, il voit le menu normal et n'arrive plus automatiquement dans le menu de commande de sa table précédente. Tant que sa table est valable, chaque page affiche en haut « Retour à la table » avec un lien vers le menu de sa table et, si tu utilises l'addition de table, vers son addition."
         }
       },
       "copyLink": "Copier le lien",

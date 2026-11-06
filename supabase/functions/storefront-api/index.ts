@@ -8,7 +8,7 @@ import { submitContactForm, isContactFormAlias, normalizeContactAlias } from "..
 import { resolveCustomerContactEmail } from "../_shared/customerContact.ts";
 import { computeCartPromotions, round2 as promoRound2, type PromotionResult } from "../_shared/promotionEngine.ts";
 import { parseOptionFilter, productMatches, buildOptionFacets, buildTagFacets, type DbRow, type SupabaseLike } from "../_shared/catalogFilters.ts";
-import { cartTableZoneClosedError, resolveTableInput, tenantHasFloorPlan, zoneClosedError } from "../_shared/diningTables.ts";
+import { cartOtherTableError, cartTableZoneClosedError, resolveTableInput, tenantHasFloorPlan, zoneClosedError } from "../_shared/diningTables.ts";
 import { refundReasonText, settleTableCheckPayment, type RefundClient, type SettleRpcClient } from "../_shared/tableCheckPay.ts";
 import { AddonError, addonsLabel, applicableGroups, resolveAddonSelection, type AddonGroup } from "../_shared/productAddons.ts";
 import { closedMessage, computeSlots, openState, orderingBlocked, postalCodeAllowed, withBusinessHours, type FulfillmentSettings, type ServiceType } from "../_shared/fulfillmentSlots.ts";
@@ -22,7 +22,7 @@ import { computeOrderingState, hasKitchenSplit, kitchenPausedMessage, pausedAtKi
 
 const corsHeaders = {
   // PLANS-2 — versiestempel: bewijst een deploy zonder neveneffect (lees de header).
-  "X-SellQo-Api-Rev": "horeca-staat-1",
+  "X-SellQo-Api-Rev": "tafel-sessie-1",
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
@@ -1111,6 +1111,16 @@ async function checkoutService(supabase: SupabaseLike, tenantId: string, params:
   return buildCartResponse(supabase, tenantId, cartId);
 }
 
+/**
+ * TAFEL-SESSIE-1 — CART_OTHER_TABLE als dit mandje al aan een andere tafel hangt (zie cartOtherTableError).
+ * Defensief en fail-open: een leesfout of een onbekend mandje weigert niets (de bestaande controles blijven).
+ */
+async function cartBoundElsewhere(supabase: SupabaseLike, tenantId: string, cartId: string, table: Parameters<typeof cartOtherTableError>[1]) {
+  const { data, error } = await supabase.from('storefront_carts').select('id, service_type, table_label, dining_table_id').eq('id', cartId).eq('tenant_id', tenantId).maybeSingle();
+  if (error || !data) return null;
+  return cartOtherTableError(data, table);
+}
+
 // HORECA-1 — bestellen aan tafel via het QR-menu: geen adres, geen verzending; het
 // tafelnummer gaat mee naar de keuken. Alleen als de zaak "bestellen aan tafel" aanzette.
 async function checkoutTable(supabase: SupabaseLike, tenantId: string, params: Record<string, unknown>) {
@@ -1131,6 +1141,9 @@ async function checkoutTable(supabase: SupabaseLike, tenantId: string, params: R
   // Keukengerechten tijdens een pauze met posten worden bij het doorgeven/afrekenen gecontroleerd.
   const closedT = await orderingBlockError(supabase, tenantId, 'table');
   if (closedT) return { success: false, error: closedT };
+  // TAFEL-SESSIE-1 — een mandje dat al aan een andere tafel hangt, verhuist niet stil naar deze tafel.
+  const otherT = await cartBoundElsewhere(supabase, tenantId, cartId, resolved.table);
+  if (otherT) return { success: false, error: otherT };
   const c = (params.customer || {}) as Record<string, unknown>;
   const str = (v: unknown, n: number) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, n) : null);
   const { error } = await supabase.from('storefront_carts').update({
@@ -1176,6 +1189,9 @@ async function tableRequestPlace(supabase: SupabaseLike, tenantId: string, param
   // HORECA-STAAT-1 — ook vandaag dicht en de keukenpauze (keukengerechten in het mandje: KITCHEN_PAUSED).
   const closedR = await orderingBlockError(supabase, tenantId, 'table', () => cartBlockProducts(supabase, tenantId, cartId));
   if (closedR) return { success: false, error: closedR };
+  // TAFEL-SESSIE-1 — zelfde regel als checkout_table: nooit doorgeven voor een andere tafel dan die van het mandje.
+  const otherR = await cartBoundElsewhere(supabase, tenantId, cartId, resolved.table);
+  if (otherR) return { success: false, error: otherR };
   const { data, error } = await supabase.rpc('table_request_place', {
     p_tenant_id: tenantId, p_request_id: requestId, p_cart_id: cartId,
     p_table_id: resolved.table.table_id ?? null, p_table_label: resolved.table.label,
@@ -6575,7 +6591,7 @@ const CLOSED_SHOP_BLOCKED_ACTIONS: ReadonlySet<string> = new Set([
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
   // Versiestempel voor deploy-verificatie (neveneffectvrij); bij elke batch ophogen.
-  if (req.method === 'GET') return new Response(JSON.stringify({ ok: true, version: 'HORECA-STAAT-1' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  if (req.method === 'GET') return new Response(JSON.stringify({ ok: true, version: 'TAFEL-SESSIE-1' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
   try {
     const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);

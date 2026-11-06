@@ -1,6 +1,6 @@
 // ZAAL-H1 — deno test --no-lock --node-modules-dir=none supabase/functions/_shared/diningTables.test.ts
 import { deepStrictEqual as assertEquals, rejects as assertRejects } from "node:assert/strict";
-import { areaIsOpen, cartTableZoneClosedError, resolveTableInput, resolveTableToken, tenantHasFloorPlan, zoneClosedError } from "./diningTables.ts";
+import { areaIsOpen, cartOtherTableError, cartTableZoneClosedError, resolveTableInput, resolveTableToken, tenantHasFloorPlan, zoneClosedError } from "./diningTables.ts";
 
 type Row = Record<string, unknown>;
 // Kleine nep-databank: thenable builder met select/eq/maybeSingle, zoals supabase-js.
@@ -94,4 +94,24 @@ Deno.test("mandje met tafel: dichte zone → ZONE_CLOSED; open, onbekend, andere
   assertEquals(await cartTableZoneClosedError(closed, T, null), null);
   assertEquals(await cartTableZoneClosedError(db, T, "tb1"), null);
   assertEquals(await cartTableZoneClosedError(fakeDb({}, { code: "42703", message: "column does not exist" }), T, "tb1"), null);
+});
+
+Deno.test("TAFEL-SESSIE-1: mandje van een andere tafel → CART_OTHER_TABLE; zelfde tafel, geen tafel of online → null", () => {
+  const t1 = { table_id: "tb1", label: "Blauw 1", area: null };
+  const t2 = { table_id: "tb2", label: "Blauw 2", area: null };
+  const free4 = { table_id: null, label: "4", area: null };
+  // Zaalplan: op het tafel-id (ook als twee tafels dezelfde naam hebben).
+  assertEquals(cartOtherTableError({ service_type: "eat_in", table_label: "Blauw 1", dining_table_id: "tb1" }, t1), null);
+  assertEquals(cartOtherTableError({ service_type: "eat_in", table_label: "Blauw 1", dining_table_id: "tb1" }, t2)?.code, "CART_OTHER_TABLE");
+  assertEquals(cartOtherTableError({ service_type: "eat_in", table_label: "X", dining_table_id: "tb1" }, { ...t2, label: "X" })?.code, "CART_OTHER_TABLE");
+  // Zaalplan-mandje naar een vrij nummer: nooit dezelfde tafel.
+  assertEquals(cartOtherTableError({ service_type: "eat_in", table_label: "4", dining_table_id: "tb1" }, free4)?.code, "CART_OTHER_TABLE");
+  // Vrij nummer (of mandje van vóór ZAAL-H1): op de naam.
+  assertEquals(cartOtherTableError({ service_type: "eat_in", table_label: "4", dining_table_id: null }, free4), null);
+  assertEquals(cartOtherTableError({ service_type: "eat_in", table_label: "5" }, free4)?.code, "CART_OTHER_TABLE");
+  // Nog geen tafel op het mandje, of geen tafelmandje: niets weigeren (eerste checkout_table, online, afhalen).
+  assertEquals(cartOtherTableError({ service_type: null, table_label: null, dining_table_id: null }, t1), null);
+  assertEquals(cartOtherTableError({ service_type: "eat_in", table_label: null, dining_table_id: null }, t1), null);
+  assertEquals(cartOtherTableError({ service_type: "pickup", table_label: "Blauw 2", dining_table_id: "tb2" }, t1), null);
+  assertEquals(cartOtherTableError(null, t1), null);
 });

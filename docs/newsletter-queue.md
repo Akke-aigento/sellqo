@@ -4,6 +4,11 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.15j — Elke tafel een eigen mandje, en een weg terug naar je tafel (bugfix, 06-11-2026)
+Bestelt een gast met dezelfde gsm aan verschillende tafels, dan heeft elke tafel nu een eigen winkelmandje: niets van tafel 1 komt nog bij tafel 2 terecht. Scant hij de gewone menu-QR, dan ziet hij het gewone menu en niet meer automatisch het bestelmenu van zijn vorige tafel. Zolang zijn tafel geldig is, staat bovenaan elke pagina "Terug naar tafel", met een link naar zijn rekening als je de tafelrekening gebruikt.
+Geldt voor: zaken die bestellen via de QR-code op tafel gebruiken.
+i18n: `public.changelog.changes.table_session`
+
 ### 2026.15i — QR-codes en allergenenkaart afdrukken werkt overal (bugfix, 06-11-2026)
 De QR-codes voor je menukaart (affiche, tafelkaartjes en stickers) en je allergenenkaart download je nu als PDF. Dat werkt ook op je gsm en in de app.
 i18n: `public.changelog.changes.qr_print_pdf`

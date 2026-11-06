@@ -2569,6 +2569,10 @@
         "qr_print_pdf": {
           "title": "QR-Codes und Allergenkarte drucken funktioniert überall",
           "description": "Die QR-Codes für deine Speisekarte (Plakat, Tischkarten und Sticker) und deine Allergenkarte lädst du jetzt als PDF herunter. Das funktioniert auch auf dem Handy und in der App; öffne das PDF und drucke es."
+        },
+        "table_session": {
+          "title": "Jeder Tisch hat seinen eigenen Warenkorb, und es gibt einen Weg zurück zum Tisch",
+          "description": "Bestellt ein Gast mit demselben Handy an verschiedenen Tischen, hat jetzt jeder Tisch seinen eigenen Warenkorb: Nichts von Tisch 1 landet mehr bei Tisch 2. Scannt er danach den normalen Menü-QR-Code, sieht er das normale Menü und landet nicht mehr automatisch im Bestellmenü seines vorherigen Tisches. Solange sein Tisch gültig ist, steht oben auf jeder Seite „Zurück zum Tisch“ mit einem Link zu seinem Tischmenü und, wenn du die Tischrechnung nutzt, zu seiner Rechnung."
         }
       },
       "copyLink": "Link kopieren",

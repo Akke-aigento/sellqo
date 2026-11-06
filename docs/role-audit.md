@@ -1,3 +1,50 @@
+## TAFEL-SESSIE-1 — tafelmandje per tafel, gewoon menu ≠ tafel, balk "Terug naar tafel" — 6 november 2026
+
+Melding van Akke (cafébaas-perspectief): (1) een gast die via de tafel-QR in het tafelmenu zit en naar de homepage of een andere pagina gaat, vindt geen weg terug naar zijn tafel en rekening; (2) bug: op dezelfde gsm aan verschillende tafels bestellen deelt het winkelmandje tussen de tafels; (3) bug: scant hij daarna de gewone menu-QR (`/menu` zonder tafelparameter), dan landt hij in het bestelmenu van de laatst gescande tafel.
+
+Twee repo's: `sellqo-storefront` (branch `tafel-2`, de oplossing) en deze repo (branch `tafel-2`, een defensieve servercontrole + slottaken). Nog niets live.
+
+**Root cause** (storefront, origin/main 572e4be)
+- (2) `src/lib/cart.ts:13-17`: één vaste tafelmandje-cookie `sq_cart_table` voor élke tafel (`cartCookie = flags(shop).table ? TABLE_CART_COOKIE : CART_COOKIE`). Wie tafel 2 scant, behoudt het cart-ID van tafel 1; `startTableCheckout`/`placeTableRequest` sturen dat mandje dan met de token van tafel 2 naar de API. Server-side bond niets het mandje aan een tafel vóór `checkout_table` (`storefront-api/index.ts` `checkoutTable`, dat een mandje van tafel A zonder controle naar tafel B herschreef).
+- (3) `src/lib/sellqo.server.ts:103` (`flags`): "aan tafel" = de cookie `sq_table` bestaat, op elke pagina. `/menu` zonder `?t=` las dus gewoon de cookie van de vorige scan.
+- (1) Er was geen tafel-ingang buiten `/menu` zelf: de kop toont geen tafel, en vanaf `/menu` met de tafelmodus van (3) was er geen expliciete knop terug.
+- Bijkomend: bij server-rendering van een scan las `getCart` in hetzelfde verzoek nog de oude cookies (`getCookie` leest enkel het verzoek), dus de eerste weergave van tafel 2 toonde het mandje van tafel 1.
+
+**Uitgevoerd**
+- storefront `src/lib/tableSession.ts` (nieuw, puur): mandje-cookie per tafel `sq_cart_tafel_<fnv1a(token of naam)>` (nooit de geheime token zelf in de naam), `TABLE_AWAY_COOKIE` (`sq_table_away`, "even weg van tafel"), `isOutsideMenuEntry` (documentverzoek naar `/menu` zonder tafelparameter én niet van de eigen site: `Sec-Fetch-Site` ≠ same-origin en geen eigen Referer), `tableTransition` (scan / terug / even weg / niets), `showTableBar`, `activeCartCookie`, `cookieFromSetCookie`.
+- storefront `src/lib/sellqo.server.ts`: `flags()` scheidt de sessie (`tableSession: { label, bill }`) van de stand (`table` = sessie én niet even weg); `getCookie` leest eerst de Set-Cookie van het lopende antwoord (fix voor de eerste weergave).
+- storefront `src/lib/shop.ts` (`loadShell`): scannen zet de tafel en wist "even weg" en het oude gedeelde tafelmandje; `?aan_tafel=1` brengt terug; het gewone menu van buiten de site zet "even weg" (sessie blijft). Binnen de site (kop "Menukaart", "Verder bestellen", enz.) blijft de stand zoals ze is.
+- storefront `src/lib/cart.ts`: mandje per tafel (ook bij verlengen, verlaten, terug van Stripe); `CART_OTHER_TABLE` laat het mandje los; Stripe-terugkeer naar `/rekening?…&aan_tafel=1`.
+- storefront `src/components/TableReturn.tsx` (nieuw) + `src/routes/__root.tsx`: balk "Terug naar tafel {naam}" en "Mijn rekening" (enkel zaalplan-tafel op de tafelrekening, zoals "Je rekening" op `/menu`) onder de statusbalk, boven de kop, niet sticky; niet op het tafelmenu en de rekening zelf, niet in de editor. `src/routes/menu.tsx`, `src/routes/rekening.tsx`: `aan_tafel` in de zoekparameters.
+- `supabase/functions/_shared/diningTables.ts`: `cartOtherTableError` (puur). `supabase/functions/storefront-api/index.ts`: `cartBoundElsewhere` in `checkout_table` en `table_request_place` → `CART_OTHER_TABLE` als het mandje al eat_in aan een andere tafel hangt (zaalplan: op `dining_table_id`, anders op de naam). Stempel `HORECA-STAAT-1` → `TAFEL-SESSIE-1` (`X-SellQo-Api-Rev: tafel-sessie-1`); stempelchecks in `scripts/promo-compare/{allergenDeclared,businessHours,event409,qrStatus,tableCheckPay}.test.ts` mee.
+- Tests: `supabase/functions/_shared/diningTables.test.ts` (+1), `scripts/promo-compare/tableRequest.test.ts` (+3, echte handler: doorgeven en `checkout_table` met een mandje van een andere tafel → `CART_OTHER_TABLE`, geen rpc, geen write). Storefront: `scripts/tableSession.test.ts` (6 tests) in `npm run test:hours`.
+- Slottaken: changelog `2026.15j` (`table_session`, bugfix) in `PublicChangelog.tsx` + `landing.{nl,en,fr,de,uk}.json`; `docs/newsletter-queue.md`; migratie `20261106120000_tafel_sessie_1_docs.sql` (niet gedraaid).
+
+**Security-keuzes**
+- Geen RLS, policies of grants geraakt. Geen migratie op data of schema; enkel een docs-migratie.
+- De tafeltoken blijft server-side: in de cookienaam staat enkel een 32-bit hash; links gebruiken `?aan_tafel=1`, nooit de token. `aan_tafel` geeft geen toegang: het heft enkel "even weg" op voor een sessie die al in de httpOnly-cookies staat (zonder sessie: niets).
+- `CART_OTHER_TABLE` is fail-open bij een leesfout (zoals `areaIsOpen`): het weigert enkel bij een expliciete andere tafel op het mandje.
+
+**Gedeelde-paden-waarschuwing**
+- `storefront-api` is gedeeld. De nieuwe controle raakt enkel `checkout_table` en `table_request_place`, en enkel mandjes met `service_type = 'eat_in'` en een tafel; de zes eigen frontends gebruiken geen van beide acties. Geen nieuwe of gewijzigde sleutels in antwoorden; enkel een nieuwe foutcode op een tafelpad. `_shared/diningTables.ts` wordt enkel door `storefront-api` geïmporteerd (`grep -rl "_shared/diningTables.ts" supabase/functions`).
+- Het eat_in-mandje in `table_request_place` krijgt in de huidige storefront nooit vooraf een tafel (enkel `checkout_table` zet die), dus daar is de controle puur een vangnet.
+
+**Verificatie**
+- Core: `deno check storefront-api/index.ts` 0 (import map esm.sh-supabase → `npm:@supabase/supabase-js@2.57.2`, `--minimum-dependency-age=0`); `diningTables.test.ts` 8/8; CI-stap "storefront-resolve" (alle 24 promo-compare-testbestanden) 251/251; rooktest `smoke.ts` groen; `i18n-parity.mjs` volledige pariteit; `check-i18n-used-keys.mjs` 0; lint-baseline 1457 → 1454 (geen nieuwe); `tsc -p tsconfig.app.json` 0.
+- Storefront: tsc 0, `vite build` 0, `npm run test:hours` 20/20 (6 nieuw). Playwright met nep-API (`/home/claude/tafel-shots/mock.mjs` + `run.mjs`, 390 en 1280): **68/68 groen** — scan tafel 1 → item → scan tafel 2 → mand leeg → item → terug tafel 1 → mand van 1 (niet van 2); `/menu` zonder t → geen tafelmodus, balk "Terug naar tafel 2" + "Mijn rekening", gewoon (leeg) mandje, toevoegen zonder `table: true`; homepage → balk, link → tafelmenu van tafel 2 met zijn mandje; link binnen de site naar `/menu` blijft aan tafel; rekening via de balk vanuit "even weg"; geen balk op tafelmenu/rekening; "Ik zit niet meer aan tafel" en verlopen sessie → geen balk; balk overlapt de mandknop niet; geen horizontale scroll, geen JS-fouten. Regressie: HORECA-STAAT-1-matrix 598/598 en HORECA-NU-2 groen (tafelcontext opent `/menu` nu via `?aan_tafel=1`; een rechtstreekse `/menu` is sinds deze batch bewust het gewone menu).
+
+**Uitrol** (elk een aparte go)
+1. Push `sellqo-storefront` `tafel-2` → main en deploy de storefront. Werkt ook met de huidige API (een oudere API geeft gewoon nooit `CART_OTHER_TABLE`).
+2. Push deze repo → main, deploy `storefront-api` via Lovable (deploy-only), vingerafdruk: `GET` → `{"version":"TAFEL-SESSIE-1"}`.
+3. Docs-migratie `20261106120000_tafel_sessie_1_docs.sql` (eerst de natrek-query in de kop).
+Gasten die bij de uitrol al aan tafel zitten, verliezen éénmalig hun tafelmandje (de oude gedeelde cookie wordt niet meer gelezen; hun tafel en rekening blijven).
+
+**Bewust ongemoeid / Vervolg**
+- `src/kassa/` niet aangeraakt. Geen schema-migratie.
+- Het mandje krijgt nog steeds pas bij `checkout_table` een tafel; in de flow "op de tafelrekening" bindt pas de databankfunctie `table_request_place` het. Een binding bij `cart_add_item` (met `table_token`) zou de servercontrole volledig maken, maar raakt meer paden (`table_label` stuurt elders gedrag); niet nodig zolang de cart-ID een geheim in een httpOnly-cookie per tafel is.
+- De balk heeft geen sluitknop: wie de zaak verlaat, ziet hem tot de sessie verloopt (3 u na de laatste scan of toevoeging) of tot "Ik zit niet meer aan tafel".
+- De storefront is enkel Nederlands (geen i18n-bibliotheek, `<html lang="nl">`); de teksten van de balk staan samen in `TableReturn.tsx`.
+
 ## QR-PRINT-1 — menu-QR's en allergenenkaart afdrukken werkt overal (PDF in plaats van afdrukvenster) — 6 november 2026
 
 Melding van Akke: de QR-codes voor het menu (tafelkaartjes en A4-affiche) afdrukken lukt niet; de QR per tafel uit het zaalplan wel.

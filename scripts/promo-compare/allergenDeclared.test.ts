@@ -48,7 +48,7 @@ Deno.test('get_product: zelfde regel', async () => {
   assert(no.success === true && !('allergens_declared' in no.data), JSON.stringify(no).slice(0, 400));
 });
 
-Deno.test('GET-stempel HORECA-STAAT-1', async () => {
+Deno.test('GET-stempel TAFEL-SESSIE-1', async () => {
   const r = await handler(new Request('https://f/storefront-api', { method: 'GET' }));
-  assert((await r.json()).version === 'HORECA-STAAT-1' && r.headers.get('X-SellQo-Api-Rev') === 'horeca-staat-1', 'stempel');
+  assert((await r.json()).version === 'TAFEL-SESSIE-1' && r.headers.get('X-SellQo-Api-Rev') === 'tafel-sessie-1', 'stempel');
 });

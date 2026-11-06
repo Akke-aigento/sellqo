@@ -11,6 +11,8 @@ import { FakeDb } from './fakeSupabase.ts';
 const T = 'tenant-qr';
 const REQ = '11111111-1111-4111-8111-111111111111';
 const CART = '22222222-2222-4222-8222-222222222222';
+const CART7 = '77777777-7777-4777-8777-777777777777';
+const CART4 = '44444444-4444-4444-8444-444444444444';
 const db = new FakeDb({
   dining_tables: [],
   dining_areas: [],
@@ -19,6 +21,11 @@ const db = new FakeDb({
   tenant_domains: [],
   tenants: [{ id: T, slug: 'qrtest', name: 'QR Test' }],
   tenant_theme_settings: [],
+  // TAFEL-SESSIE-1: een mandje dat al aan tafel 7 hangt (checkout_table), en een van tafel 4.
+  storefront_carts: [
+    { id: CART7, tenant_id: T, service_type: 'eat_in', table_label: '7', dining_table_id: null },
+    { id: CART4, tenant_id: T, service_type: 'eat_in', table_label: '4', dining_table_id: null },
+  ],
 });
 
 let rpcResult: { data: unknown; error: unknown } = { data: { request_id: REQ, status: 'pending', duplicate: false }, error: null };
@@ -79,4 +86,25 @@ Deno.test('status: geweigerd met reden; onbekend → NOT_FOUND', async () => {
 Deno.test('resolve_domain geeft qr_flow', async () => {
   const r = await call('resolve_domain', { hostname: 'qrtest.sellqo.shop' }, null);
   assert(r.json.data?.qr_flow === 'check' && r.json.data.qr_mode === 'order', JSON.stringify(r.json));
+});
+
+Deno.test('TAFEL-SESSIE-1: mandje van tafel 7 doorgeven voor tafel 4 → CART_OTHER_TABLE, geen databankaanroep', async () => {
+  rpcCalls.length = 0;
+  const r = await call('table_request_place', { request_id: REQ, cart_id: CART7, table: '4' });
+  assert(r.json.data?.success === false && r.json.data.error.code === 'CART_OTHER_TABLE', JSON.stringify(r.json));
+  assert(rpcCalls.length === 0, 'rpc mocht niet aangeroepen worden');
+});
+
+Deno.test('TAFEL-SESSIE-1: mandje van tafel 4 aan tafel 4 → gewoon doorgegeven', async () => {
+  rpcCalls.length = 0;
+  rpcResult = { data: { request_id: REQ, status: 'pending', duplicate: false }, error: null };
+  const r = await call('table_request_place', { request_id: REQ, cart_id: CART4, table: '4' });
+  assert(r.json.success === true && r.json.data.request_id === REQ && rpcCalls.length === 1, JSON.stringify(r.json));
+});
+
+Deno.test('TAFEL-SESSIE-1: checkout_table met een mandje van een andere tafel → CART_OTHER_TABLE, mandje niet aangepast', async () => {
+  const before = db.writes.length;
+  const r = await call('checkout_table', { cart_id: CART7, table: '4' });
+  assert(r.json.data?.success === false && r.json.data.error.code === 'CART_OTHER_TABLE', JSON.stringify(r.json));
+  assert(!db.writes.slice(before).some((w: any) => w.table === 'storefront_carts'), 'mandje mocht niet bijgewerkt worden');
 });

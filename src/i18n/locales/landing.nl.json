@@ -2569,6 +2569,10 @@
         "qr_print_pdf": {
           "title": "QR-codes en allergenenkaart afdrukken werkt overal",
           "description": "De QR-codes voor je menukaart (affiche, tafelkaartjes en stickers) en je allergenenkaart download je nu als PDF. Dat werkt ook op je gsm en in de app; open de PDF en druk af."
+        },
+        "table_session": {
+          "title": "Elke tafel een eigen mandje, en een weg terug naar je tafel",
+          "description": "Bestelt een gast op dezelfde gsm aan verschillende tafels, dan heeft elke tafel nu een eigen winkelmandje: niets van tafel 1 komt nog bij tafel 2 terecht. Scant hij daarna de gewone menu-QR, dan ziet hij het gewone menu en niet meer automatisch het bestelmenu van zijn vorige tafel. Zolang zijn tafel geldig is, staat bovenaan elke pagina \"Terug naar tafel\" met een link naar zijn tafelmenu en, als je de tafelrekening gebruikt, naar zijn rekening."
         }
       },
       "copyLink": "Kopieer link",

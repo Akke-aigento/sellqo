@@ -2569,6 +2569,10 @@
         "qr_print_pdf": {
           "title": "Printing QR codes and the allergen chart works everywhere",
           "description": "You now download the QR codes for your menu (poster, table cards and stickers) and your allergen chart as a PDF. That also works on your phone and in the app; open the PDF and print."
+        },
+        "table_session": {
+          "title": "Every table its own basket, and a way back to the table",
+          "description": "If a guest orders at different tables on the same phone, each table now has its own basket: nothing from table 1 ends up at table 2. If they then scan the regular menu QR code, they see the regular menu and no longer land automatically in the ordering menu of their previous table. As long as their table is valid, every page shows \"Back to table\" at the top, with a link to their table menu and, if you use the table bill, to their bill."
         }
       },
       "copyLink": "Copy link",
