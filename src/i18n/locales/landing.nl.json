@@ -2585,6 +2585,22 @@
         "table_together": {
           "title": "Samen bestellen aan tafel: één mandje, en nooit de rekening van vorige gasten",
           "description": "Op de tafelrekening delen alle gsm's aan dezelfde tafel nu één mandje. Wat een tafelgenoot toevoegt, zie je binnen enkele seconden, en na het doorgeven is het mandje voor iedereen leeg. Eén scherm toont jullie mandje, alles wat jullie al bestelden met de stand in de keuken, en de rekening met Afrekenen of Rekening vragen. Je gasten zien enkel wat zij sinds hun aankomst bestelden, ook wat je personeel voor hen aantikt, en nooit iets van vorige gasten. Een tafel start opnieuw na de dagreset om 05:00, als de rekening aan de kassa gesloten is, na 120 minuten zonder activiteit als er niets meer openstaat (instelbaar), of met de nieuwe knop Tafel vrijgeven in Zaal. Zaal en het Nu-paneel waarschuwen voor een rekening die sinds gisteren openstaat of nog lijnen van vorige gasten bevat; die reken je af of verplaats je op de kassa. Het gedeelde mandje en de tijd zonder activiteit stel je in bij QR aan tafel."
+        },
+        "online_pay_unavailable": {
+          "title": "Nette melding als online betalen even niet lukt",
+          "description": "Lukt een online betaling op dat moment niet, bijvoorbeeld door een storing bij Stripe of een probleem met je Stripe-koppeling, dan zien je gasten geen technische foutmelding meer. Aan tafel staat er: \"Online betalen lukt nu niet. Vraag de rekening aan de bediening.\" In je webshop raden we aan het later opnieuw te proberen of een andere betaalwijze te kiezen. Wat de gast aan tafel gekozen had, komt meteen weer vrij, zodat jij of een tafelgenoot het gewoon kan afrekenen."
+        },
+        "floor_plan_done": {
+          "title": "Zaalplan: knop Klaar bij een tafel",
+          "description": "Als je in het zaalplan een tafel of een plek voor een vaste klant toevoegt of aanpast, staat onderaan het paneel nu een knop Klaar. Die bewaart ook een naam die je nog aan het typen was en sluit het paneel. Elke wijziging wordt zoals voorheen meteen bewaard; je ziet nu kort \"Opgeslagen\", zodat je niet meer hoeft te raden."
+        },
+        "payment_settings_link": {
+          "title": "\"Naar Betalingen\" opent je Stripe-koppeling",
+          "description": "De link om Stripe te koppelen bij QR aan tafel en in het Nu-paneel opende de lijst met transacties. Hij opent nu de plek waar je online betalen instelt: Instellingen › Betalingsmethoden, of met enkel het horecapakket Mijn zaak › Betalen › Online betalen."
+        },
+        "sidebar_customize_removed": {
+          "title": "Menu zonder Personaliseer menu",
+          "description": "De knop Personaliseer menu onderaan het menu is weg. Hij toonde ook onderdelen waar je geen toegang toe had. Iedereen ziet nu het menu dat bij zijn zaak en zijn rol past. De snelkoppelingen onderaan op je gsm kies je nog altijd zelf in Instellingen › Mijn onderbalk; daar staan nu enkel nog onderdelen die je echt kan openen."
         }
       },
       "copyLink": "Kopieer link",

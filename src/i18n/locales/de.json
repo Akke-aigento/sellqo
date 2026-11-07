@@ -66,7 +66,8 @@
     "error": "Fehler",
     "done": "Fertig",
     "comingSoon": "demnächst",
-    "saveNoPermission": "Du hast keine Berechtigung, dies zu speichern. Bitte einen Administrator dieses Shops, es zu ändern."
+    "saveNoPermission": "Du hast keine Berechtigung, dies zu speichern. Bitte einen Administrator dieses Shops, es zu ändern.",
+    "saved": "Gespeichert"
   },
   "auth": {
     "login": "Anmelden",
@@ -1747,8 +1748,7 @@
       "reset": "Zurück zum Standard",
       "add": "Hinzufügen",
       "full": "Die Leiste ist voll ({{max}}). Entferne zuerst eine.",
-      "save_failed": "Nicht gespeichert: {{reason}}",
-      "link": "Untere Leiste auf dem Handy anpassen"
+      "save_failed": "Nicht gespeichert: {{reason}}"
     },
     "moreTools": {
       "title": "Weitere Bereiche",
@@ -9108,7 +9108,8 @@
       "regular_prefix": "Stammgast ",
       "regular_help": "Ein Stammgast hat seinen eigenen Platz im Raumplan: gib ihm seinen Namen (z. B. „Jef“). In der Kasse öffnet ein Tippen seine Rechnung. Es gibt keinen QR-Aufkleber, denn hier bestellt niemand selbst.",
       "zone_closed": "zu",
-      "zone_closed_note": "{{name}} ist für Gäste zu: Bestellen oder die Bedienung rufen per QR geht dort nicht. Du kannst selbst ganz normal darauf arbeiten."
+      "zone_closed_note": "{{name}} ist für Gäste zu: Bestellen oder die Bedienung rufen per QR geht dort nicht. Du kannst selbst ganz normal darauf arbeiten.",
+      "autosave_hint": "Änderungen werden sofort gespeichert."
     },
     "prepStations": {
       "title": "Zubereitungsstationen",
@@ -10461,10 +10462,6 @@
   "sidebar": {
     "selectStore": "Shop auswählen",
     "noStores": "Keine Shops verfügbar",
-    "customize": "Menü anpassen",
-    "customizeDescription": "Blenden Sie Menüpunkte aus, die Sie nicht nutzen. Sie können sie jederzeit zurückholen.",
-    "showAll": "Alle anzeigen",
-    "hiddenCount": "{{count}} ausgeblendet",
     "adminView": {
       "banner": "Admin-Ansicht — mit den Augensymbolen Seiten ausblenden",
       "featureGranted": "Funktion freigegeben — zum Sperren klicken",

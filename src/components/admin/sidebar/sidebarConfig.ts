@@ -410,6 +410,20 @@ export function findNavItems(ids: string[]): NavItem[] {
 }
 
 /**
+ * FIXES-0711 — de parent van een kind-item (bv. 'categories' onder 'products'), of null voor een item op
+ * het eerste niveau. Een kind erft de grenzen van zijn parent (spoor, abonnement, rol, rechten): in de
+ * zijbalk vanzelf (een verborgen parent toont geen kinderen), in de onderbalk via isItemBlocked.
+ */
+export function navParentOf(id: string): NavItem | null {
+  for (const group of [...sidebarGroups, horecaOnlyGroup]) {
+    for (const item of group.items) {
+      if ((item.children ?? []).some((c) => c.id === id)) return item;
+    }
+  }
+  return null;
+}
+
+/**
  * TRACKS-1 — het menu-item dat een route dekt (langste URL), met de sporen die
  * gelden (eigen sporen, anders die van de parent). Voor TrackGate: één bron voor
  * menu en pagina-bewaking. Platformroutes en routes buiten het menu: null.

@@ -2585,6 +2585,22 @@
         "table_together": {
           "title": "Gemeinsam am Tisch bestellen: ein Warenkorb und nie die Rechnung früherer Gäste",
           "description": "Auf der Tischrechnung teilen sich jetzt alle Handys am selben Tisch einen Warenkorb. Was jemand am Tisch hinzufügt, siehst du innerhalb von Sekunden, und nach dem Absenden ist der Warenkorb für alle leer. Ein Bildschirm zeigt euren gemeinsamen Warenkorb, alles schon Bestellte mit dem Stand in der Küche und die Rechnung mit Bezahlen oder Rechnung anfordern. Deine Gäste sehen nur, was sie seit ihrer Ankunft bestellt haben, auch was dein Personal für sie bonniert, und nie etwas von früheren Gästen. Ein Tisch startet neu nach dem täglichen Reset um 05:00 Uhr, wenn die Rechnung an der Kasse geschlossen ist, nach 120 Minuten ohne Aktivität, wenn nichts mehr offen ist (einstellbar) oder mit dem neuen Knopf Tisch freigeben im Raum. Raum und das Jetzt-Panel warnen dich vor einer Rechnung, die seit gestern offen ist oder noch Positionen früherer Gäste enthält; die rechnest du an der Kasse ab oder verschiebst sie dort. Den gemeinsamen Warenkorb und die Zeit ohne Aktivität stellst du unter QR am Tisch ein."
+        },
+        "online_pay_unavailable": {
+          "title": "Klare Meldung, wenn Online-Bezahlen gerade nicht geht",
+          "description": "Klappt eine Online-Zahlung gerade nicht, zum Beispiel wegen einer Störung bei Stripe oder eines Problems mit deiner Stripe-Verbindung, sehen deine Gäste keine technische Fehlermeldung mehr. Am Tisch steht: „Online bezahlen ist gerade nicht möglich. Frag beim Personal nach der Rechnung.“ In deinem Webshop raten wir, es später erneut zu versuchen oder eine andere Zahlungsart zu wählen. Was der Gast am Tisch ausgewählt hatte, wird sofort wieder freigegeben, damit du oder jemand am Tisch es abrechnen kann."
+        },
+        "floor_plan_done": {
+          "title": "Raumplan: Knopf Fertig bei einem Tisch",
+          "description": "Wenn du im Raumplan einen Tisch oder den Platz eines Stammgasts hinzufügst oder änderst, hat das Panel unten jetzt einen Knopf Fertig. Er speichert auch einen Namen, den du noch getippt hast, und schließt das Panel. Jede Änderung wird wie bisher sofort gespeichert; du siehst jetzt kurz „Gespeichert“, damit du nicht mehr raten musst."
+        },
+        "payment_settings_link": {
+          "title": "„Zu Zahlungen“ öffnet deine Stripe-Verbindung",
+          "description": "Der Link zum Verbinden von Stripe unter QR am Tisch und im Jetzt-Panel öffnete die Liste der Transaktionen. Er öffnet jetzt die Stelle, an der du Online-Bezahlen einrichtest: Einstellungen › Zahlungsmethoden, oder nur mit dem Gastro-Paket Mein Betrieb › Bezahlen › Online bezahlen."
+        },
+        "sidebar_customize_removed": {
+          "title": "Menü ohne Menü anpassen",
+          "description": "Der Knopf Menü anpassen unten im Menü ist weg. Er zeigte auch Bereiche, auf die du keinen Zugriff hattest. Alle sehen jetzt das Menü, das zu ihrem Betrieb und ihrer Rolle passt. Die Verknüpfungen unten auf deinem Handy wählst du weiterhin selbst unter Einstellungen › Meine Leiste unten; dort stehen jetzt nur noch Bereiche, die du wirklich öffnen kannst."
         }
       },
       "copyLink": "Link kopieren",

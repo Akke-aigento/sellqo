@@ -2585,6 +2585,22 @@
         "table_together": {
           "title": "Commander ensemble à table : un seul panier, et jamais l'addition des clients précédents",
           "description": "Sur l'addition de table, tous les téléphones d'une même table partagent désormais un seul panier. Ce qu'ajoute un convive apparaît en quelques secondes, et une fois la commande transmise, le panier est vide pour tout le monde. Un seul écran montre votre panier commun, tout ce que vous avez déjà commandé avec son état en cuisine, et l'addition avec Payer ou Demander l'addition. Vos clients ne voient que ce qu'ils ont commandé depuis leur arrivée, y compris ce que votre personnel a encodé pour eux, et jamais rien des clients précédents. Une table repart de zéro après la remise à zéro quotidienne à 05:00, quand l'addition est clôturée à la caisse, après 120 minutes sans activité lorsque plus rien n'est ouvert (réglable), ou avec le nouveau bouton Libérer la table dans Salle. Salle et le panneau Maintenant vous avertissent d'une addition ouverte depuis hier ou contenant encore des lignes de clients précédents ; encaissez-la ou déplacez-la sur la caisse. Le panier partagé et la durée sans activité se règlent sous QR à table."
+        },
+        "online_pay_unavailable": {
+          "title": "Un message clair quand le paiement en ligne ne fonctionne pas",
+          "description": "Si un paiement en ligne échoue à ce moment-là, par exemple à cause d'une panne chez Stripe ou d'un problème avec ta connexion Stripe, tes clients ne voient plus de message d'erreur technique. À table, ils voient : « Le paiement en ligne n'est pas possible pour le moment. Demande l'addition au personnel. » Dans ta boutique en ligne, nous leur conseillons de réessayer plus tard ou de choisir un autre mode de paiement. Ce que le client avait choisi à table est libéré tout de suite, pour que toi ou un autre convive puissiez l'encaisser."
+        },
+        "floor_plan_done": {
+          "title": "Plan de salle : bouton Terminé pour une table",
+          "description": "Quand tu ajoutes ou modifies une table ou la place d'un habitué dans le plan de salle, le panneau a maintenant un bouton Terminé en bas. Il enregistre aussi un nom que tu étais encore en train de taper et ferme le panneau. Chaque modification est toujours enregistrée tout de suite ; tu vois maintenant brièvement « Enregistré », plus besoin de deviner."
+        },
+        "payment_settings_link": {
+          "title": "« Vers Paiements » ouvre ta connexion Stripe",
+          "description": "Le lien pour connecter Stripe dans QR à table et dans le panneau Maintenant ouvrait la liste des transactions. Il ouvre maintenant l'endroit où tu configures le paiement en ligne : Paramètres › Moyens de paiement, ou avec seulement le forfait horeca Mon établissement › Paiements › Paiement en ligne."
+        },
+        "sidebar_customize_removed": {
+          "title": "Menu sans Personnaliser le menu",
+          "description": "Le bouton Personnaliser le menu en bas du menu a disparu. Il affichait aussi des sections auxquelles tu n'avais pas accès. Chacun voit maintenant le menu qui correspond à son établissement et à son rôle. Tu choisis toujours toi-même les raccourcis en bas de ton téléphone dans Paramètres › Ma barre du bas ; seules les sections que tu peux vraiment ouvrir y figurent."
         }
       },
       "copyLink": "Copier le lien",

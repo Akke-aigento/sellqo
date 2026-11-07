@@ -12,6 +12,8 @@ export const STAFF_PATH = '/admin/personeel';
 export const RESERVATIONS_PATH = '/admin/reservaties';
 export const KAART_PATH = '/admin/bestellen';
 export const FLOOR_EDIT_PATH = '/admin/zaal?tab=bewerken';
+/** FIXES-0711 — de Stripe-koppeling (Instellingen › Betalingen). Via useHorecaHref: Mijn zaak › Betalen › Online. */
+export const PAYMENT_SETTINGS_URL = `${SETTINGS_PATH}?section=payments`;
 
 export interface ZaakTab {
   id: string;

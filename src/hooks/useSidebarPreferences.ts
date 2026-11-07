@@ -7,6 +7,7 @@ export interface SidebarPreferences {
   id: string;
   user_id: string;
   tenant_id: string;
+  /** FIXES-0711: niet meer gebruikt (zijbalk-personalisatie weg); kolom blijft bestaan. */
   hidden_items: string[];
   /** ONDERBALK-1: snelkoppelingen in de gsm-onderbalk (menu-item-id's, volgorde). Null = standaard. */
   bottom_nav?: string[] | null;
@@ -37,30 +38,8 @@ export function useSidebarPreferences() {
     enabled: !!user?.id && !!currentTenant?.id,
   });
 
-  const updatePreferences = useMutation({
-    mutationFn: async (hiddenItems: string[]) => {
-      if (!user?.id || !currentTenant?.id) throw new Error('Not authenticated');
-
-      const { data, error } = await supabase
-        .from('sidebar_preferences')
-        .upsert({
-          user_id: user.id,
-          tenant_id: currentTenant.id,
-          hidden_items: hiddenItems,
-          updated_at: new Date().toISOString(),
-        }, {
-          onConflict: 'user_id,tenant_id',
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['sidebar-preferences'] });
-    },
-  });
+  // FIXES-0711: de zijbalk-personalisatie (hidden_items) is weg uit de UI. De kolom blijft staan
+  // (DB-safety) maar wordt niet meer geschreven of gelezen; de standaardindeling geldt.
 
   // ONDERBALK-1: enkel bottom_nav meesturen, zodat de verborgen menu-items (hidden_items) blijven staan.
   const updateBottomNav = useMutation({
@@ -81,31 +60,9 @@ export function useSidebarPreferences() {
     },
   });
 
-  const toggleItem = (itemId: string) => {
-    const currentHidden = preferences?.hidden_items || [];
-    const newHidden = currentHidden.includes(itemId)
-      ? currentHidden.filter(id => id !== itemId)
-      : [...currentHidden, itemId];
-    updatePreferences.mutate(newHidden);
-  };
-
-  const isItemHidden = (itemId: string) => {
-    return preferences?.hidden_items?.includes(itemId) || false;
-  };
-
-  const showAllItems = () => {
-    updatePreferences.mutate([]);
-  };
-
   return {
     preferences,
     isLoading,
-    hiddenItems: preferences?.hidden_items || [],
-    toggleItem,
-    isItemHidden,
-    showAllItems,
-    updatePreferences: updatePreferences.mutate,
-    isUpdating: updatePreferences.isPending,
     bottomNav: preferences?.bottom_nav ?? null,
     setBottomNav: updateBottomNav.mutateAsync,
     isSavingBottomNav: updateBottomNav.isPending,

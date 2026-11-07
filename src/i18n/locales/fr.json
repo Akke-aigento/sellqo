@@ -66,7 +66,8 @@
     "error": "Erreur",
     "done": "Terminé",
     "comingSoon": "bientôt",
-    "saveNoPermission": "Vous n'avez pas les droits pour enregistrer ceci. Demandez à un administrateur de cette boutique de le modifier."
+    "saveNoPermission": "Vous n'avez pas les droits pour enregistrer ceci. Demandez à un administrateur de cette boutique de le modifier.",
+    "saved": "Enregistré"
   },
   "auth": {
     "login": "Connexion",
@@ -1747,8 +1748,7 @@
       "reset": "Revenir au réglage par défaut",
       "add": "Ajouter",
       "full": "La barre est pleine ({{max}}). Retirez-en d'abord un.",
-      "save_failed": "Non enregistré : {{reason}}",
-      "link": "Personnaliser la barre du bas sur votre téléphone"
+      "save_failed": "Non enregistré : {{reason}}"
     },
     "moreTools": {
       "title": "Autres outils",
@@ -9108,7 +9108,8 @@
       "regular_prefix": "Habitué ",
       "regular_help": "Un habitué a sa propre place sur le plan de salle : donnez-lui son nom (p. ex. « Jef »). Sur la caisse, un appui ouvre son addition. Pas d’autocollant QR, personne ne commande soi-même ici.",
       "zone_closed": "fermé",
-      "zone_closed_note": "{{name}} est fermé aux clients : commander ou appeler le service via le QR n’y est pas possible. Vous pouvez toujours y travailler vous-même."
+      "zone_closed_note": "{{name}} est fermé aux clients : commander ou appeler le service via le QR n’y est pas possible. Vous pouvez toujours y travailler vous-même.",
+      "autosave_hint": "Les modifications sont enregistrées immédiatement."
     },
     "prepStations": {
       "title": "Postes de préparation",
@@ -10461,10 +10462,6 @@
   "sidebar": {
     "selectStore": "Sélectionner une boutique",
     "noStores": "Aucune boutique disponible",
-    "customize": "Personnaliser le menu",
-    "customizeDescription": "Masquez les éléments de menu que vous n'utilisez pas. Vous pouvez toujours les rétablir.",
-    "showAll": "Tout afficher",
-    "hiddenCount": "{{count}} masqué(s)",
     "adminView": {
       "banner": "Vue admin — utilisez les icônes en forme d'œil pour masquer des pages",
       "featureGranted": "Fonctionnalité accordée — cliquez pour la bloquer",

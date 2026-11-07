@@ -4,6 +4,24 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.15n — Nette melding als online betalen even niet lukt (bugfix, 07-11-2026)
+Lukt een online betaling op dat moment niet, bijvoorbeeld door een storing bij Stripe of een probleem met je Stripe-koppeling, dan zien je gasten geen technische foutmelding meer. Aan tafel staat er: "Online betalen lukt nu niet. Vraag de rekening aan de bediening." Wat de gast gekozen had, komt meteen weer vrij.
+Geldt voor: zaken met online betalen aan tafel (QR op de tafelrekening) en webshops met Stripe.
+i18n: `public.changelog.changes.online_pay_unavailable`
+
+### 2026.15n — Zaalplan: knop Klaar bij een tafel (improvement, 07-11-2026)
+Voeg je in het zaalplan een tafel of een plek voor een vaste klant toe, dan staat onderaan het paneel een knop Klaar. Die bewaart ook een naam die je nog aan het typen was en sluit het paneel. Elke wijziging wordt meteen bewaard en je ziet kort "Opgeslagen".
+Beschikbaar vanaf: Horeca Small en Horeca Big.
+i18n: `public.changelog.changes.floor_plan_done`
+
+### 2026.15n — "Naar Betalingen" opent je Stripe-koppeling (bugfix, 07-11-2026)
+De link om Stripe te koppelen bij QR aan tafel en in het Nu-paneel opent nu de plek waar je online betalen instelt, niet meer de lijst met transacties.
+i18n: `public.changelog.changes.payment_settings_link`
+
+### 2026.15n — Menu zonder Personaliseer menu (improvement, 07-11-2026)
+De knop Personaliseer menu onderaan het menu is weg; iedereen ziet het menu dat bij zijn zaak en rol past. De snelkoppelingen onderaan op je gsm kies je nog altijd in Instellingen › Mijn onderbalk, en daar staan nu enkel onderdelen die je echt kan openen.
+i18n: `public.changelog.changes.sidebar_customize_removed`
+
 ### 2026.15m — Samen bestellen aan tafel: één mandje, en nooit de rekening van vorige gasten (feature, 06-11-2026)
 Op de tafelrekening delen alle gsm's aan dezelfde tafel nu één mandje: wat een tafelgenoot toevoegt, zie je meteen, en na het doorgeven is het voor iedereen leeg. Eén scherm toont het mandje, alles wat de tafel al bestelde en de rekening. Je gasten zien enkel wat zij sinds hun aankomst bestelden, nooit iets van vorige gasten. In Zaal zie je welke rekeningen nog iets van vorige gasten bevatten, en met Tafel vrijgeven start de volgende tafel meteen opnieuw.
 Geldt voor: zaken die bestellen via de QR-code op de tafelrekening gebruiken, met tafels uit het zaalplan.

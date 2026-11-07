@@ -38,7 +38,8 @@
     "error": "Error",
     "done": "Done",
     "comingSoon": "coming soon",
-    "saveNoPermission": "You don't have permission to save this. Ask an admin of this shop to change it."
+    "saveNoPermission": "You don't have permission to save this. Ask an admin of this shop to change it.",
+    "saved": "Saved"
   },
   "auth": {
     "login": "Log in",
@@ -1719,8 +1720,7 @@
       "reset": "Back to the default",
       "add": "Add",
       "full": "The bar is full ({{max}}). Remove one first.",
-      "save_failed": "Not saved: {{reason}}",
-      "link": "Customise the bottom bar on your phone"
+      "save_failed": "Not saved: {{reason}}"
     },
     "moreTools": {
       "title": "More tools",
@@ -9439,7 +9439,8 @@
       "regular_prefix": "Regular ",
       "regular_help": "A regular gets their own spot on the floor plan: give it their name (e.g. \"Jef\"). On the till a tap opens their bill. There is no QR sticker, because nobody orders here themselves.",
       "zone_closed": "closed",
-      "zone_closed_note": "{{name}} is closed to guests: ordering or calling staff via the QR is not possible there. You can still work on it yourself."
+      "zone_closed_note": "{{name}} is closed to guests: ordering or calling staff via the QR is not possible there. You can still work on it yourself.",
+      "autosave_hint": "Changes are saved right away."
     },
     "prepStations": {
       "title": "Preparation stations",
@@ -10461,10 +10462,6 @@
   "sidebar": {
     "selectStore": "Select store",
     "noStores": "No stores available",
-    "customize": "Customize menu",
-    "customizeDescription": "Hide menu items you do not use. You can always bring them back.",
-    "showAll": "Show all",
-    "hiddenCount": "{{count}} hidden",
     "adminView": {
       "banner": "Admin view — use the eye icons to hide pages",
       "featureGranted": "Feature granted — click to block",

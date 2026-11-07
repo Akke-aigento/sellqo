@@ -2585,6 +2585,22 @@
         "table_together": {
           "title": "Ordering together at the table: one basket, and never the previous guests' bill",
           "description": "On the table bill, every phone at the same table now shares one basket. What a tablemate adds shows up within seconds, and once the order is sent the basket is empty for everyone. One screen shows your shared basket, everything already ordered with its kitchen status, and the bill with Pay or Ask for the bill. Your guests only see what they ordered since they arrived, including what your staff rang up for them, and never anything from previous guests. A table starts fresh after the daily reset at 05:00, when the bill is closed at the till, after 120 minutes without activity once nothing is left open (adjustable), or with the new Free table button in Floor. Floor and the Now panel warn you about a bill that has been open since yesterday or still holds lines from previous guests; settle or move it on the till. You set the shared basket and the idle time under QR at the table."
+        },
+        "online_pay_unavailable": {
+          "title": "A clear message when online payment is unavailable",
+          "description": "If an online payment can't go through at that moment, for example because of a Stripe outage or a problem with your Stripe connection, your guests no longer see a technical error. At the table they see: \"Online payment isn't available right now. Please ask the staff for the bill.\" In your webshop we suggest trying again later or choosing another payment method. Whatever the guest had selected at the table is released right away, so you or someone else at the table can still settle it."
+        },
+        "floor_plan_done": {
+          "title": "Floor plan: Done button for a table",
+          "description": "When you add or edit a table or a regular customer's spot in the floor plan, the panel now has a Done button at the bottom. It also saves a name you were still typing and closes the panel. Every change is still saved right away; you now briefly see \"Saved\", so there's no more guessing."
+        },
+        "payment_settings_link": {
+          "title": "\"Go to Payments\" opens your Stripe connection",
+          "description": "The link to connect Stripe under QR at the table and in the Now panel opened the list of transactions. It now opens the place where you set up online payments: Settings › Payment methods, or with only the hospitality plan My venue › Payments › Online payments."
+        },
+        "sidebar_customize_removed": {
+          "title": "Menu without Customize menu",
+          "description": "The Customize menu button at the bottom of the menu is gone. It also listed sections you had no access to. Everyone now sees the menu that fits their business and their role. You still choose the shortcuts at the bottom of your phone yourself in Settings › My bottom bar; it now only lists sections you can actually open."
         }
       },
       "copyLink": "Copy link",

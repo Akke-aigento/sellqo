@@ -29,6 +29,7 @@ import { QR_MODES, type QrMode } from './qrModes';
 import { qrOrderHasNoPayWay } from './qrModeRules';
 import { BUSINESS_HOURS_URL } from '@/components/admin/settings/hours/HoursModeChoice';
 import { useHorecaHref } from '@/hooks/useHorecaHref';
+import { PAYMENT_SETTINGS_URL } from '@/lib/mijnZaak';
 
 type QrFlow = 'order' | 'check';
 const QR_FLOWS: QrFlow[] = ['check', 'order'];
@@ -193,7 +194,9 @@ export function QrModeSettings() {
   };
 
   const noStripe = (
-    <>{t('admin.horecaPay.online_no_stripe')} <Link to="/admin/payments" className="font-medium text-primary underline">{t('admin.horecaPay.online_to_stripe')}</Link></>
+    // FIXES-0711: naar de Stripe-koppeling (Instellingen › Betalingen; horeca-only: Mijn zaak › Betalen › Online),
+    // niet naar /admin/payments (Transacties, daar koppel je niets).
+    <>{t('admin.horecaPay.online_no_stripe')} <Link to={href(PAYMENT_SETTINGS_URL)} className="font-medium text-primary underline">{t('admin.horecaPay.online_to_stripe')}</Link></>
   );
   const fiscalReason = (
     <>{t('admin.horecaPay.online_fiscal')} <Link to={href('/admin/settings?section=horeca')} className="font-medium text-primary underline">{t('admin.qrTable.fiscal_link')}</Link></>

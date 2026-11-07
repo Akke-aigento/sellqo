@@ -14,9 +14,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useCan, useScopedRoles } from '@/hooks/useCan';
 import { useHorecaModule } from '@/hooks/useHorecaModule';
 import { useHorecaHref } from '@/hooks/useHorecaHref';
-import { useTracks } from '@/hooks/useBusinessModules';
-import { isHorecaOnly } from '@/lib/tracks';
-import { mijnZaakUrl } from '@/lib/mijnZaak';
+import { PAYMENT_SETTINGS_URL } from '@/lib/mijnZaak';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
@@ -35,10 +33,8 @@ import { useNowAreas, useNowClosedToday, useNowQr, useNowSpecials } from './useN
 
 const QR_SETTINGS_URL = '/admin/bestellen?tab=qr';
 const SITE_URL = '/admin/storefront';
-const PAYMENTS_URL = '/admin/payments';
-// Samenvoeging met HORECA-INSTELLINGEN-1: horeca-only regelt online betalen in Mijn zaak › Betalen › Online
-// (/admin/payments heet daar Transacties). QR aan tafel en de openingsuren gaan via useHorecaHref naar Mijn zaak.
-const PAYMENTS_URL_HORECA_ONLY = mijnZaakUrl('betalen', 'online');
+// FIXES-0711: "Betalingen instellen" opent de Stripe-koppeling (Instellingen › Betalingen); via useHorecaHref wordt
+// dat voor horeca-only Mijn zaak › Betalen › Online. Was /admin/payments (Transacties) voor een gemengde zaak.
 
 const ReasonLink = ({ text, to, label }: { text: string; to: string; label: string }) => (
   <>{text} <Link to={to} className="font-medium text-primary underline">{label}</Link></>
@@ -69,8 +65,7 @@ function NowPanelTiles({ nowMs }: { nowMs: number }) {
   const specials = useNowSpecials();
   const kaart = useKaart();
   const href = useHorecaHref();
-  const { hasTrack, ready } = useTracks();
-  const paymentsUrl = ready && isHorecaOnly(hasTrack) ? PAYMENTS_URL_HORECA_ONLY : PAYMENTS_URL;
+  const paymentsUrl = href(PAYMENT_SETTINGS_URL);
   const [sheet, setSheet] = useState<null | 'soldout' | 'special'>(null);
   // TAFEL-SAMEN-1 — enkel bij QR op de tafelrekening; zelfde bron als Zaal › Live (horeca_table_groups).
   const navigate = useNavigate();

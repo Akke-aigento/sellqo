@@ -1,16 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { NavLink, useLocation, Link } from 'react-router-dom';
-import { ChevronDown, ChevronRight, LogOut, Settings as SettingsIcon, Sliders, Store, Eye, EyeOff, Lock, Unlock } from 'lucide-react';
+import { ChevronDown, ChevronRight, LogOut, Settings as SettingsIcon, Store, Eye, EyeOff, Lock, Unlock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
 import { useTenant } from '@/hooks/useTenant';
-import { useSidebarPreferences } from '@/hooks/useSidebarPreferences';
 import { useTenantPageOverrides } from '@/hooks/useTenantPageOverrides';
 import { usePlatformViewMode } from '@/hooks/usePlatformViewMode';
 import { SellqoLogo } from '@/components/SellqoLogo';
-import { SidebarCustomizeDialog } from './SidebarCustomizeDialog';
-import { allNavGroups, sidebarLayout, platformGroup, getAllMenuItems, inSidebar, type NavItem, type NavGroup } from './sidebar/sidebarConfig';
+import { allNavGroups, sidebarLayout, platformGroup, inSidebar, type NavItem, type NavGroup } from './sidebar/sidebarConfig';
 import { isHorecaOnly } from '@/lib/tracks';
 import { mijnZaakUrl } from '@/lib/mijnZaak';
 import { useNavItemVisibility } from './sidebar/useNavItemVisibility';
@@ -58,10 +56,8 @@ export function AdminSidebar() {
   const location = useLocation();
   const { user, signOut, isPlatformAdmin } = useAuth();
   const { currentTenant, tenants, setCurrentTenant, loading: tenantsLoading } = useTenant();
-  const { hiddenItems } = useSidebarPreferences();
   const { isPageHidden, togglePage, isToggling, isFeatureGranted, toggleGrantedFeature, isTogglingFeature } = useTenantPageOverrides();
   const { isAdminView } = usePlatformViewMode();
-  const [customizeOpen, setCustomizeOpen] = useState(false);
   // TENANT-SWITCHER-1: platform-admins krijgen de gegroepeerde kiezer; voor
   // iedereen anders is dit null en blijft de gewone kiezer hieronder staan.
   const tenantGroups = groupTenants(tenants, isPlatformAdmin);
@@ -415,19 +411,9 @@ export function AdminSidebar() {
 
         <SidebarFooter className="border-t">
           <SidebarMenu>
-            {/* Customize menu button */}
-            <SidebarMenuItem>
-              <SidebarMenuButton onClick={() => setCustomizeOpen(true)}>
-                <Sliders className="h-4 w-4" />
-                <span>{t('sidebar.customize')}</span>
-                {hiddenItems.length > 0 && (
-                  <span className="ml-auto text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
-                    {t('sidebar.hiddenCount', { count: hiddenItems.length })}
-                  </span>
-                )}
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-
+            {/* FIXES-0711: "Personaliseer menu" is weg. Het toonde ook items waar je geen toegang toe had en
+                voegde weinig toe; iedereen ziet de standaardindeling van zijn spoor en rol. De gsm-onderbalk
+                blijft instelbaar (Instellingen › Mijn onderbalk). sidebar_preferences.hidden_items blijft staan. */}
             {/* User menu */}
             <SidebarMenuItem>
               <DropdownMenu>
@@ -463,12 +449,6 @@ export function AdminSidebar() {
           </SidebarMenu>
         </SidebarFooter>
       </Sidebar>
-
-      <SidebarCustomizeDialog
-        open={customizeOpen}
-        onOpenChange={setCustomizeOpen}
-        menuItems={getAllMenuItems()}
-      />
     </>
   );
 }

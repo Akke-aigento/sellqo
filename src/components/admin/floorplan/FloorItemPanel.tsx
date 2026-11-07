@@ -2,9 +2,11 @@
 // vorm, stoelen, maat, draaien, ruimte, dupliceren, verwijderen en (tafels) de QR-code.
 // Gebruikt naast het canvas (desktop) en in een venster (gsm). Elke wijziging wordt
 // meteen bewaard; tekst- en getalvelden bij het verlaten van het veld of Enter.
+// FIXES-0711 — dat meteen bewaren is nu zichtbaar (hint + toast "Opgeslagen"), en onderaan staat
+// een primaire knop "Klaar": die bewaart een nog niet bevestigde naam en sluit het paneel.
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Copy, Download, RefreshCw, RotateCw, Trash2 } from 'lucide-react';
+import { Check, Copy, Download, RefreshCw, RotateCw, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -37,18 +39,31 @@ interface Common {
   areas: FloorArea[];
   onRotate: (deg: number) => void;
   onDelete: () => void;
+  /** FIXES-0711: "Klaar" — alles is bewaard; het paneel sluit (gsm) of de selectie verdwijnt (desktop). */
+  onDone: () => void;
+}
+
+/** FIXES-0711 — onderaan elk paneel: zichtbaar dat alles meteen bewaard wordt, en één primaire knop. */
+function DoneBar({ onDone, disabled }: { onDone: () => void; disabled?: boolean }) {
+  const { t } = useTranslation();
+  return (
+    <div className="flex items-center justify-between gap-3 border-t pt-3">
+      <p className="text-xs text-muted-foreground">{t('admin.floorPlan.autosave_hint')}</p>
+      <Button type="button" size="sm" onClick={onDone} disabled={disabled}><Check className="mr-1.5 h-4 w-4" />{t('common.done')}</Button>
+    </div>
+  );
 }
 
 export interface TablePanelProps extends Common {
   table: FloorTableRow;
   /** Labels van andere actieve tafels in dezelfde ruimte (dubbel = fout van de databank). */
-  onPatch: (patch: Partial<FloorTableRow>) => void;
+  onPatch: (patch: Partial<FloorTableRow>) => void | Promise<boolean>;
   onDuplicate: () => void;
   onRenewToken: () => void;
   onDownloadQr: () => void;
 }
 
-export function TablePanel({ table, areas, onPatch, onRotate, onDelete, onDuplicate, onRenewToken, onDownloadQr }: TablePanelProps) {
+export function TablePanel({ table, areas, onPatch, onRotate, onDelete, onDone, onDuplicate, onRenewToken, onDownloadQr }: TablePanelProps) {
   const { t } = useTranslation();
   const [label, setLabel] = useState(table.label);
   const [confirm, setConfirm] = useState<'delete' | 'renew' | null>(null);
@@ -57,7 +72,13 @@ export function TablePanel({ table, areas, onPatch, onRotate, onDelete, onDuplic
   const commitLabel = () => {
     const v = label.trim();
     if (!isValidLabel(v)) { setLabel(table.label); return; }
-    if (v !== table.label) onPatch({ label: v });
+    if (v !== table.label) return onPatch({ label: v });
+  };
+  // Klaar: een getypte maar nog niet bevestigde naam eerst bewaren; mislukt dat, dan blijft het paneel open.
+  const done = async () => {
+    const r = await commitLabel();
+    if (r === false) return;
+    onDone();
   };
 
   return (
@@ -110,6 +131,7 @@ export function TablePanel({ table, areas, onPatch, onRotate, onDelete, onDuplic
         </div>
       </div>
       )}
+      <DoneBar onDone={() => void done()} disabled={!labelOk} />
 
       <AlertDialog open={confirm !== null} onOpenChange={(o) => { if (!o) setConfirm(null); }}>
         <AlertDialogContent>
@@ -131,14 +153,15 @@ export function TablePanel({ table, areas, onPatch, onRotate, onDelete, onDuplic
 
 export interface MarkerPanelProps extends Common {
   marker: FloorMarker;
-  onPatch: (patch: Partial<FloorMarker>) => void;
+  onPatch: (patch: Partial<FloorMarker>) => void | Promise<boolean>;
 }
 
-export function MarkerPanel({ marker, areas, onPatch, onRotate, onDelete }: MarkerPanelProps) {
+export function MarkerPanel({ marker, areas, onPatch, onRotate, onDelete, onDone }: MarkerPanelProps) {
   const { t } = useTranslation();
   const [label, setLabel] = useState(marker.label ?? '');
   useEffect(() => setLabel(marker.label ?? ''), [marker.label, marker.id]);
-  const commitLabel = () => { const v = label.trim().slice(0, 40); if (v !== (marker.label ?? '')) onPatch({ label: v || null }); };
+  const commitLabel = () => { const v = label.trim().slice(0, 40); if (v !== (marker.label ?? '')) return onPatch({ label: v || null }); };
+  const done = async () => { if ((await commitLabel()) === false) return; onDone(); };
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-3">
@@ -167,6 +190,7 @@ export function MarkerPanel({ marker, areas, onPatch, onRotate, onDelete }: Mark
         <Button type="button" size="sm" variant="outline" onClick={() => onRotate(90)}><RotateCw className="mr-1.5 h-4 w-4" />{t('admin.floorPlan.rotate', { deg: normRotation(marker.rotation + 90) })}</Button>
         <Button type="button" size="sm" variant="outline" className="text-destructive" onClick={onDelete}><Trash2 className="mr-1.5 h-4 w-4" />{t('admin.floorPlan.delete')}</Button>
       </div>
+      <DoneBar onDone={() => void done()} />
     </div>
   );
 }

@@ -38,7 +38,8 @@
     "error": "Fout",
     "done": "Klaar",
     "comingSoon": "binnenkort",
-    "saveNoPermission": "Je hebt geen rechten om dit op te slaan. Vraag een beheerder van deze winkel om het aan te passen."
+    "saveNoPermission": "Je hebt geen rechten om dit op te slaan. Vraag een beheerder van deze winkel om het aan te passen.",
+    "saved": "Opgeslagen"
   },
   "auth": {
     "login": "Inloggen",
@@ -1719,8 +1720,7 @@
       "reset": "Terug naar de standaard",
       "add": "Toevoegen",
       "full": "De balk is vol ({{max}}). Haal er eerst een weg.",
-      "save_failed": "Niet opgeslagen: {{reason}}",
-      "link": "Onderbalk op je gsm aanpassen"
+      "save_failed": "Niet opgeslagen: {{reason}}"
     },
     "moreTools": {
       "title": "Meer onderdelen",
@@ -9453,7 +9453,8 @@
       "regular_prefix": "Klant ",
       "regular_help": "Een vaste klant heeft een eigen plek op het zaalplan: geef hem zijn naam (bv. \"Jef\"). Op de kassa opent een tik zijn rekening. Er is geen QR-sticker, want hier bestelt niemand zelf.",
       "zone_closed": "dicht",
-      "zone_closed_note": "{{name}} is dicht voor gasten: bestellen of de bediening roepen via de QR kan er niet. Je kan er zelf gewoon op werken."
+      "zone_closed_note": "{{name}} is dicht voor gasten: bestellen of de bediening roepen via de QR kan er niet. Je kan er zelf gewoon op werken.",
+      "autosave_hint": "Wijzigingen worden meteen bewaard."
     },
     "prepStations": {
       "title": "Bereidingsposten",
@@ -10461,10 +10462,6 @@
   "sidebar": {
     "selectStore": "Selecteer winkel",
     "noStores": "Geen winkels beschikbaar",
-    "customize": "Personaliseer menu",
-    "customizeDescription": "Verberg menu-items die je niet gebruikt. Je kunt ze altijd terughalen.",
-    "showAll": "Alles tonen",
-    "hiddenCount": "{{count}} verborgen",
     "adminView": {
       "banner": "Admin View — oog-iconen om pagina's te verbergen",
       "featureGranted": "Feature toegekend — klik om te blokkeren",

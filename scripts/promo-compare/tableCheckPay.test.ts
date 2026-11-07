@@ -76,6 +76,22 @@ Deno.test('betalen: databankfout → leesbare melding (iemand betaalt al)', asyn
   assert(a.p_kind === 'share' && a.p_share_n === 3 && a.p_share_k === 1 && a.p_tip_cents === 120 && a.p_table_id === TABLE, JSON.stringify(a));
 });
 
+// FIXES-0711 — een Stripe-fout (foute sleutel/account) gaat nooit letterlijk naar de gast.
+Deno.test('betalen: Stripe weigert → ONLINE_PAY_UNAVAILABLE, geen Stripe-tekst, vasthouding vrijgegeven', async () => {
+  rpcCalls.length = 0;
+  rpcResult = { data: { payment_id: PAY, status: 'pending', amount_cents: 2400, tip_cents: 0, table_label: 'Blauw 1' }, error: null };
+  (globalThis as any).__stripeCreateError = Object.assign(new Error("The provided key 'sk_live_***1234' does not have access to account 'acct_1AbCdEfGh'"), { type: 'StripePermissionError', statusCode: 403, raw: {} });
+  try {
+    const r = await call('table_check_pay', { table_token: TOKEN, payment_id: PAY, kind: 'full', success_url: 'https://s/ok', cancel_url: 'https://s/no' });
+    const txt = JSON.stringify(r.json);
+    assert(r.json.data?.error?.code === 'ONLINE_PAY_UNAVAILABLE' && /Vraag de rekening aan de bediening/.test(r.json.data.error.message), txt);
+    assert(!/sk_live|acct_|provided key/.test(txt), 'geen Stripe-tekst naar de gast: ' + txt);
+    assert(rpcCalls.some((c) => c.fn === 'table_check_pay_mark' && c.args.p_status === 'expired' && c.args.p_payment_id === PAY), JSON.stringify(rpcCalls));
+  } finally {
+    delete (globalThis as any).__stripeCreateError;
+  }
+});
+
 Deno.test('status: teruggestort → leesbare reden; onbekend → NOT_FOUND', async () => {
   const ok = await call('table_check_pay_status', { payment_id: PAY });
   assert(ok.json.data?.status === 'refunded' && ok.json.data.reason === refundReasonText('CHECK_CLOSED'), JSON.stringify(ok.json));
@@ -83,9 +99,9 @@ Deno.test('status: teruggestort → leesbare reden; onbekend → NOT_FOUND', asy
   assert(nf.json.data?.error?.code === 'NOT_FOUND', JSON.stringify(nf.json));
 });
 
-Deno.test('GET-stempel storefront-api (TAFEL-SAMEN-1)', async () => {
+Deno.test('GET-stempel storefront-api (FIXES-0711)', async () => {
   const r = await handler(new Request('https://f/storefront-api', { method: 'GET' }));
-  assert((await r.json()).version === 'TAFEL-SAMEN-1', 'stempel');
+  assert((await r.json()).version === 'FIXES-0711', 'stempel');
 });
 
 // --- afrond-module ------------------------------------------------------------------------------

@@ -16,13 +16,13 @@ import { addDaysYmd, closureDates, hoursTimezone, localYmd, parseClosures, parse
 import { CART_RESTORE_SESSION_PREFIX, verifyCartRestore } from "../_shared/cartRestoreToken.ts";
 import { amountMismatchNote, discountRoundingToleranceCents, stripeAmountMismatch } from "../_shared/stripeAmountCheck.ts";
 import { buildSizeChart, publicSizeChart, sellSizesFromVariants } from "../_shared/sizeChart.ts";
-import { statusForStorefrontError } from "../_shared/storefrontErrorStatus.ts";
+import { onlinePayUnavailable, publicStorefrontError, statusForStorefrontError } from "../_shared/storefrontErrorStatus.ts";
 import { cachedShopStatus } from "../_shared/shopStatus.ts";
 import { computeOrderingState, hasKitchenSplit, kitchenPausedMessage, pausedAtKitchen, type OrderingState, type RouteRow, type StationRow } from "../_shared/orderingState.ts";
 
 const corsHeaders = {
   // PLANS-2 — versiestempel: bewijst een deploy zonder neveneffect (lees de header).
-  "X-SellQo-Api-Rev": "tafel-samen-1",
+  "X-SellQo-Api-Rev": "fixes-0711",
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
@@ -1580,12 +1580,27 @@ async function tableCheckPay(supabase: SupabaseLike, tenantId: string, params: R
   const { data: tenant } = await supabase.from('tenants').select('stripe_account_id, currency, name').eq('id', tenantId).maybeSingle();
   const account = tenant?.stripe_account_id as string | undefined;
   if (!account) return { success: false, error: { code: 'CHECK_PAY_OFF', message: CHECK_PAY_ERRORS.CHECK_PAY_OFF } };
-  const stripe = await stripeClient();
+  // FIXES-0711 — een Stripe-fout (sleutel, account, storing) gaat nooit letterlijk naar de gast: die krijgt
+  // ONLINE_PAY_UNAVAILABLE ("vraag de rekening aan de bediening"), de echte fout staat in de functielogs.
+  let stripe: Awaited<ReturnType<typeof stripeClient>>;
+  try {
+    stripe = await stripeClient();
+  } catch (e) {
+    console.error('[table_check_pay] stripe laden', e instanceof Error ? e.message : e);
+    await releaseFailedCheckPayment(supabase, paymentId);
+    return { success: false, error: onlinePayUnavailable('table_check_pay') };
+  }
 
   // Opnieuw tikken met dezelfde betaling: dezelfde betaalpagina.
   if (start.duplicate && start.stripe_session_id) {
-    const old = await stripe.checkout.sessions.retrieve(start.stripe_session_id, { stripeAccount: account });
-    if (old.status === 'open' && old.url) return { payment_id: paymentId, checkout_url: old.url };
+    try {
+      const old = await stripe.checkout.sessions.retrieve(start.stripe_session_id, { stripeAccount: account });
+      if (old.status === 'open' && old.url) return { payment_id: paymentId, checkout_url: old.url };
+    } catch (e) {
+      // De sessie bestaat al en kan nog betaald worden: niet vrijgeven, de status-oproep rondt af.
+      console.error('[table_check_pay] stripe sessie ophalen', e instanceof Error ? e.message : e);
+      return { success: false, error: onlinePayUnavailable('table_check_pay') };
+    }
     return { success: false, error: { code: 'CHECK_PAY_INVALID', message: CHECK_PAY_ERRORS.CHECK_PAY_INVALID } };
   }
 
@@ -1598,15 +1613,33 @@ async function tableCheckPay(supabase: SupabaseLike, tenantId: string, params: R
   // berekend op de rekening zelf, niet op de fooi (die is voor het personeel).
   const feeCents = Math.min(await orderOverageFeeCents(supabase, tenantId, [], start.amount_cents), start.amount_cents);
   const metadata = { type: 'table_check', table_check_payment_id: paymentId, tenant_id: tenantId, ...(feeCents > 0 ? { platform_order_fee_cents: String(feeCents) } : {}) };
-  const session = await stripe.checkout.sessions.create({
-    mode: 'payment', line_items: lineItems, success_url: successUrl, cancel_url: cancelUrl, metadata,
-    expires_at: Math.floor(Date.now() / 1000) + STRIPE_SESSION_MINUTES * 60,
-    payment_intent_data: { application_fee_amount: feeCents, metadata },
-  } as never, { stripeAccount: account });
+  let session: { id: string; url: string | null };
+  try {
+    session = await stripe.checkout.sessions.create({
+      mode: 'payment', line_items: lineItems, success_url: successUrl, cancel_url: cancelUrl, metadata,
+      expires_at: Math.floor(Date.now() / 1000) + STRIPE_SESSION_MINUTES * 60,
+      payment_intent_data: { application_fee_amount: feeCents, metadata },
+    } as never, { stripeAccount: account });
+  } catch (e) {
+    // Geen sessie = niets te betalen: de vasthouding meteen vrijgeven (anders 10 min de items vast).
+    console.error('[table_check_pay] stripe sessie maken', e instanceof Error ? e.message : e);
+    await releaseFailedCheckPayment(supabase, paymentId);
+    return { success: false, error: onlinePayUnavailable('table_check_pay') };
+  }
   const { error: markError } = await supabase.rpc('table_check_pay_mark', { p_payment_id: paymentId, p_status: 'session', p_session_id: session.id, p_refund_id: null });
   if (markError) throw markError;
   if (feeCents > 0) await supabase.from('check_online_payments').update({ fee_cents: feeCents }).eq('id', paymentId);
   return { payment_id: paymentId, checkout_url: session.url };
+}
+
+// FIXES-0711 — een poging zonder Stripe-sessie vrijgeven (best effort; de vasthouding verloopt anders na 10 min).
+async function releaseFailedCheckPayment(supabase: SupabaseLike, paymentId: string) {
+  try {
+    const { error } = await supabase.rpc('table_check_pay_mark', { p_payment_id: paymentId, p_status: 'expired', p_session_id: null, p_refund_id: null });
+    if (error) console.error('[table_check_pay] vrijgeven na stripe-fout', error.message);
+  } catch (e) {
+    console.error('[table_check_pay] vrijgeven na stripe-fout', e instanceof Error ? e.message : e);
+  }
 }
 
 // Stand van een online betaling. Terug van Stripe en betaald: meteen afronden (de webhook kan
@@ -6810,12 +6843,15 @@ const CLOSED_SHOP_BLOCKED_ACTIONS: ReadonlySet<string> = new Set([
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
   // Versiestempel voor deploy-verificatie (neveneffectvrij); bij elke batch ophogen.
-  if (req.method === 'GET') return new Response(JSON.stringify({ ok: true, version: 'TAFEL-SAMEN-1' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  if (req.method === 'GET') return new Response(JSON.stringify({ ok: true, version: 'FIXES-0711' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
+  // FIXES-0711 — de actie, zodat de vangst onderaan een gastvriendelijke betaalfout kan kiezen.
+  let currentAction = '';
   try {
     const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
     const body: StorefrontRequest = await req.json();
     const { action, tenant_id, params = {} } = body;
+    currentAction = typeof action === 'string' ? action : '';
 
     // Actions that don't need tenant_id
     if (action === 'resolve_domain') {
@@ -6989,7 +7025,9 @@ serve(async (req) => {
     if (error instanceof DiscountCodeError) {
       return new Response(JSON.stringify({ success: false, error: 'invalid_discount_code', message: error.message }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
-    const errMsg = error instanceof Error ? error.message : (typeof error === 'object' && error !== null && 'message' in error) ? (error as any).message : String(error);
+    const rawMsg = error instanceof Error ? error.message : (typeof error === 'object' && error !== null && 'message' in error) ? (error as any).message : String(error);
+    // FIXES-0711 — Stripe-fouten en lekkende sleutels worden ONLINE_PAY_UNAVAILABLE; alle andere fouten byte-gelijk.
+    const errMsg = publicStorefrontError(currentAction, error, String(rawMsg));
     // EVENT-409-1 — "event/tickettype volzet" is een verwachte weigering, geen storing: 409.
     // Body ongewijzigd; alle andere fouten blijven 500.
     return new Response(JSON.stringify({ success: false, error: errMsg }), { status: statusForStorefrontError(errMsg), headers: { ...corsHeaders, 'Content-Type': 'application/json' } });

@@ -1,7 +1,7 @@
 // HORECA-INSTELLINGEN-1 — Mijn zaak: de indeling, de redirects van de oude plekken en dat elke tab inhoud heeft.
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { KAART_TABS_HORECA_ONLY, STAFF_TABS, ZAAK_GROUPS, legacyKaartTarget, legacyPosTarget, legacySettingsTarget, legacyStaffTarget, mijnZaakUrl, resolveLegacyHref } from './mijnZaak';
+import { KAART_TABS_HORECA_ONLY, PAYMENT_SETTINGS_URL, STAFF_TABS, ZAAK_GROUPS, legacyKaartTarget, legacyPosTarget, legacySettingsTarget, legacyStaffTarget, mijnZaakUrl, resolveLegacyHref } from './mijnZaak';
 
 describe('Mijn zaak — indeling', () => {
   it('zes groepen en Jij, in de afgesproken volgorde, met unieke tabs', () => {
@@ -78,5 +78,20 @@ describe('Mijn zaak — oude links gaan door', () => {
     expect(resolveLegacyHref('/admin/bestellen?tab=allergens')).toBe('/admin/bestellen?tab=allergens');
     expect(resolveLegacyHref('/admin/keuken')).toBe('/admin/keuken');
     expect(resolveLegacyHref('/admin/settings?section=geld&tab=btw')).toBe('/admin/settings?section=geld&tab=btw');
+  });
+});
+
+// FIXES-0711 — "Naar Betalingen" opent de Stripe-koppeling, nooit Transacties (/admin/payments).
+describe('FIXES-0711 — link naar de betaalinstellingen', () => {
+  it('Instellingen › Betalingen; horeca-only via useHorecaHref: Mijn zaak › Betalen › Online', () => {
+    expect(PAYMENT_SETTINGS_URL).toBe('/admin/settings?section=payments');
+    expect(resolveLegacyHref(PAYMENT_SETTINGS_URL)).toBe(mijnZaakUrl('betalen', 'online'));
+  });
+
+  it('geen link naar /admin/payments voor "Stripe koppelen" in QR aan tafel en het Nu-paneel', () => {
+    for (const f of ['src/components/admin/storefront/food/QrModeSettings.tsx', 'src/components/horeca/now/NowPanel.tsx']) {
+      expect(readFileSync(f, 'utf8'), f).not.toContain("'/admin/payments'");
+      expect(readFileSync(f, 'utf8'), f).not.toContain('"/admin/payments"');
+    }
   });
 });

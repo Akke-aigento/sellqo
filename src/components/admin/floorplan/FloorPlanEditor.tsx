@@ -58,8 +58,12 @@ export function FloorPlanEditor() {
   const selMarker = sel?.kind === 'marker' ? (data?.markers ?? []).find((x) => x.id === sel.id) ?? null : null;
 
   const fail = (e: unknown) => { const k = floorErrorKey(e); toast.error(t(k.key, { reason: k.reason })); };
-  const run = <A,>(mut: { mutateAsync: (a: A) => Promise<unknown> }, arg: A, ok?: string) =>
-    mut.mutateAsync(arg).then(() => { if (ok) toast.success(ok); }).catch(fail);
+  // Wijzigingen in het paneel worden meteen bewaard: dat tonen we (één toast, niet gestapeld).
+  const savedText = t('common.saved');
+  // FIXES-0711 — geeft terug of het lukte, zodat "Klaar" open kan blijven bij een fout.
+  const run = <A,>(mut: { mutateAsync: (a: A) => Promise<unknown> }, arg: A, ok?: string): Promise<boolean> =>
+    mut.mutateAsync(arg).then(() => { if (ok) toast.success(ok, ok === savedText ? { id: 'floor-saved' } : undefined); return true; }).catch((e) => { fail(e); return false; });
+  const finish = () => { setSel(null); toast.success(savedText, { id: 'floor-saved' }); };
 
   // ── Ruimtes ──
   const saveArea = async (d: AreaDraft) => {
@@ -115,7 +119,7 @@ export function FloorPlanEditor() {
   };
 
   // ── Bewerken ──
-  const patchTable = (tb: FloorTableRow, patch: Partial<FloorTableRow>) => {
+  const patchTable = (tb: FloorTableRow, patch: Partial<FloorTableRow>): Promise<boolean> => {
     const target = patch.area_id ? areas.find((a) => a.id === patch.area_id) ?? area : area;
     let next: Partial<FloorTableRow> = patch;
     if (target && (patch.w !== undefined || patch.h !== undefined || patch.rotation !== undefined || patch.area_id)) {
@@ -125,12 +129,12 @@ export function FloorPlanEditor() {
     if (patch.area_id && patch.area_id !== tb.area_id) {
       // Andere ruimte: het label moet daar vrij zijn, en de tafel mee naar die ruimte.
       const taken = allTables.filter((x) => x.area_id === patch.area_id).map((x) => x.label.toLowerCase());
-      if (taken.includes((patch.label ?? tb.label).toLowerCase())) { toast.error(t('admin.floorPlan.error_label_taken')); return; }
+      if (taken.includes((patch.label ?? tb.label).toLowerCase())) { toast.error(t('admin.floorPlan.error_label_taken')); return Promise.resolve(false); }
       setAreaId(patch.area_id);
     }
-    run(m.updateTable, { id: tb.id, patch: next });
+    return run(m.updateTable, { id: tb.id, patch: next }, savedText);
   };
-  const patchMarker = (mk: FloorMarker, patch: Partial<FloorMarker>) => {
+  const patchMarker = (mk: FloorMarker, patch: Partial<FloorMarker>): Promise<boolean> => {
     const target = patch.area_id ? areas.find((a) => a.id === patch.area_id) ?? area : area;
     let next: Partial<FloorMarker> = patch;
     if (target && (patch.w !== undefined || patch.h !== undefined || patch.rotation !== undefined || patch.area_id)) {
@@ -138,7 +142,7 @@ export function FloorPlanEditor() {
       next = { ...patch, x: c.x, y: c.y, w: c.w, h: c.h };
     }
     if (patch.area_id) setAreaId(patch.area_id);
-    run(m.updateMarker, { id: mk.id, patch: next });
+    return run(m.updateMarker, { id: mk.id, patch: next }, savedText);
   };
   const duplicate = (tb: FloorTableRow) => {
     if (!area) return;
@@ -193,6 +197,7 @@ export function FloorPlanEditor() {
       onPatch={(p) => patchTable(selTable, p)}
       onRotate={(deg) => patchTable(selTable, { rotation: normRotation(selTable.rotation + deg) })}
       onDelete={() => removeTable(selTable)}
+      onDone={finish}
       onDuplicate={() => duplicate(selTable)}
       onRenewToken={() => renew(selTable)}
       onDownloadQr={() => void printQr([selTable])} />
@@ -200,7 +205,8 @@ export function FloorPlanEditor() {
     <MarkerPanel key={selMarker.id} marker={selMarker} areas={areas}
       onPatch={(p) => patchMarker(selMarker, p)}
       onRotate={(deg) => patchMarker(selMarker, { rotation: normRotation(selMarker.rotation + deg) })}
-      onDelete={() => removeMarker(selMarker)} />
+      onDelete={() => removeMarker(selMarker)}
+      onDone={finish} />
   ) : null;
 
   return (

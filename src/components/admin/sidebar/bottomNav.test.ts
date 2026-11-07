@@ -1,6 +1,8 @@
 // ONDERBALK-1 — regels van de gsm-onderbalk.
+import { existsSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { BOTTOM_NAV_MAX, bottomNavLabelKey, bottomNavUrl, defaultBottomNavIds, resolveBottomNavIds } from './bottomNav';
+import { navParentOf } from './sidebarConfig';
 
 const horecaOnly = { horeca: true, webshop: false, events: false };
 const mixed = { horeca: true, webshop: true, events: false };
@@ -49,5 +51,23 @@ describe('onderbalk', () => {
     expect(defaultBottomNavIds(mixed)).toContain('orders');
     expect(defaultBottomNavIds({ horeca: true, webshop: false, events: true })).toContain('orders');
     expect(defaultBottomNavIds(shop)).toContain('orders');
+  });
+});
+
+// FIXES-0711 — een kind erft de grenzen van zijn parent, ook in de onderbalk; de zijbalk-personalisatie is weg.
+describe('FIXES-0711 — onderbalk = zelfde grenzen als de zijbalk', () => {
+  it('navParentOf: kind → parent, eerste niveau → null', () => {
+    expect(navParentOf('categories')?.id).toBe('products');
+    expect(navParentOf('ads-bolcom')?.id).toBe('ads');
+    expect(navParentOf('products')).toBeNull();
+    expect(navParentOf('bestaat-niet')).toBeNull();
+  });
+
+  it('isItemBlocked kijkt ook naar de parent; geen persoonlijke zijbalk-voorkeuren meer', () => {
+    const src = readFileSync('src/components/admin/sidebar/useNavItemVisibility.ts', 'utf8');
+    expect(src).toContain('navParentOf(item.id)');
+    expect(src).not.toContain('isItemHidden');
+    expect(existsSync('src/components/admin/SidebarCustomizeDialog.tsx')).toBe(false);
+    expect(readFileSync('src/components/admin/AdminSidebar.tsx', 'utf8')).not.toContain('sidebar.customize');
   });
 });

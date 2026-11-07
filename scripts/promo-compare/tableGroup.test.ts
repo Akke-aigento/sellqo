@@ -244,7 +244,7 @@ Deno.test('betalen zonder group_id: bestaand pad; alles/delen geweigerd als er l
   assert(rpcCalls.find((c) => c.fn === 'table_check_pay_start')?.args.p_kind === 'lines', 'mijn items blijft kunnen: ' + JSON.stringify(rpcCalls));
 });
 
-Deno.test('GET-stempel TAFEL-SAMEN-1', async () => {
+Deno.test('GET-stempel FIXES-0711', async () => {
   const r = await handler(new Request('https://f/storefront-api', { method: 'GET' }));
-  assert((await r.json()).version === 'TAFEL-SAMEN-1' && r.headers.get('X-SellQo-Api-Rev') === 'tafel-samen-1', 'stempel');
+  assert((await r.json()).version === 'FIXES-0711' && r.headers.get('X-SellQo-Api-Rev') === 'fixes-0711', 'stempel');
 });

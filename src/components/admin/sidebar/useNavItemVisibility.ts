@@ -1,14 +1,13 @@
 import { useCallback } from 'react';
 import { useAuth, type AppRole } from '@/hooks/useAuth';
 import { useTenant } from '@/hooks/useTenant';
-import { useSidebarPreferences } from '@/hooks/useSidebarPreferences';
 import { useTenantPageOverrides } from '@/hooks/useTenantPageOverrides';
 import { useTenantSubscription } from '@/hooks/useTenantSubscription';
 import { usePlatformViewMode } from '@/hooks/usePlatformViewMode';
 import { canWithRoles, type Resource } from '@/hooks/useCan';
 import { useTracks } from '@/hooks/useBusinessModules';
 import { isHorecaOnly, tracksAllow } from '@/lib/tracks';
-import { WAREHOUSE_ALLOWED_ITEMS, type NavItem } from './sidebarConfig';
+import { navParentOf, WAREHOUSE_ALLOWED_ITEMS, type NavItem } from './sidebarConfig';
 
 /**
  * Wie mag welk navigatie-item zien.
@@ -27,7 +26,6 @@ import { WAREHOUSE_ALLOWED_ITEMS, type NavItem } from './sidebarConfig';
 export function useNavItemVisibility() {
   const { isPlatformAdmin, userRole, isWarehouse, roles } = useAuth();
   const { currentTenant } = useTenant();
-  const { isItemHidden } = useSidebarPreferences();
   const { isPageHidden, isFeatureGranted } = useTenantPageOverrides();
   const { subscription } = useTenantSubscription();
   const { isAdminView } = usePlatformViewMode();
@@ -116,13 +114,15 @@ export function useNavItemVisibility() {
    * Mag deze gebruiker hier überhaupt komen?
    *
    * Rol, abonnement, permissie-matrix en tenant-overrides — alles wat een
-   * harde grens is. Bewust zónder de persoonlijke sidebar-voorkeuren: die
-   * bestaan om een lange zijbalk op te ruimen, niet om toegang te regelen.
-   * Voor een vaste balk van vier snelkoppelingen zou het bovendien raar
-   * uitpakken als een item daar verdween omdat iemand ooit zijn zijbalk heeft
-   * opgeschoond.
+   * harde grens is. (De persoonlijke zijbalk-voorkeuren bestaan sinds FIXES-0711
+   * niet meer; sidebar_preferences.hidden_items wordt niet meer gelezen.)
+   *
+   * FIXES-0711 — een kind-item erft de grenzen van zijn parent. De zijbalk deed
+   * dat al (verborgen parent = geen kinderen), de onderbalk niet: een horecazaak
+   * kon "Categorieën" (kind van Producten, spoor webshop) of de kinderen van
+   * Advertenties (pakket social_commerce) als snelkoppeling kiezen.
    */
-  const isItemBlocked = useCallback(
+  const isOwnBlocked = useCallback(
     (item: NavItem): boolean =>
       isResourceHidden(item.requireRead) ||
       // TRACKS-1 — buiten de sporen van de winkel (platformadmin in beheerweergave ziet alles).
@@ -135,11 +135,17 @@ export function useNavItemVisibility() {
     [isResourceHidden, hasTrack, isItemRoleHidden, isItemFeatureHidden, isItemPageOverridden],
   );
 
-  /** `isItemBlocked` plus de persoonlijke voorkeuren. Voor de zijbalk. */
-  const shouldHideItem = useCallback(
-    (item: NavItem): boolean => isItemHidden(item.id) || isItemBlocked(item),
-    [isItemHidden, isItemBlocked],
+  const isItemBlocked = useCallback(
+    (item: NavItem): boolean => {
+      if (isOwnBlocked(item)) return true;
+      const parent = navParentOf(item.id);
+      return parent !== null && isOwnBlocked(parent);
+    },
+    [isOwnBlocked],
   );
+
+  /** Voor de zijbalk: dezelfde grenzen als de onderbalk (FIXES-0711: geen persoonlijke voorkeuren meer). */
+  const shouldHideItem = isItemBlocked;
 
   return {
     shouldHideItem,
