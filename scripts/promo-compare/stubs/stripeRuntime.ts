@@ -2,9 +2,14 @@
 // FIXES-0711 — Stripe-stub voor de handler-tests (import_map.resolve.json): ongetypeerd (`any`), zodat
 // deno check de echte aanroepen (create/retrieve/expire met stripeAccount) niet tegen een nagebouwde
 // API controleert. Gedrag stuurt de test via globalThis:
+//   __stripeLoadError    → de constructor gooit (Stripe laadt niet);
 //   __stripeCreateError  → checkout.sessions.create faalt met die fout (bv. een foute sleutel);
 //   __stripeRetrieve     → de sessie die retrieve teruggeeft.
 const Stripe: any = class {
+  constructor(_key?: string, _opts?: unknown) {
+    const fail = (globalThis as any).__stripeLoadError;
+    if (fail) throw fail;
+  }
   checkout = {
     sessions: {
       create: (_params: any, _opts?: any) => {

@@ -38,6 +38,12 @@ Branch `fixes-0711` vanaf origin/main `ef3cd71` (storefront: `fixes-0711` vanaf 
 - Storefront: `tsc --noEmit` exit 0, `vite build` exit 0, `test:hours` 27/27.
 - Niet gedaan: de link van punt 3 visueel in het harnas. Scenario `qr-aan-tafel` is al kapot op origin/main (mock `tenant.ts` mist `TenantContext`; daarna "supabaseUrl is required"). Afgedekt met vitest (`resolveLegacyHref(PAYMENT_SETTINGS_URL)` + bronbestandscontrole).
 
+**Review-ronde (zelfde dag)**
+- B1: `releaseFailedCheckPayment(supabase, tenantId, paymentId)` leest eerst de poging en geeft enkel vrij als ze `pending` is zonder `stripe_session_id`; de Stripe-laadfout geeft bij een herhaling met bestaande sessie (`duplicate && stripe_session_id`) niets vrij. Tests: herhaling met sessie + laadfout → geen `table_check_pay_mark`; `create` faalt op een poging met sessie → geen `expired` (promo-compare 271/271).
+- Vangst: `publicStorefrontError` krijgt `rawMsg` ongewijzigd (geen `String()`): een niet-string-fout geeft dezelfde body als vóór de batch (test).
+- Storefront: niet-online betaalwijzen (overschrijving, betalen bij afhalen) krijgen "Je bestelling kon nu niet geplaatst worden. Probeer het opnieuw." i.p.v. de online-betalen-tekst.
+- Opnieuw groen: deno check storefront-api, `_shared/storefrontErrorStatus.test.ts` 6/6, promo-compare 271/271, rooktest, lint-baseline; storefront tsc, build, `test:hours` 28/28.
+
 **Bewust ongemoeid / Vervolg**
 - `/admin/payments` blijft de bestemming van zijbalk Transacties en van betaal-/payoutmeldingen (bedoeld).
 - Onderbalk-kiezer horeca-only biedt nog "Facturen", "Voorraadrapport" en "Betalingen" (= Transacties in de horeca-zijbalk) aan: toegelaten (rechten/spoor), maar niet in de horeca-zijbalk en "Betalingen" heet daar anders. Voorstel: labels via `sidebarLabelKey` ook in de kiezer, en eventueel enkel items uit `sidebarLayout`.

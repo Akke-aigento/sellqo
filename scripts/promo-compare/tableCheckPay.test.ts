@@ -14,10 +14,15 @@ const T = 'tenant-check';
 const TOKEN = 'aaaaaaaaaaaaaaaaaaaaaaaa';
 const TABLE = '44444444-4444-4444-8444-444444444444';
 const PAY = '55555555-5555-4555-8555-555555555555';
+const PAY_NEW = '77777777-7777-4777-8777-777777777777';
+const PAY_SESSION = '88888888-8888-4888-8888-888888888888';
 const db = new FakeDb({
   dining_tables: [{ id: TABLE, tenant_id: T, area_id: 'a1', label: 'Blauw 1', is_active: true, qr_token: TOKEN }],
   dining_areas: [{ id: 'a1', tenant_id: T, name: 'Binnen' }],
-  check_online_payments: [{ id: PAY, tenant_id: T, status: 'refunded', kind: 'share', amount_cents: 1200, tip_cents: 100, table_label: 'Blauw 1', reason: 'CHECK_CLOSED', stripe_session_id: null, paid_at: null, created_at: '2026-10-28T12:00:00Z' }],
+  check_online_payments: [{ id: PAY, tenant_id: T, status: 'refunded', kind: 'share', amount_cents: 1200, tip_cents: 100, table_label: 'Blauw 1', reason: 'CHECK_CLOSED', stripe_session_id: null, paid_at: null, created_at: '2026-10-28T12:00:00Z' },
+    // FIXES-0711 review B1: een nieuwe poging zonder sessie, en een herhaling waar al een Stripe-sessie aan hangt.
+    { id: PAY_NEW, tenant_id: T, status: 'pending', kind: 'full', amount_cents: 2400, tip_cents: 0, table_label: 'Blauw 1', reason: null, stripe_session_id: null, paid_at: null, created_at: '2026-11-07T12:00:00Z' },
+    { id: PAY_SESSION, tenant_id: T, status: 'pending', kind: 'full', amount_cents: 2400, tip_cents: 0, table_label: 'Blauw 1', reason: null, stripe_session_id: 'cs_live_1', paid_at: null, created_at: '2026-11-07T12:00:00Z' }],
   tenants: [{ id: T, slug: 'checktest', name: 'Check Test', stripe_account_id: 'acct_x', currency: 'EUR' }],
   tenant_domains: [], tenant_theme_settings: [], fulfillment_settings: [],
 });
@@ -79,14 +84,42 @@ Deno.test('betalen: databankfout → leesbare melding (iemand betaalt al)', asyn
 // FIXES-0711 — een Stripe-fout (foute sleutel/account) gaat nooit letterlijk naar de gast.
 Deno.test('betalen: Stripe weigert → ONLINE_PAY_UNAVAILABLE, geen Stripe-tekst, vasthouding vrijgegeven', async () => {
   rpcCalls.length = 0;
-  rpcResult = { data: { payment_id: PAY, status: 'pending', amount_cents: 2400, tip_cents: 0, table_label: 'Blauw 1' }, error: null };
+  rpcResult = { data: { payment_id: PAY_NEW, status: 'pending', amount_cents: 2400, tip_cents: 0, table_label: 'Blauw 1' }, error: null };
   (globalThis as any).__stripeCreateError = Object.assign(new Error("The provided key 'sk_live_***1234' does not have access to account 'acct_1AbCdEfGh'"), { type: 'StripePermissionError', statusCode: 403, raw: {} });
   try {
-    const r = await call('table_check_pay', { table_token: TOKEN, payment_id: PAY, kind: 'full', success_url: 'https://s/ok', cancel_url: 'https://s/no' });
+    const r = await call('table_check_pay', { table_token: TOKEN, payment_id: PAY_NEW, kind: 'full', success_url: 'https://s/ok', cancel_url: 'https://s/no' });
     const txt = JSON.stringify(r.json);
     assert(r.json.data?.error?.code === 'ONLINE_PAY_UNAVAILABLE' && /Vraag de rekening aan de bediening/.test(r.json.data.error.message), txt);
     assert(!/sk_live|acct_|provided key/.test(txt), 'geen Stripe-tekst naar de gast: ' + txt);
-    assert(rpcCalls.some((c) => c.fn === 'table_check_pay_mark' && c.args.p_status === 'expired' && c.args.p_payment_id === PAY), JSON.stringify(rpcCalls));
+    assert(rpcCalls.some((c) => c.fn === 'table_check_pay_mark' && c.args.p_status === 'expired' && c.args.p_payment_id === PAY_NEW), JSON.stringify(rpcCalls));
+  } finally {
+    delete (globalThis as any).__stripeCreateError;
+  }
+});
+
+// Review B1: herhaling met een bestaande Stripe-sessie + Stripe laadt niet → nette fout, nooit vrijgeven.
+Deno.test('betalen: herhaling met bestaande sessie en Stripe-laadfout → ONLINE_PAY_UNAVAILABLE, geen expired', async () => {
+  rpcCalls.length = 0;
+  rpcResult = { data: { payment_id: PAY_SESSION, status: 'pending', amount_cents: 2400, tip_cents: 0, table_label: 'Blauw 1', stripe_session_id: 'cs_live_1', duplicate: true }, error: null };
+  (globalThis as any).__stripeLoadError = new Error('Invalid API Key provided: sk_live_***');
+  try {
+    const r = await call('table_check_pay', { table_token: TOKEN, payment_id: PAY_SESSION, kind: 'full', success_url: 'https://s/ok', cancel_url: 'https://s/no' });
+    assert(r.json.data?.error?.code === 'ONLINE_PAY_UNAVAILABLE', JSON.stringify(r.json));
+    assert(!rpcCalls.some((c) => c.fn === 'table_check_pay_mark'), 'niet vrijgeven: ' + JSON.stringify(rpcCalls));
+  } finally {
+    delete (globalThis as any).__stripeLoadError;
+  }
+});
+
+// Review B1: ook zonder duplicaatvlag geeft het vangnet een poging met een sessie nooit vrij.
+Deno.test('betalen: sessie maken faalt maar de poging heeft al een sessie → geen expired', async () => {
+  rpcCalls.length = 0;
+  rpcResult = { data: { payment_id: PAY_SESSION, status: 'pending', amount_cents: 2400, tip_cents: 0, table_label: 'Blauw 1' }, error: null };
+  (globalThis as any).__stripeCreateError = new Error('boom');
+  try {
+    const r = await call('table_check_pay', { table_token: TOKEN, payment_id: PAY_SESSION, kind: 'full', success_url: 'https://s/ok', cancel_url: 'https://s/no' });
+    assert(r.json.data?.error?.code === 'ONLINE_PAY_UNAVAILABLE', JSON.stringify(r.json));
+    assert(!rpcCalls.some((c) => c.fn === 'table_check_pay_mark'), 'niet vrijgeven: ' + JSON.stringify(rpcCalls));
   } finally {
     delete (globalThis as any).__stripeCreateError;
   }

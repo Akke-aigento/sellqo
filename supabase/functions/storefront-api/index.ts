@@ -1587,7 +1587,8 @@ async function tableCheckPay(supabase: SupabaseLike, tenantId: string, params: R
     stripe = await stripeClient();
   } catch (e) {
     console.error('[table_check_pay] stripe laden', e instanceof Error ? e.message : e);
-    await releaseFailedCheckPayment(supabase, paymentId);
+    // Review B1: een herhaling met een bestaande Stripe-sessie nooit vrijgeven (die kan nog betaald worden).
+    if (!(start.duplicate && start.stripe_session_id)) await releaseFailedCheckPayment(supabase, tenantId, paymentId);
     return { success: false, error: onlinePayUnavailable('table_check_pay') };
   }
 
@@ -1623,7 +1624,7 @@ async function tableCheckPay(supabase: SupabaseLike, tenantId: string, params: R
   } catch (e) {
     // Geen sessie = niets te betalen: de vasthouding meteen vrijgeven (anders 10 min de items vast).
     console.error('[table_check_pay] stripe sessie maken', e instanceof Error ? e.message : e);
-    await releaseFailedCheckPayment(supabase, paymentId);
+    await releaseFailedCheckPayment(supabase, tenantId, paymentId);
     return { success: false, error: onlinePayUnavailable('table_check_pay') };
   }
   const { error: markError } = await supabase.rpc('table_check_pay_mark', { p_payment_id: paymentId, p_status: 'session', p_session_id: session.id, p_refund_id: null });
@@ -1633,8 +1634,14 @@ async function tableCheckPay(supabase: SupabaseLike, tenantId: string, params: R
 }
 
 // FIXES-0711 — een poging zonder Stripe-sessie vrijgeven (best effort; de vasthouding verloopt anders na 10 min).
-async function releaseFailedCheckPayment(supabase: SupabaseLike, paymentId: string) {
+// Review B1: hangt er al een Stripe-sessie aan de poging (of is ze niet meer pending), dan niets doen: die sessie
+// kan nog betaald worden; de status-oproep of de webhook rondt af.
+async function releaseFailedCheckPayment(supabase: SupabaseLike, tenantId: string, paymentId: string) {
   try {
+    const { data: row, error: readError } = await supabase.from('check_online_payments').select('status, stripe_session_id')
+      .eq('id', paymentId).eq('tenant_id', tenantId).maybeSingle();
+    if (readError || !row) { if (readError) console.error('[table_check_pay] poging lezen', readError.message); return; }
+    if (row.status !== 'pending' || row.stripe_session_id) return;
     const { error } = await supabase.rpc('table_check_pay_mark', { p_payment_id: paymentId, p_status: 'expired', p_session_id: null, p_refund_id: null });
     if (error) console.error('[table_check_pay] vrijgeven na stripe-fout', error.message);
   } catch (e) {
@@ -7027,7 +7034,7 @@ serve(async (req) => {
     }
     const rawMsg = error instanceof Error ? error.message : (typeof error === 'object' && error !== null && 'message' in error) ? (error as any).message : String(error);
     // FIXES-0711 — Stripe-fouten en lekkende sleutels worden ONLINE_PAY_UNAVAILABLE; alle andere fouten byte-gelijk.
-    const errMsg = publicStorefrontError(currentAction, error, String(rawMsg));
+    const errMsg = publicStorefrontError(currentAction, error, rawMsg);
     // EVENT-409-1 — "event/tickettype volzet" is een verwachte weigering, geen storing: 409.
     // Body ongewijzigd; alle andere fouten blijven 500.
     return new Response(JSON.stringify({ success: false, error: errMsg }), { status: statusForStorefrontError(errMsg), headers: { ...corsHeaders, 'Content-Type': 'application/json' } });

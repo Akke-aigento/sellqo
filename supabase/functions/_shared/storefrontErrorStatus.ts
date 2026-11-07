@@ -64,8 +64,11 @@ export function isStripeError(error: unknown): boolean {
 // Sleutels en account-ID's horen nooit in een antwoord, ook niet in een fout van elders.
 const SECRET_RE = /\b(?:sk|rk|pk)_(?:live|test)_|\bwhsec_|\bacct_[A-Za-z0-9]{6,}/;
 
-/** De foutboodschap die naar de client mag: Stripe-fouten en lekkende sleutels worden ONLINE_PAY_UNAVAILABLE. */
-export function publicStorefrontError(action: string, error: unknown, message: string): string {
-  if (isStripeError(error) || SECRET_RE.test(message)) return JSON.stringify(onlinePayUnavailable(action));
+/**
+ * De foutboodschap die naar de client mag: Stripe-fouten en lekkende sleutels worden ONLINE_PAY_UNAVAILABLE.
+ * Anders komt `message` ongewijzigd terug (ook als het geen string is: zelfde body als voorheen).
+ */
+export function publicStorefrontError(action: string, error: unknown, message: unknown): unknown {
+  if (isStripeError(error) || (typeof message === 'string' && SECRET_RE.test(message))) return JSON.stringify(onlinePayUnavailable(action));
   return message;
 }

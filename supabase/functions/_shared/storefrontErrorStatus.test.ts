@@ -30,12 +30,12 @@ Deno.test("de code wordt niet uit een tekst met de code erin gehaald", () => {
 
 Deno.test("Stripe-fout → ONLINE_PAY_UNAVAILABLE, aan tafel met de bediening-tekst", () => {
   const stripeErr = Object.assign(new Error("The provided key 'sk_live_***abc' does not have access to account 'acct_1AbCdEf'"), { type: 'StripePermissionError', statusCode: 403, raw: {} });
-  const out = JSON.parse(publicStorefrontError('table_check_pay', stripeErr, stripeErr.message));
+  const out = JSON.parse(String(publicStorefrontError('table_check_pay', stripeErr, stripeErr.message)));
   assertEquals(out.code, 'ONLINE_PAY_UNAVAILABLE');
   assertEquals(out.message, 'Online betalen lukt nu niet. Vraag de rekening aan de bediening.');
   assertEquals(JSON.stringify(out).includes('sk_live'), false);
   // Buiten de tafel: andere raad.
-  assertEquals(JSON.parse(publicStorefrontError('checkout_complete', stripeErr, stripeErr.message)).message, onlinePayUnavailable('checkout_complete').message);
+  assertEquals(JSON.parse(String(publicStorefrontError('checkout_complete', stripeErr, stripeErr.message))).message, onlinePayUnavailable('checkout_complete').message);
   // Status blijft wat ze was (500): enkel de tekst verandert.
   assertEquals(statusForStorefrontError(publicStorefrontError('table_check_pay', stripeErr, stripeErr.message)), 500);
 });
@@ -50,5 +50,9 @@ Deno.test("gewone fouten blijven byte-gelijk", () => {
     assertEquals(publicStorefrontError('cart_add_item', new Error(m), m), m);
   }
   assertEquals(isStripeError(new Error('nope')), false);
+  // Review: niet-strings komen ongewijzigd terug (geen "undefined" of "[object Object]").
+  assertEquals(publicStorefrontError('cart_get', {}, undefined), undefined);
+  const obj = { code: 'X' };
+  assertEquals(publicStorefrontError('cart_get', obj, obj), obj);
   assertEquals(isStripeError({ type: 'StripeConnectionError' }), true);
 });
